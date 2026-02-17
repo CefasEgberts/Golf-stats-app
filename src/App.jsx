@@ -466,7 +466,6 @@ export default function GolfStatsApp() {
       holesPlayed: 'holes played',
       totalPutts: 'Total Putts',
       avgPutts: 'Avg Putts',
-      newRound: 'NEW ROUND',
       settings: 'Settings',
       name: 'First name',
       units: 'Units',
