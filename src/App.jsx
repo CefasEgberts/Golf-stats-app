@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, Settings } from 'lucide-react';
+import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, Settings, Home } from 'lucide-react';
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
@@ -773,9 +773,36 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       {currentScreen === 'splash' && (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 animate-slide-up">
           <div className="text-center max-w-md">
-            {/* Logo/Title */}
-            <div className="font-display text-8xl mb-8 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">
-              GOLF STATS
+            {/* Modern Logo with Golf Flag Icon */}
+            <div 
+              onClick={() => setCurrentScreen('home')}
+              className="cursor-pointer hover:scale-105 transition-transform duration-300 mb-8"
+            >
+              {/* Golf Flag Icon */}
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  {/* Flag pole */}
+                  <div className="w-1 h-24 bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-full mx-auto"></div>
+                  {/* Flag */}
+                  <div className="absolute top-2 left-1 w-16 h-10 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-r-lg shadow-lg transform -skew-y-3 animate-pulse"></div>
+                  {/* Golf ball on ground */}
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-md"></div>
+                </div>
+              </div>
+              
+              {/* Logo Text */}
+              <div className="space-y-2">
+                <div className="font-display text-7xl font-bold tracking-tight">
+                  <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-300 bg-clip-text text-transparent">
+                    GOLF
+                  </span>
+                  <span className="text-white/90 mx-2">·</span>
+                  <span className="bg-gradient-to-r from-teal-200 via-emerald-300 to-teal-200 bg-clip-text text-transparent">
+                    STATS
+                  </span>
+                </div>
+                <div className="h-1 w-32 mx-auto bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full"></div>
+              </div>
             </div>
             
             {/* Greeting */}
@@ -940,7 +967,21 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                   <h2 className="font-display text-3xl mb-1">{tr('newRound').toUpperCase()}</h2>
                   <p className="font-body text-emerald-200/60 text-sm">{tr('startTracking')}</p>
                 </div>
-                <Plus className="w-12 h-12 text-emerald-400" />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setCurrentScreen('home');
+                      setUserLocation(null);
+                      setShowSearch(false);
+                      setSearchQuery('');
+                    }}
+                    className="p-3 rounded-xl hover:bg-white/10 transition"
+                    title={settings.language === 'nl' ? 'Terug naar home' : 'Back to home'}
+                  >
+                    <Home className="w-6 h-6 text-emerald-400" />
+                  </button>
+                  <Plus className="w-12 h-12 text-emerald-400" />
+                </div>
               </div>
               
               <div className="space-y-4">
