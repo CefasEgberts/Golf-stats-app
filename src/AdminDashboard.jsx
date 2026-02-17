@@ -34,11 +34,11 @@ export default function AdminDashboard({ onBack }) {
     setCreating(true);
     setMessage('');
 
-    // Create user via Supabase Admin API
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: newEmail,
-      password: newPassword,
-      email_confirm: true,
+    // Call the SQL function to create user
+    const { data, error } = await supabase.rpc('create_user_for_admin', {
+      user_email: newEmail,
+      user_password: newPassword,
+      user_name: newName
     });
 
     if (error) {
@@ -46,15 +46,6 @@ export default function AdminDashboard({ onBack }) {
       setCreating(false);
       return;
     }
-
-    // Create profile
-    await supabase.from('profiles').insert({
-      id: data.user.id,
-      email: newEmail,
-      name: newName,
-      approved: true,
-      role: 'user',
-    });
 
     setMessage(`✅ Gebruiker ${newName} aangemaakt!`);
     setNewEmail('');
@@ -75,10 +66,16 @@ export default function AdminDashboard({ onBack }) {
   const deleteUser = async (userId, userName) => {
     if (!confirm(`Weet je zeker dat je ${userName} wilt verwijderen?`)) return;
 
-    await supabase.auth.admin.deleteUser(userId);
-    await supabase.from('profiles').delete().eq('id', userId);
-    setMessage(`🗑️ ${userName} verwijderd`);
-    loadUsers();
+    const { error } = await supabase.rpc('delete_user_for_admin', {
+      user_id: userId
+    });
+
+    if (error) {
+      setMessage(`❌ Fout: ${error.message}`);
+    } else {
+      setMessage(`🗑️ ${userName} verwijderd`);
+      loadUsers();
+    }
   };
 
   const cardStyle = {
