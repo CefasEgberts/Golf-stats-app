@@ -50,6 +50,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   });
   const [userLocation, setUserLocation] = useState(null);
   const [nearbyCoursesLoading, setNearbyCoursesLoading] = useState(false);
+  const [googleCourses, setGoogleCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [fetchingWeather, setFetchingWeather] = useState(false);
@@ -615,7 +616,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
             
             if (data.results && data.results.length > 0) {
               // Map Google Places results to our course format
-              const googleCourses = data.results.map(place => ({
+              const courses = data.results.map(place => ({
                 name: place.name,
                 city: place.vicinity || '',
                 loops: [{ name: '18 holes', holes: 18 }],
@@ -624,8 +625,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                 lng: place.geometry.location.lng
               }));
               
-              console.log(`Found ${googleCourses.length} golf courses nearby!`, googleCourses);
-              // For now, we'll still use the Dutch courses but show we found real ones
+              console.log(`Found ${courses.length} golf courses nearby!`, courses);
+              setGoogleCourses(courses);
             }
           } catch (error) {
             console.error('Error fetching golf courses:', error);
@@ -650,10 +651,13 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
   // Filter courses based on search query
   const getFilteredCourses = () => {
+    // Use Google courses if available, otherwise fall back to Dutch courses
+    const coursesToUse = googleCourses.length > 0 ? googleCourses : allCourses;
+    
     if (!searchQuery.trim()) {
-      return userLocation ? allCourses.slice(0, 5) : [];
+      return userLocation ? coursesToUse.slice(0, 10) : [];
     }
-    return allCourses.filter(course => 
+    return coursesToUse.filter(course => 
       course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.city.toLowerCase().includes(searchQuery.toLowerCase())
     );
