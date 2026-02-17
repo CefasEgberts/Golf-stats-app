@@ -7,6 +7,7 @@ export default function AdminDashboard({ onBack }) {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -34,25 +35,53 @@ export default function AdminDashboard({ onBack }) {
     setCreating(true);
     setMessage('');
 
-    // Call the SQL function to create user
-    const { data, error } = await supabase.rpc('create_user_for_admin', {
-      user_email: newEmail,
-      user_password: newPassword,
-      user_name: newName
-    });
+    try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setMessage('Fout: Niet ingelogd');
+        setCreating(false);
+        return;
+      }
 
-    if (error) {
+      // Call Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: newEmail,
+            password: newPassword,
+            name: newName,
+            username: newUsername || newName
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setMessage(`Fout: ${result.error || 'Onbekende fout'}`);
+        setCreating(false);
+        return;
+      }
+
+      setMessage(`✅ Gebruiker ${newName} (${newUsername || newName}) aangemaakt!`);
+      setNewEmail('');
+      setNewPassword('');
+      setNewName('');
+      setNewUsername('');
+      setCreating(false);
+      loadUsers();
+    } catch (error) {
       setMessage(`Fout: ${error.message}`);
       setCreating(false);
-      return;
     }
-
-    setMessage(`✅ Gebruiker ${newName} aangemaakt!`);
-    setNewEmail('');
-    setNewPassword('');
-    setNewName('');
-    setCreating(false);
-    loadUsers();
   };
 
   const toggleApproval = async (userId, currentStatus) => {
@@ -156,7 +185,14 @@ export default function AdminDashboard({ onBack }) {
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Naam"
+            placeholder="Volledige naam (bijv. Jan de Vries)"
+            style={inputStyle}
+          />
+          <input
+            type="text"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+            placeholder="Gebruikersnaam (bijv. Jan) - optioneel"
             style={inputStyle}
           />
           <input
