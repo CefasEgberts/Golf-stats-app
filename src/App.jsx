@@ -467,7 +467,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           try {
             // Call Supabase Edge Function to search for golf courses
             const response = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-golf-courses`,
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-processor`,
               {
                 method: 'POST',
                 headers: {
