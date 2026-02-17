@@ -11,11 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     language: 'nl',
     handicap: 13.5,
     showScore: false,
-    bag: [
-      'Driver', 'Houten 3', 'Houten 5', 'Hybride 3',
-      'Ijzer 5', 'Ijzer 6', 'Ijzer 7', 'Ijzer 8', 'Ijzer 9',
-      'PW', 'SW', 'AW', 'Putter'
-    ]
+    bag: [] // Empty bag - user adds their own clubs
   });
   
   // Update settings when profile changes
@@ -220,138 +216,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     };
   };
 
-  const allCourses = [
-    { 
-      id: 1, 
-      name: 'The Dutch', 
-      city: 'Spijk',
-      distance: 2.3,
-      lat: 53.3485,
-      lng: 6.8555,
-      loops: [
-        { id: 'dunes', name: 'Dunes', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'links', name: 'Links', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'dunes-links', name: 'Dunes + Links', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Oranje', 'Blauw', 'Zwart']
-    },
-    { 
-      id: 2, 
-      name: 'Golfclub de Batouwe', 
-      city: 'Dodewaard',
-      distance: 4.5,
-      lat: 51.9167,
-      lng: 5.6500,
-      loops: [
-        { id: 'appel', name: 'Appel', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'kers', name: 'Kers', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'peer', name: 'Peer', holes: [19,20,21,22,23,24,25,26,27] },
-        { id: 'appel-kers', name: 'Appel + Kers', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true },
-        { id: 'appel-peer', name: 'Appel + Peer', holes: [1,2,3,4,5,6,7,8,9,19,20,21,22,23,24,25,26,27], isFull: true },
-        { id: 'kers-peer', name: 'Kers + Peer', holes: [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Rood', 'Blauw']
-    },
-    { 
-      id: 3, 
-      name: 'Haarlemmermeersche', 
-      city: 'Cruquius',
-      distance: 3.8,
-      lat: 52.3283,
-      lng: 4.6358,
-      loops: [
-        { id: 'cruquius', name: 'Cruquius', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'lynden', name: 'Lynden', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'leeghwater', name: 'Leeghwater', holes: [19,20,21,22,23,24,25,26,27] },
-        { id: 'cruquius-lynden', name: 'Cruquius + Lynden', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true },
-        { id: 'cruquius-leeghwater', name: 'Cruquius + Leeghwater', holes: [1,2,3,4,5,6,7,8,9,19,20,21,22,23,24,25,26,27], isFull: true },
-        { id: 'lynden-leeghwater', name: 'Lynden + Leeghwater', holes: [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Rood', 'Blauw', 'Zwart']
-    },
-    { 
-      id: 4, 
-      name: 'Noordwijkse Golf Club', 
-      city: 'Noordwijk',
-      distance: 5.7,
-      lat: 52.2584,
-      lng: 4.4464,
-      loops: [
-        { id: 'duinen', name: 'Duinen', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'bos', name: 'Bos', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'strand', name: 'Strand', holes: [19,20,21,22,23,24,25,26,27] },
-        { id: 'duinen-bos', name: 'Duinen + Bos', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true },
-        { id: 'duinen-strand', name: 'Duinen + Strand', holes: [1,2,3,4,5,6,7,8,9,19,20,21,22,23,24,25,26,27], isFull: true },
-        { id: 'bos-strand', name: 'Bos + Strand', holes: [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Rood', 'Blauw']
-    },
-    { 
-      id: 5, 
-      name: 'Amsterdamse Golf Club', 
-      city: 'Duivendrecht',
-      distance: 8.2,
-      lat: 52.3167,
-      lng: 4.9583,
-      loops: [
-        { id: 'old', name: 'Old Course', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'new', name: 'New Course', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'old-new', name: 'Old + New Course', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Blauw', 'Zwart']
-    },
-    { 
-      id: 6, 
-      name: 'Golfbaan Spaarnwoude', 
-      city: 'Haarlem',
-      distance: 12.1,
-      lat: 52.4333,
-      lng: 4.7167,
-      loops: [
-        { id: 'yellow', name: 'Yellow', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'red', name: 'Red', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'blue', name: 'Blue', holes: [19,20,21,22,23,24,25,26,27] },
-        { id: 'orange', name: 'Orange', holes: [28,29,30,31,32,33,34,35,36] },
-        { id: 'green', name: 'Green', holes: [37,38,39,40,41,42,43,44,45] },
-        { id: 'purple', name: 'Purple', holes: [46,47,48,49,50,51,52,53,54] },
-        { id: 'yellow-red', name: 'Yellow + Red', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true },
-        { id: 'blue-orange', name: 'Blue + Orange', holes: [19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36], isFull: true },
-        { id: 'green-purple', name: 'Green + Purple', holes: [37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Oranje', 'Blauw', 'Zwart']
-    },
-    { 
-      id: 7, 
-      name: 'Golfclub Broekpolder', 
-      city: 'Vlaardingen',
-      distance: 18.5,
-      lat: 51.9083,
-      lng: 4.3417,
-      loops: [
-        { id: 'polder', name: 'Polder', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'water', name: 'Water', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'park', name: 'Park', holes: [19,20,21,22,23,24,25,26,27] },
-        { id: 'polder-water', name: 'Polder + Water', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true },
-        { id: 'water-park', name: 'Water + Park', holes: [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27], isFull: true },
-        { id: 'polder-park', name: 'Polder + Park', holes: [1,2,3,4,5,6,7,8,9,19,20,21,22,23,24,25,26,27], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Rood', 'Blauw']
-    },
-    { 
-      id: 8, 
-      name: 'Golfcentrum Hoofddorp', 
-      city: 'Hoofddorp',
-      distance: 4.2,
-      lat: 52.3042,
-      lng: 4.6889,
-      loops: [
-        { id: 'north', name: 'North', holes: [1,2,3,4,5,6,7,8,9] },
-        { id: 'south', name: 'South', holes: [10,11,12,13,14,15,16,17,18] },
-        { id: 'north-south', name: 'North + South', holes: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18], isFull: true }
-      ],
-      teeColors: ['Wit', 'Geel', 'Rood', 'Blauw']
-    }
-  ];
+  // Demo courses removed - we now use Google Places API for real golf courses
+  const allCourses = [];
 
   const allClubs = [
     'Driver', 'Houten 3', 'Houten 5', 'Houten 7',
@@ -616,14 +482,23 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
             
             if (data.results && data.results.length > 0) {
               // Map Google Places results to our course format
-              const courses = data.results.map(place => ({
-                name: place.name,
-                city: place.vicinity || '',
-                loops: [{ name: '18 holes', holes: 18 }],
-                tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
-                lat: place.geometry.location.lat,
-                lng: place.geometry.location.lng
-              }));
+              // Filter out driving ranges, golf centers, and practice facilities
+              const courses = data.results
+                .filter(place => {
+                  const name = place.name.toLowerCase();
+                  return !name.includes('golfcentrum') && 
+                         !name.includes('driving range') &&
+                         !name.includes('practice') &&
+                         !name.includes('oefenbaan');
+                })
+                .map(place => ({
+                  name: place.name,
+                  city: place.vicinity || '',
+                  loops: [{ name: '18 holes', holes: 18 }],
+                  tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
+                  lat: place.geometry.location.lat,
+                  lng: place.geometry.location.lng
+                }));
               
               console.log(`Found ${courses.length} golf courses nearby!`, courses);
               setGoogleCourses(courses);
