@@ -26,7 +26,7 @@ export default function LoginScreen({ onLogin }) {
     // Check if user is approved
     const { data: profile } = await supabase
       .from('profiles')
-      .select('approved, role')
+      .select('approved, role, username, name')
       .eq('id', data.user.id)
       .single();
 
