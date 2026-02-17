@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, Settings } from 'lucide-react';
 
-export default function GolfStatsApp() {
+export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [currentHole, setCurrentHole] = useState(1);
   const [currentHoleInfo, setCurrentHoleInfo] = useState(null);
@@ -846,6 +846,15 @@ export default function GolfStatsApp() {
                 >
                   <BarChart3 className="w-6 h-6 text-emerald-400" />
                 </button>
+                {onAdmin && (
+                  <button 
+                    onClick={onAdmin}
+                    className="glass-card p-3 rounded-xl hover:bg-white/15 transition"
+                    title="Admin Dashboard"
+                  >
+                    <span className="text-emerald-400 text-xl">👑</span>
+                  </button>
+                )}
                 <button 
                   onClick={() => setCurrentScreen('settings')}
                   className="glass-card p-3 rounded-xl hover:bg-white/15 transition"
@@ -853,6 +862,15 @@ export default function GolfStatsApp() {
                 >
                   <Settings className="w-6 h-6 text-emerald-400" />
                 </button>
+                {onLogout && (
+                  <button 
+                    onClick={onLogout}
+                    className="glass-card p-3 rounded-xl hover:bg-white/15 transition"
+                    title="Uitloggen"
+                  >
+                    <span className="text-red-400 text-xl">🚪</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
