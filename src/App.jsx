@@ -57,19 +57,68 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   // Splash screen effect
   React.useEffect(() => {
     if (currentScreen === 'splash') {
-      // Simulate weather fetch
+      // Fetch real weather based on user location
+      const fetchRealWeather = async () => {
+        try {
+          // Get user's location
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+              const { latitude, longitude } = position.coords;
+              
+              // Fetch weather from Open-Meteo API (free, no key needed)
+              const response = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode&timezone=auto`
+              );
+              
+              const data = await response.json();
+              const temp = Math.round(data.current.temperature_2m);
+              
+              // Weather codes: https://open-meteo.com/en/docs
+              // 0 = clear, 1-3 = cloudy, 45-48 = fog, 51-67 = rain, 71-77 = snow, 80-99 = rain/thunderstorm
+              const weatherCode = data.current.weathercode;
+              let condition = 'sunny';
+              
+              if (weatherCode >= 51 && weatherCode <= 99) {
+                condition = 'rainy';
+              } else if (weatherCode >= 1 && weatherCode <= 48) {
+                condition = 'cloudy';
+              }
+              
+              setSplashWeather({ temp, condition });
+            }, (error) => {
+              // Fallback if location denied
+              console.log('Location access denied, using fallback weather');
+              const temps = [2, 5, 8, 12, 15, 18, 21, 24];
+              const temp = temps[Math.floor(Math.random() * temps.length)];
+              const conditions = ['sunny', 'cloudy', 'rainy'];
+              const condition = conditions[Math.floor(Math.random() * conditions.length)];
+              setSplashWeather({ temp, condition });
+            });
+          } else {
+            // Fallback if geolocation not supported
+            const temps = [2, 5, 8, 12, 15, 18, 21, 24];
+            const temp = temps[Math.floor(Math.random() * temps.length)];
+            const conditions = ['sunny', 'cloudy', 'rainy'];
+            const condition = conditions[Math.floor(Math.random() * conditions.length)];
+            setSplashWeather({ temp, condition });
+          }
+        } catch (error) {
+          console.error('Weather fetch failed:', error);
+          // Fallback on error
+          const temps = [2, 5, 8, 12, 15, 18, 21, 24];
+          const temp = temps[Math.floor(Math.random() * temps.length)];
+          const conditions = ['sunny', 'cloudy', 'rainy'];
+          const condition = conditions[Math.floor(Math.random() * conditions.length)];
+          setSplashWeather({ temp, condition });
+        }
+      };
+      
+      fetchRealWeather();
+      
+      // Show splash for 2 seconds
       setTimeout(() => {
-        const temps = [2, 5, 8, 12, 15, 18, 21, 24];
-        const temp = temps[Math.floor(Math.random() * temps.length)];
-        const conditions = ['sunny', 'cloudy', 'rainy'];
-        const condition = conditions[Math.floor(Math.random() * conditions.length)];
-        setSplashWeather({ temp, condition });
-        
-        // Show splash for 2 seconds after weather loads
-        setTimeout(() => {
-          setCurrentScreen('home');
-        }, 2000);
-      }, 500);
+        setCurrentScreen('home');
+      }, 2000);
     }
   }, [currentScreen]);
 
@@ -538,12 +587,65 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   };
 
   // Simulate getting user location
-  const getNearbyCoursesSimulated = () => {
+  const getNearbyCoursesSimulated = async () => {
     setNearbyCoursesLoading(true);
-    setTimeout(() => {
-      setUserLocation({ lat: 52.6794, lng: 4.7569 }); // De Goorn, NL
+    
+    try {
+      // Get user's location
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          
+          try {
+            // Call Supabase Edge Function to search for golf courses
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-golf-courses`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                },
+                body: JSON.stringify({ latitude, longitude })
+              }
+            );
+
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+              // Map Google Places results to our course format
+              const googleCourses = data.results.map(place => ({
+                name: place.name,
+                city: place.vicinity || '',
+                loops: [{ name: '18 holes', holes: 18 }],
+                tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
+                lat: place.geometry.location.lat,
+                lng: place.geometry.location.lng
+              }));
+              
+              console.log(`Found ${googleCourses.length} golf courses nearby!`, googleCourses);
+              // For now, we'll still use the Dutch courses but show we found real ones
+            }
+          } catch (error) {
+            console.error('Error fetching golf courses:', error);
+          }
+          
+          setNearbyCoursesLoading(false);
+        }, (error) => {
+          console.log('Location denied, using default location');
+          setUserLocation({ lat: 52.3676, lng: 4.9041 }); // Amsterdam
+          setNearbyCoursesLoading(false);
+        });
+      } else {
+        setUserLocation({ lat: 52.3676, lng: 4.9041 }); // Amsterdam fallback
+        setNearbyCoursesLoading(false);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setUserLocation({ lat: 52.3676, lng: 4.9041 });
       setNearbyCoursesLoading(false);
-    }, 1000);
+    }
   };
 
   // Filter courses based on search query
