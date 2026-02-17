@@ -3,6 +3,30 @@ import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, S
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
+  
+  // Initialize settings with username from profile
+  const [settings, setSettings] = useState({
+    name: profile?.username || profile?.name || 'Golfer',
+    units: 'meters',
+    language: 'nl',
+    handicap: 13.5,
+    showScore: false,
+    bag: [
+      'Driver', 'Houten 3', 'Houten 5', 'Hybride 3',
+      'Ijzer 5', 'Ijzer 6', 'Ijzer 7', 'Ijzer 8', 'Ijzer 9',
+      'PW', 'SW', 'AW', 'Putter'
+    ]
+  });
+  
+  // Update settings when profile changes
+  React.useEffect(() => {
+    if (profile?.username || profile?.name) {
+      setSettings(prev => ({
+        ...prev,
+        name: profile.username || profile.name
+      }));
+    }
+  }, [profile]);
   const [currentHole, setCurrentHole] = useState(1);
   const [currentHoleInfo, setCurrentHoleInfo] = useState(null);
   const [currentHoleShots, setCurrentHoleShots] = useState([]);
@@ -15,18 +39,6 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [splashWeather, setSplashWeather] = useState(null);
   const [showBagLimitWarning, setShowBagLimitWarning] = useState(false);
   const [savedRounds, setSavedRounds] = useState([]); // History of completed rounds
-  const [settings, setSettings] = useState({
-    name: 'Cefas', // Pre-filled for prototype testing
-    units: 'meters', // 'meters' or 'yards'
-    language: 'nl', // 'nl' or 'en'
-    handicap: 13.5, // Pre-filled for prototype testing
-    showScore: false, // Show score input during shots (default: No)
-    bag: [
-      'Driver', 'Houten 3', 'Houten 5', 'Hybride 3',
-      'Ijzer 5', 'Ijzer 6', 'Ijzer 7', 'Ijzer 8', 'Ijzer 9',
-      'PW', 'SW', 'AW', 'Putter'
-    ] // Pre-selected 13 clubs for prototype testing (max 14)
-  });
   const [roundData, setRoundData] = useState({
     course: null,
     loop: null,
