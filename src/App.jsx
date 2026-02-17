@@ -383,7 +383,6 @@ export default function GolfStatsApp() {
       holesPlayed: 'holes gespeeld',
       totalPutts: 'Total Putts',
       avgPutts: 'Avg Putts',
-      newRound: 'NIEUWE RONDE',
       settings: 'Instellingen',
       name: 'Voornaam',
       units: 'Eenheden',
