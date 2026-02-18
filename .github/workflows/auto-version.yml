@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'version.txt'
+      - '.github/workflows/**'
 
 jobs:
   increment-version:
@@ -39,14 +42,18 @@ jobs:
           new_version=$(printf "%d.%02d" $major $minor)
           echo "New version: $new_version"
           
-          # Write new version
+          # Write new version to version.txt
           echo $new_version > version.txt
+          
+          # Update version in App.jsx
+          sed -i "s/const appVersion = \`\${commitHash} v[0-9]*\.[0-9]*\`;/const appVersion = \`\${commitHash} v$new_version\`;/" src/App.jsx
+          
           echo "version=$new_version" >> $GITHUB_OUTPUT
           
       - name: Commit version bump
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add version.txt
-          git diff --staged --quiet || git commit -m "v${{ steps.version.outputs.version }}"
+          git add version.txt src/App.jsx
+          git diff --staged --quiet || git commit -m "🚀 Auto-bump version to v${{ steps.version.outputs.version }}"
           git push
