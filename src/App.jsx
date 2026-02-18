@@ -11,7 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.14`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -1492,84 +1492,20 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
                 {/* Hole Photo */}
                 <div className="mb-4 rounded-2xl overflow-hidden border border-emerald-600/30 relative">
-                  {currentHoleInfo.photoUrl ? (
+                  {currentHoleInfo.photoUrl && (
                     <img 
                       src={currentHoleInfo.photoUrl} 
                       alt={`Hole ${currentHoleInfo.number}`}
                       className="w-full h-64 object-cover"
-                      onError={(e) => {
-                        // Fallback if Street View not available
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'block';
-                      }}
                     />
-                  ) : null}
-                  {/* Fallback drawn visualization if no photo */}
-                  <div className="relative h-64 p-4 bg-gradient-to-b from-emerald-900/40 via-green-800/30 to-green-900/50" style={{display: currentHoleInfo.photoUrl ? 'none' : 'block'}}>
-                    {/* Sky/Background */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-sky-900/20 to-transparent"></div>
-                    
-                    {/* Tee Box */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                      <div className="w-16 h-4 bg-amber-700/80 rounded-sm"></div>
-                      <div className="text-center mt-1 font-body text-[10px] text-white/50 uppercase tracking-wider">Tee</div>
-                    </div>
-                    
-                    {/* Fairway */}
-                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-24 h-48 bg-gradient-to-t from-green-700/60 to-green-600/40" style={{ clipPath: 'polygon(40% 100%, 60% 100%, 55% 0%, 45% 0%)' }}></div>
-                    
-                    {/* Hazards with distance labels */}
-                    {currentHoleInfo.hazards.slice(0, 4).map((hazard, i) => {
-                      const bottomPos = (hazard.distance / currentHoleInfo.totalDistance * 180) + 20;
-                      const leftOffset = hazard.side === 'links' ? -40 : 40;
-                      return (
-                        <div 
-                          key={i}
-                          className="absolute left-1/2"
-                          style={{ 
-                            bottom: `${bottomPos}px`,
-                            transform: `translateX(calc(-50% + ${leftOffset}px))`
-                          }}
-                        >
-                          <div className={`w-10 h-7 rounded-full ${
-                            hazard.type.includes('water') 
-                              ? 'bg-blue-600/70 shadow-lg shadow-blue-500/50' 
-                              : 'bg-yellow-600/70 shadow-lg shadow-yellow-500/50'
-                          }`}></div>
-                          {/* Distance label on hazard */}
-                          <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-black/60 px-2 py-0.5 rounded text-[10px] font-display text-white whitespace-nowrap">
-                            {hazard.distance}m
-                          </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {/* Green with front/back distances */}
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2">
-                      {/* Back of green label */}
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-emerald-500/80 px-2 py-1 rounded text-[10px] font-display text-white whitespace-nowrap">
-                        Achterkant: {currentHoleInfo.totalDistance + 10}m
-                      </div>
-                      
-                      <div className="w-24 h-16 bg-emerald-500/50 rounded-full blur-[1px]"></div>
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-12 bg-emerald-400/60 rounded-full"></div>
-                      
-                      {/* Flag */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-10 bg-white/90"></div>
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-3 bg-red-500/80 -mt-5 ml-0.5" style={{ clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }}></div>
-                      
-                      {/* Middle green label */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/90 px-2 py-1 rounded text-xs font-display text-emerald-900 font-bold whitespace-nowrap mt-2">
-                        {tr('middle')}: {Dist({value: currentHoleInfo.totalDistance})}
-                      </div>
-                      
-                      {/* Front of green label */}
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-6 bg-emerald-500/80 px-2 py-1 rounded text-[10px] font-display text-white whitespace-nowrap">
-                        {tr('front')}: {Dist({value: currentHoleInfo.totalDistance - 10})}
+                  )}
+                  {!currentHoleInfo.photoUrl && (
+                    <div className="relative h-64 p-4 bg-gradient-to-b from-emerald-900/40 via-green-800/30 to-green-900/50">
+                      <div className="text-center text-emerald-200/40 text-sm pt-20">
+                        📸 Geen foto beschikbaar
                       </div>
                     </div>
-                  </div>
-                  {/* Close fallback div */}
+                  )}
                 </div>
 
                 {/* Quick distances reference */}
