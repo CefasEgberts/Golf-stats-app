@@ -11,6 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     language: 'nl',
     handicap: 13.5,
     showScore: false,
+    homeCity: 'Amsterdam', // Default home location
     bag: [] // Empty bag - user adds their own clubs
   });
   
@@ -508,9 +509,82 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           }
           
           setNearbyCoursesLoading(false);
-        }, (error) => {
-          console.log('Location denied, using default location');
-          setUserLocation({ lat: 52.3676, lng: 4.9041 }); // Amsterdam
+        }, async (error) => {
+          console.log(`Location denied, using ${settings.homeCity} as default`);
+          
+          // Dutch city coordinates (add more as needed)
+          const cityCoordinates = {
+            'Amsterdam': { lat: 52.3676, lng: 4.9041 },
+            'Rotterdam': { lat: 51.9244, lng: 4.4777 },
+            'Den Haag': { lat: 52.0705, lng: 4.3007 },
+            'Utrecht': { lat: 52.0907, lng: 5.1214 },
+            'Eindhoven': { lat: 51.4416, lng: 5.4697 },
+            'Groningen': { lat: 53.2194, lng: 6.5665 },
+            'Tilburg': { lat: 51.5555, lng: 5.0913 },
+            'Almere': { lat: 52.3508, lng: 5.2647 },
+            'Breda': { lat: 51.5719, lng: 4.7683 },
+            'Nijmegen': { lat: 51.8126, lng: 5.8372 },
+            'Haarlem': { lat: 52.3874, lng: 4.6462 },
+            'Arnhem': { lat: 51.9851, lng: 5.8987 },
+            'Enschede': { lat: 52.2215, lng: 6.8937 },
+            'Apeldoorn': { lat: 52.2112, lng: 5.9699 },
+            'Hoofddorp': { lat: 52.3026, lng: 4.6891 },
+            'Maastricht': { lat: 50.8514, lng: 5.6909 },
+            'Leiden': { lat: 52.1601, lng: 4.4970 },
+            'Dordrecht': { lat: 51.8133, lng: 4.6690 },
+            'Zoetermeer': { lat: 52.0575, lng: 4.4933 },
+            'Zwolle': { lat: 52.5168, lng: 6.0830 }
+          };
+          
+          const coords = cityCoordinates[settings.homeCity] || cityCoordinates['Amsterdam'];
+          const latitude = coords.lat;
+          const longitude = coords.lng;
+          
+          setUserLocation({ lat: latitude, lng: longitude });
+          
+          // Search for golf courses around home city
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              const response = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-processor`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ latitude, longitude })
+                }
+              );
+              const data = await response.json();
+              
+              if (data.results && data.results.length > 0) {
+                const courses = data.results
+                  .filter(place => {
+                    const name = place.name.toLowerCase();
+                    return !name.includes('golfcentrum') && 
+                           !name.includes('driving range') &&
+                           !name.includes('practice') &&
+                           !name.includes('oefenbaan');
+                  })
+                  .map(place => ({
+                    name: place.name,
+                    city: place.vicinity || '',
+                    loops: [{ name: '18 holes', holes: 18 }],
+                    tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
+                    lat: place.geometry.location.lat,
+                    lng: place.geometry.location.lng
+                  }));
+                
+                console.log(`Found ${courses.length} golf courses near ${settings.homeCity}!`, courses);
+                setGoogleCourses(courses);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching golf courses:', error);
+          }
+          
           setNearbyCoursesLoading(false);
         });
       } else {
@@ -1982,6 +2056,25 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                   {settings.language === 'nl' ? `Hallo, ${settings.name}! 👋` : `Hello, ${settings.name}! 👋`}
                 </div>
               )}
+            </div>
+
+            {/* Home City */}
+            <div className="glass-card rounded-2xl p-6">
+              <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">
+                {settings.language === 'nl' ? 'THUISSTAD' : 'HOME CITY'}
+              </label>
+              <input
+                type="text"
+                value={settings.homeCity}
+                onChange={(e) => setSettings({...settings, homeCity: e.target.value})}
+                placeholder={settings.language === 'nl' ? 'Bijv. Amsterdam' : 'e.g. Amsterdam'}
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition"
+              />
+              <div className="mt-3 font-body text-xs text-emerald-200/60">
+                {settings.language === 'nl' 
+                  ? 'Deze locatie wordt gebruikt als startpunt voor het zoeken naar golfbanen als je locatie niet beschikbaar is.' 
+                  : 'This location is used as a starting point for finding golf courses when your location is unavailable.'}
+              </div>
             </div>
 
             {/* Units */}
