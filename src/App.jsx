@@ -2034,7 +2034,10 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
             <button onClick={() => setCurrentScreen('home')} className="p-2">
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <h1 className="font-display text-3xl">{tr('settings').toUpperCase()}</h1>
+            <div className="text-center">
+              <h1 className="font-display text-3xl">{tr('settings').toUpperCase()}</h1>
+              <div className="font-body text-xs text-emerald-300/60 mt-1">v1.01</div>
+            </div>
             <div className="w-10" />
           </div>
 
