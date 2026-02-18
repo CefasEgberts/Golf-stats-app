@@ -11,7 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.18`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -214,7 +214,11 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     const holeLng = courseLng + holeOffset;
     const heading = (holeNumber * 45) % 360; // Different view angle per hole
     
-    const photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${holeLat},${holeLng}&heading=${heading}&pitch=10&fov=90&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}`;
+    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+    const photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${holeLat},${holeLng}&heading=${heading}&pitch=10&fov=90&key=${apiKey}`;
+    
+    console.log('Street View URL:', photoUrl);
+    console.log('API Key present:', !!apiKey);
     
     return {
       number: holeNumber,
