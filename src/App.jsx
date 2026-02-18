@@ -3,6 +3,15 @@ import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, S
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
+  const [appVersion, setAppVersion] = useState('...');
+  
+  // Fetch version from version.txt
+  React.useEffect(() => {
+    fetch('/version.txt')
+      .then(r => r.text())
+      .then(v => setAppVersion(v.trim()))
+      .catch(() => setAppVersion('1.01'));
+  }, []);
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -2036,7 +2045,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
             </button>
             <div className="text-center">
               <h1 className="font-display text-3xl">{tr('settings').toUpperCase()}</h1>
-              <div className="font-body text-xs text-emerald-300/60 mt-1">v1.01</div>
+              <div className="font-body text-xs text-emerald-300/60 mt-1">v{appVersion}</div>
             </div>
             <div className="w-10" />
           </div>
