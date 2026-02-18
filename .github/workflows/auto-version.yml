@@ -1,0 +1,52 @@
+name: Auto Increment Version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  increment-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Read and increment version
+        id: version
+        run: |
+          # Read current version
+          current=$(cat version.txt)
+          echo "Current version: $current"
+          
+          # Split into major and minor (e.g., 1.01 -> major=1, minor=01)
+          major=$(echo $current | cut -d. -f1)
+          minor=$(echo $current | cut -d. -f2)
+          
+          # Increment minor version
+          minor=$((10#$minor + 1))
+          
+          # If minor reaches 100, increment major and reset minor
+          if [ $minor -ge 100 ]; then
+            major=$((major + 1))
+            minor=1
+          fi
+          
+          # Format new version (pad minor with leading zero if needed)
+          new_version=$(printf "%d.%02d" $major $minor)
+          echo "New version: $new_version"
+          
+          # Write new version
+          echo $new_version > version.txt
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+          
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add version.txt
+          git diff --staged --quiet || git commit -m "v${{ steps.version.outputs.version }}"
+          git push
