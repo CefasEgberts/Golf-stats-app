@@ -11,7 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.19`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -205,20 +205,15 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       hazards.push({ type: 'fairway bunker', side: 'rechts', distance: Math.floor(totalDistance * 0.5) });
     }
     
-    // Generate Google Street View image for the hole
-    // Use course coordinates with slight offset per hole
+    // Use Google Maps Static API - satellite view of the hole
     const courseLat = roundData.course.lat || 52.3676;
     const courseLng = roundData.course.lng || 4.9041;
-    const holeOffset = (holeNumber - 1) * 0.001; // Small offset per hole
+    const holeOffset = (holeNumber - 1) * 0.0005; // Small offset per hole
     const holeLat = courseLat + holeOffset;
     const holeLng = courseLng + holeOffset;
-    const heading = (holeNumber * 45) % 360; // Different view angle per hole
     
     const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-    const photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${holeLat},${holeLng}&heading=${heading}&pitch=10&fov=90&key=${apiKey}`;
-    
-    console.log('Street View URL:', photoUrl);
-    console.log('API Key present:', !!apiKey);
+    const photoUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${holeLat},${holeLng}&zoom=18&size=800x400&maptype=satellite&key=${apiKey}`;
     
     return {
       number: holeNumber,
