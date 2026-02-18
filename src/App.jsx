@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, Settings, Home } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.10`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
