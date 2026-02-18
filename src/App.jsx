@@ -5,12 +5,12 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [appVersion, setAppVersion] = useState('...');
   
-  // Fetch version from version.txt 
+  // Fetch version from version.txt
   React.useEffect(() => {
     fetch('/version.txt')
       .then(r => r.text())
       .then(v => setAppVersion(v.trim()))
-      .catch(() => setAppVersion('1.01'));
+      .catch(() => setAppVersion('1.02')); // Fallback to current version
   }, []);
   
   // Initialize settings with username from profile
