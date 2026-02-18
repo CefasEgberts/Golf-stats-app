@@ -11,7 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.12`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -1490,9 +1490,22 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                   </div>
                 </div>
 
-                {/* Hole Visual with distances annotated */}
-                <div className="mb-4 rounded-2xl overflow-hidden bg-gradient-to-b from-emerald-900/40 via-green-800/30 to-green-900/50 border border-emerald-600/30 relative">
-                  <div className="relative h-64 p-4">
+                {/* Hole Photo */}
+                <div className="mb-4 rounded-2xl overflow-hidden border border-emerald-600/30 relative">
+                  {currentHoleInfo.photoUrl ? (
+                    <img 
+                      src={currentHoleInfo.photoUrl} 
+                      alt={`Hole ${currentHoleInfo.number}`}
+                      className="w-full h-64 object-cover"
+                      onError={(e) => {
+                        // Fallback if Street View not available
+                        e.target.style.display = 'none';
+                        e.target.nextElementSibling.style.display = 'block';
+                      }}
+                    />
+                  ) : null}
+                  {/* Fallback drawn visualization if no photo */}
+                  <div className="relative h-64 p-4 bg-gradient-to-b from-emerald-900/40 via-green-800/30 to-green-900/50" style={{display: currentHoleInfo.photoUrl ? 'none' : 'block'}}>
                     {/* Sky/Background */}
                     <div className="absolute inset-0 bg-gradient-to-b from-sky-900/20 to-transparent"></div>
                     
@@ -1555,14 +1568,6 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                         {tr('front')}: {Dist({value: currentHoleInfo.totalDistance - 10})}
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Photo note */}
-                  <div className="px-4 pb-3 text-center border-t border-white/10 pt-3">
-                    <div className="font-body text-[10px] text-emerald-200/40 uppercase tracking-wider">
-                      📸 In de echte app: echte foto van dit hole
-                    </div>
-                  </div>
                 </div>
 
                 {/* Quick distances reference */}
