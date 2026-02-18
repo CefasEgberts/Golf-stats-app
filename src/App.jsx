@@ -11,7 +11,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.11`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -205,15 +205,16 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       hazards.push({ type: 'fairway bunker', side: 'rechts', distance: Math.floor(totalDistance * 0.5) });
     }
     
-    // In real app, actual hole photos from database
-    // Using Unsplash golf course images as placeholders
-    const photoUrls = [
-      'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?w=800&q=80', // Golf course aerial
-      'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800&q=80', // Golf fairway
-      'https://images.unsplash.com/photo-1592919505780-303950717480?w=800&q=80', // Golf green
-      'https://images.unsplash.com/photo-1596727362302-b8d891c42ab8?w=800&q=80', // Golf hole view
-      'https://images.unsplash.com/photo-1587174147455-fa6be35af322?w=800&q=80', // Golf course
-    ];
+    // Generate Google Street View image for the hole
+    // Use course coordinates with slight offset per hole
+    const courseLat = roundData.course.lat || 52.3676;
+    const courseLng = roundData.course.lng || 4.9041;
+    const holeOffset = (holeNumber - 1) * 0.001; // Small offset per hole
+    const holeLat = courseLat + holeOffset;
+    const holeLng = courseLng + holeOffset;
+    const heading = (holeNumber * 45) % 360; // Different view angle per hole
+    
+    const photoUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${holeLat},${holeLng}&heading=${heading}&pitch=10&fov=90&key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}`;
     
     return {
       number: holeNumber,
@@ -222,7 +223,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       hazards,
       greenDepth: 25 + Math.floor(Math.random() * 15),
       fairwayWidth: 25 + Math.floor(Math.random() * 20),
-      photoUrl: photoUrls[holeNumber % photoUrls.length]
+      photoUrl
     };
   };
 
