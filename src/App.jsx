@@ -5,7 +5,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.06`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -486,15 +486,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
             
             if (data.results && data.results.length > 0) {
               // Map Google Places results to our course format
-              // Filter out driving ranges, golf centers, and practice facilities
+              // Trust Google's golf_course type - accept all results
               const courses = data.results
-                .filter(place => {
-                  const name = place.name.toLowerCase();
-                  return !name.includes('golfcentrum') && 
-                         !name.includes('driving range') &&
-                         !name.includes('practice') &&
-                         !name.includes('oefenbaan');
-                })
                 .map(place => ({
                   name: place.name,
                   city: place.vicinity || '',
@@ -564,13 +557,6 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               
               if (data.results && data.results.length > 0) {
                 const courses = data.results
-                  .filter(place => {
-                    const name = place.name.toLowerCase();
-                    return !name.includes('golfcentrum') && 
-                           !name.includes('driving range') &&
-                           !name.includes('practice') &&
-                           !name.includes('oefenbaan');
-                  })
                   .map(place => ({
                     name: place.name,
                     city: place.vicinity || '',
