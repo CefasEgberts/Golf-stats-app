@@ -5,7 +5,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.04`;
+  const appVersion = `${commitHash} v1.10`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
