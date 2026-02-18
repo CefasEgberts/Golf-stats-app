@@ -5,7 +5,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.07`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -488,10 +488,14 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               // Map Google Places results to our course format
               // Trust Google's golf_course type - accept all results
               const courses = data.results
-                .map(place => ({
+                .map((place, index) => ({
+                  id: `google-${index}`,
                   name: place.name,
                   city: place.vicinity || '',
-                  loops: [{ name: '18 holes', holes: 18 }],
+                  loops: [
+                    { id: '9holes', name: '9 holes', holes: 9, isFull: false },
+                    { id: '18holes', name: '18 holes', holes: 18, isFull: true }
+                  ],
                   tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
                   lat: place.geometry.location.lat,
                   lng: place.geometry.location.lng
@@ -557,10 +561,14 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               
               if (data.results && data.results.length > 0) {
                 const courses = data.results
-                  .map(place => ({
+                  .map((place, index) => ({
+                    id: `google-${index}`,
                     name: place.name,
                     city: place.vicinity || '',
-                    loops: [{ name: '18 holes', holes: 18 }],
+                    loops: [
+                      { id: '9holes', name: '9 holes', holes: 9, isFull: false },
+                      { id: '18holes', name: '18 holes', holes: 18, isFull: true }
+                    ],
                     tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
                     lat: place.geometry.location.lat,
                     lng: place.geometry.location.lng
