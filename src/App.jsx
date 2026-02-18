@@ -5,7 +5,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [appVersion, setAppVersion] = useState('...');
   
-  // Fetch version from version.txt
+  // Fetch version from version.txt 
   React.useEffect(() => {
     fetch('/version.txt')
       .then(r => r.text())
