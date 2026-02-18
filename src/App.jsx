@@ -3,10 +3,11 @@ import { ChevronLeft, Plus, TrendingUp, BarChart3, Calendar, MapPin, Check, X, S
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
-  // Use Vercel's Git commit SHA as version (last 7 chars)
-  const appVersion = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || '1.03';
+  // Show both commit hash and version
+  const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
+  const appVersion = `${commitHash} v1.04`;
   
-  // Initialize settings with username from profile 
+  // Initialize settings with username from profile
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
     units: 'meters',
