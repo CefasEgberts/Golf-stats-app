@@ -5,7 +5,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   // Show both commit hash and version
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.08`;
+  const appVersion = `${commitHash} v1.04`;
   
   // Initialize settings with username from profile
   const [settings, setSettings] = useState({
@@ -469,40 +469,37 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           setUserLocation({ lat: latitude, lng: longitude });
           
           try {
-            // Call Supabase Edge Function to search for golf courses
-            const response = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-processor`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-                },
-                body: JSON.stringify({ latitude, longitude })
-              }
-            );
-
-            const data = await response.json();
+            // Query Supabase database for nearby golf courses
+            const { data: courses, error } = await supabase
+              .from('golf_courses')
+              .select('*');
             
-            if (data.results && data.results.length > 0) {
-              // Map Google Places results to our course format
-              // Trust Google's golf_course type - accept all results
-              const courses = data.results
-                .map((place, index) => ({
-                  id: `google-${index}`,
-                  name: place.name,
-                  city: place.vicinity || '',
-                  loops: [
-                    { id: '9holes', name: '9 holes', holes: 9, isFull: false },
-                    { id: '18holes', name: '18 holes', holes: 18, isFull: true }
-                  ],
-                  tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
-                  lat: place.geometry.location.lat,
-                  lng: place.geometry.location.lng
-                }));
+            if (error) throw error;
+            
+            if (courses && courses.length > 0) {
+              // Calculate distance and sort by proximity
+              const coursesWithDistance = courses.map(course => {
+                const distance = calculateDistance(
+                  latitude,
+                  longitude,
+                  course.latitude,
+                  course.longitude
+                );
+                
+                return {
+                  id: course.id,
+                  name: course.name,
+                  city: course.city,
+                  loops: course.loops,
+                  teeColors: course.tee_colors,
+                  lat: parseFloat(course.latitude),
+                  lng: parseFloat(course.longitude),
+                  distance: distance.toFixed(1)
+                };
+              }).sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
               
-              console.log(`Found ${courses.length} golf courses nearby!`, courses);
-              setGoogleCourses(courses);
+              console.log(`Found ${coursesWithDistance.length} golf courses, showing nearest 20`);
+              setGoogleCourses(coursesWithDistance.slice(0, 20));
             }
           } catch (error) {
             console.error('Error fetching golf courses:', error);
@@ -512,7 +509,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
         }, async (error) => {
           console.log(`Location denied, using ${settings.homeCity} as default`);
           
-          // Dutch city coordinates (add more as needed)
+          // Dutch city coordinates
           const cityCoordinates = {
             'Amsterdam': { lat: 52.3676, lng: 4.9041 },
             'Rotterdam': { lat: 51.9244, lng: 4.4777 },
@@ -542,41 +539,37 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           
           setUserLocation({ lat: latitude, lng: longitude });
           
-          // Search for golf courses around home city
+          // Query database with home city location
           try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              const response = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/swift-processor`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ latitude, longitude })
-                }
-              );
-              const data = await response.json();
-              
-              if (data.results && data.results.length > 0) {
-                const courses = data.results
-                  .map((place, index) => ({
-                    id: `google-${index}`,
-                    name: place.name,
-                    city: place.vicinity || '',
-                    loops: [
-                      { id: '9holes', name: '9 holes', holes: 9, isFull: false },
-                      { id: '18holes', name: '18 holes', holes: 18, isFull: true }
-                    ],
-                    tees: [{ color: 'Wit', rating: 72.0, slope: 130 }],
-                    lat: place.geometry.location.lat,
-                    lng: place.geometry.location.lng
-                  }));
+            const { data: courses, error } = await supabase
+              .from('golf_courses')
+              .select('*');
+            
+            if (error) throw error;
+            
+            if (courses && courses.length > 0) {
+              const coursesWithDistance = courses.map(course => {
+                const distance = calculateDistance(
+                  latitude,
+                  longitude,
+                  course.latitude,
+                  course.longitude
+                );
                 
-                console.log(`Found ${courses.length} golf courses near ${settings.homeCity}!`, courses);
-                setGoogleCourses(courses);
-              }
+                return {
+                  id: course.id,
+                  name: course.name,
+                  city: course.city,
+                  loops: course.loops,
+                  teeColors: course.tee_colors,
+                  lat: parseFloat(course.latitude),
+                  lng: parseFloat(course.longitude),
+                  distance: distance.toFixed(1)
+                };
+              }).sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+              
+              console.log(`Found ${coursesWithDistance.length} golf courses near ${settings.homeCity}`);
+              setGoogleCourses(coursesWithDistance.slice(0, 20));
             }
           } catch (error) {
             console.error('Error fetching golf courses:', error);
@@ -595,19 +588,78 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     }
   };
 
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
   // Filter courses based on search query
   const getFilteredCourses = () => {
-    // Use Google courses if available, otherwise fall back to Dutch courses
+    // Use database courses if available
     const coursesToUse = googleCourses.length > 0 ? googleCourses : allCourses;
     
     if (!searchQuery.trim()) {
-      return userLocation ? coursesToUse.slice(0, 10) : [];
+      return userLocation ? coursesToUse.slice(0, 20) : [];
     }
     return coursesToUse.filter(course => 
       course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      course.city.toLowerCase().includes(searchQuery.toLowerCase())
+      (course.city && course.city.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   };
+  
+  // Search database when user types (without needing location)
+  const searchCoursesInDatabase = async (query) => {
+    if (!query || query.length < 2) {
+      setGoogleCourses([]);
+      return;
+    }
+    
+    try {
+      const { data: courses, error } = await supabase
+        .from('golf_courses')
+        .select('*')
+        .or(`name.ilike.%${query}%,city.ilike.%${query}%`)
+        .limit(20);
+      
+      if (error) throw error;
+      
+      if (courses) {
+        const formattedCourses = courses.map(course => ({
+          id: course.id,
+          name: course.name,
+          city: course.city,
+          loops: course.loops,
+          teeColors: course.tee_colors,
+          lat: parseFloat(course.latitude),
+          lng: parseFloat(course.longitude),
+          distance: '--'
+        }));
+        
+        setGoogleCourses(formattedCourses);
+      }
+    } catch (error) {
+      console.error('Error searching courses:', error);
+    }
+  };
+  
+  // Trigger search when user types
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (showSearch && searchQuery.length >= 2) {
+        searchCoursesInDatabase(searchQuery);
+      }
+    }, 300); // Debounce 300ms
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery, showSearch]);
 
   const filteredCourses = getFilteredCourses();
 
@@ -1250,7 +1302,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                     </label>
                     
                     <div className="grid grid-cols-2 gap-3">
-                      {roundData.course.teeColors.map((color) => {
+                      {(roundData.course.teeColors || roundData.course.tees?.map(t => t.color) || ['Wit']).map((color) => {
                         const colorMap = {
                           'Wit': 'bg-white text-gray-900',
                           'Geel': 'bg-yellow-400 text-gray-900',
