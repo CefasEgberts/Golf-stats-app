@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.24`;
+  const appVersion = `${commitHash} v2.00`;
   
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
@@ -1121,8 +1121,14 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                   <p className="font-body text-emerald-200/60 text-sm">{tr('startTracking')}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setCurrentScreen('home'); setUserLocation(null); setShowSearch(false); setSearchQuery(''); }}
-                    className="p-3 rounded-xl hover:bg-white/10 transition"><Home className="w-6 h-6 text-emerald-400" /></button>
+                  {(roundData.course || userLocation || showSearch) && (
+                    <button onClick={() => { 
+                      setRoundData({ course: null, loop: null, teeColor: null, date: new Date().toISOString().split('T')[0], startTime: new Date().toTimeString().slice(0, 5), temperature: null, holes: [] });
+                      setUserLocation(null); setShowSearch(false); setSearchQuery(''); setGoogleCourses([]);
+                    }} className="p-3 rounded-xl hover:bg-white/10 transition" title="Opnieuw beginnen">
+                      <Home className="w-6 h-6 text-emerald-400" />
+                    </button>
+                  )}
                   <Plus className="w-12 h-12 text-emerald-400" />
                 </div>
               </div>
@@ -1287,7 +1293,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                       
                       // Determine if this is a combo (18-hole) or single loop (9-hole)
                       const isCombo = roundData.loop.isFull || false;
-                      const comboId = isCombo ? roundData.loop.name.toLowerCase().replace(/\s*[+&]\s*/g, '-').replace(/\s+/g, '-') : null;
+                      const comboId = isCombo ? roundData.loop.id : null;
                       console.log('Starting round. isCombo:', isCombo, 'comboId:', comboId, 'loop:', roundData.loop);
                       
                       // Fetch course rating for Stableford
