@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.37`;
+  const appVersion = `${commitHash} v2.00`;
   
   // Default bag for known users
   const getDefaultBag = () => {
@@ -1387,22 +1387,38 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           
           {/* ===== HOLE OVERVIEW MODAL ===== */}
           {showHoleOverview && (
-            <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex flex-col animate-slide-up">
-              {/* TOP: Hole photo - max 45% of screen */}
-              <div className="flex-shrink-0 px-4 pt-3 flex justify-center" style={{maxHeight: '45vh'}}>
+            <div className="fixed inset-0 bg-black/95 z-50 flex flex-col" 
+              onClick={() => { setShowHoleOverview(false); setShowStrategy(false); }}>
+              
+              {/* Top: tap to close hint + hole info */}
+              <div className="flex-shrink-0 px-4 pt-3 pb-2 text-center">
+                <span className="font-body text-xs text-white/40">tik om te sluiten</span>
+                <div className="flex items-center justify-center gap-3 mt-1">
+                  <span className="font-display text-xl bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</span>
+                  <span className="font-body text-emerald-200/70 text-sm">Par {currentHoleInfo.par}</span>
+                  <span className="font-body text-emerald-200/70 text-sm">{currentHoleInfo.totalDistance}m</span>
+                  {remainingDistance !== currentHoleInfo.totalDistance && (
+                    <span className="font-body text-red-400 text-sm font-bold">Nog {remainingDistance}m</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Middle: Photo - grows/shrinks based on strategy visibility */}
+              <div className={'flex-1 flex items-center justify-center px-4 transition-all duration-300 ' + (showStrategy ? 'max-h-[40vh]' : '')} 
+                onClick={(e) => e.stopPropagation()}>
                 {currentHoleInfo.photoUrl ? (
-                  <div className="relative h-full">
+                  <div className="relative h-full flex items-center justify-center">
                     <img 
                       src={currentHoleInfo.photoUrl} 
                       alt={'Hole ' + currentHoleInfo.number}
-                      className="h-full object-contain rounded-xl border border-emerald-600/30"
-                      style={{maxHeight: '44vh'}}
+                      className="object-contain rounded-xl border border-emerald-600/30 transition-all duration-300"
+                      style={{maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%'}}
                     />
                     {/* Position indicator - red marker */}
                     {remainingDistance > 0 && currentHoleInfo.totalDistance > 0 && (
                       <div style={{
                         position: 'absolute',
-                        right: '6px',
+                        right: '8px',
                         top: Math.max(8, Math.min(88, (1 - remainingDistance / currentHoleInfo.totalDistance) * 80 + 8)) + '%',
                         transform: 'translateY(-50%)',
                         display: 'flex',
@@ -1421,7 +1437,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                       </div>
                     )}
                     {/* Green flag at top */}
-                    <div style={{position: 'absolute', right: '6px', top: '4%'}}>
+                    <div style={{position: 'absolute', right: '8px', top: '4%'}}>
                       <div className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded shadow-lg" style={{fontSize: '10px'}}>
                         &#9971; Green
                       </div>
@@ -1434,38 +1450,25 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                 )}
               </div>
 
-              {/* BOTTOM: Info panel - scrollable, always visible */}
-              <div className="flex-1 overflow-y-auto px-4 pt-3 pb-4">
+              {/* Bottom: Strategy button + text */}
+              <div className="flex-shrink-0 px-4 pb-4 pt-2" onClick={(e) => e.stopPropagation()}>
                 <div className="max-w-lg mx-auto">
-                  {/* Hole header */}
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    <span className="font-display text-2xl bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</span>
-                    <span className="font-body text-emerald-200/70 text-sm">Par {currentHoleInfo.par}</span>
-                    <span className="font-body text-emerald-200/70 text-sm">{currentHoleInfo.totalDistance}m</span>
-                    {remainingDistance !== currentHoleInfo.totalDistance && (
-                      <span className="font-body text-red-400 text-sm font-bold">Nog {remainingDistance}m</span>
-                    )}
-                  </div>
-
-                  {/* Strategy toggle */}
                   {currentHoleInfo.holeStrategy && (
                     <>
                       <button onClick={() => setShowStrategy(!showStrategy)}
-                        className={'w-full rounded-xl py-3 px-4 font-body font-medium mb-2 transition border ' + 
+                        className={'w-full rounded-xl py-3 px-4 font-body font-medium transition border ' + 
                           (showStrategy ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/20 text-white hover:bg-white/10')}>
                         {'\u{1F3CC}\u{FE0F}'} {tr('howToPlay')}
                         <span className="ml-2 text-xs">{showStrategy ? '\u25B2' : '\u25BC'}</span>
                       </button>
                       
                       {showStrategy && (
-                        <div className="bg-white/5 rounded-xl p-3 mb-2 border border-white/10 animate-slide-up">
+                        <div className="bg-white/5 rounded-xl p-3 mt-2 border border-white/10 animate-slide-up max-h-[30vh] overflow-y-auto">
                           <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
                         </div>
                       )}
                     </>
                   )}
-
-                  {/* Action buttons removed - tap anywhere to close */}
                 </div>
               </div>
             </div>
