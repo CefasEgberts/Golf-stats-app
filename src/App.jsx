@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.22`;
+  const appVersion = `${commitHash} v2.00`;
   
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
@@ -18,6 +18,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     language: 'nl',
     handicap: 13.5,
     showScore: false,
+    gender: 'man',
     homeCity: 'Amsterdam',
     bag: []
   });
@@ -64,6 +65,109 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [showStrategy, setShowStrategy] = useState(false);
   const [dbHoleData, setDbHoleData] = useState(null);
   const [loadingHoleData, setLoadingHoleData] = useState(false);
+  const [courseRating, setCourseRating] = useState(null);
+  const [allHolesData, setAllHolesData] = useState([]);
+
+  // Fetch course rating for Stableford calculation
+  const fetchCourseRating = async (courseName, loopName, gender, teeColor) => {
+    try {
+      const loopId = loopName.toLowerCase();
+      const firstWord = courseName.toLowerCase().split(' ')[0];
+      
+      const { data, error } = await supabase
+        .from('course_ratings')
+        .select('*')
+        .ilike('course_id', '%' + firstWord + '%')
+        .eq('loop_id', loopId)
+        .eq('gender', gender)
+        .eq('tee_color', teeColor.toLowerCase())
+        .single();
+      
+      if (data) {
+        console.log('Course rating loaded:', data);
+        setCourseRating(data);
+      } else {
+        console.log('No course rating found:', error?.message);
+        setCourseRating(null);
+      }
+    } catch (err) {
+      console.error('Error fetching course rating:', err);
+      setCourseRating(null);
+    }
+  };
+
+  // Fetch all holes data for the loop (for SI values)
+  const fetchAllHolesForLoop = async (courseName, loopName) => {
+    try {
+      const loopId = loopName.toLowerCase();
+      const firstWord = courseName.toLowerCase().split(' ')[0];
+      
+      const { data, error } = await supabase
+        .from('golf_holes')
+        .select('hole_number, par, stroke_index_men, stroke_index_ladies')
+        .ilike('course_id', '%' + firstWord + '%')
+        .eq('loop_id', loopId)
+        .order('hole_number');
+      
+      if (data && data.length > 0) {
+        console.log('All holes data loaded:', data.length, 'holes');
+        setAllHolesData(data);
+      } else {
+        console.log('No holes data found for loop');
+        setAllHolesData([]);
+      }
+    } catch (err) {
+      console.error('Error fetching all holes:', err);
+      setAllHolesData([]);
+    }
+  };
+
+  // Calculate playing handicap (baan handicap) for 9 holes
+  const calculatePlayingHandicap = () => {
+    if (!courseRating || !settings.handicap) return null;
+    const hcpIndex = settings.handicap;
+    const slope = courseRating.slope_rating;
+    const cr = parseFloat(courseRating.course_rating);
+    const par = courseRating.par;
+    
+    // Baan HCP = (HCP Index * Slope / 113) + (CR - Par)
+    const playingHcp = Math.round((hcpIndex * slope / 113) + (cr - par));
+    return playingHcp;
+  };
+
+  // Calculate Stableford points for a single hole
+  const calculateStablefordForHole = (score, holePar, strokeIndex) => {
+    const playingHcp = calculatePlayingHandicap();
+    if (playingHcp === null || !strokeIndex) return null;
+    
+    // How many extra strokes on this hole?
+    // For 9 holes: if playingHcp >= SI, you get 1 extra stroke
+    // If playingHcp >= SI + 9, you get 2 extra strokes, etc.
+    let extraStrokes = 0;
+    if (playingHcp >= strokeIndex) extraStrokes += 1;
+    if (playingHcp >= strokeIndex + 9) extraStrokes += 1;
+    if (playingHcp >= strokeIndex + 18) extraStrokes += 1;
+    
+    // Net score
+    const netScore = score - extraStrokes;
+    
+    // Stableford points based on net score vs par
+    const diff = holePar - netScore;
+    if (diff >= 3) return 5; // 3+ under par (albatros or better)
+    if (diff === 2) return 4; // 2 under par (eagle)
+    if (diff === 1) return 3; // 1 under par (birdie)
+    if (diff === 0) return 2; // par
+    if (diff === -1) return 1; // 1 over par (bogey)
+    return 0; // 2+ over par
+  };
+
+  // Get stroke index for a hole
+  const getStrokeIndex = (holeNumber) => {
+    const holeData = allHolesData.find(h => h.hole_number === holeNumber);
+    if (!holeData) return null;
+    if (settings.gender === 'vrouw') return holeData.stroke_index_ladies;
+    return holeData.stroke_index_men;
+  };
 
   // Splash screen effect
   React.useEffect(() => {
@@ -137,12 +241,24 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   React.useEffect(() => {
     if (roundData.course && roundData.temperature === null) {
       setFetchingWeather(true);
-      setTimeout(() => {
-        const temps = [8, 12, 15, 18, 21, 24, 16, 19, 22];
-        const temp = temps[Math.floor(Math.random() * temps.length)];
-        setRoundData(prev => ({ ...prev, temperature: temp }));
-        setFetchingWeather(false);
-      }, 800);
+      const fetchCourseWeather = async () => {
+        try {
+          const lat = roundData.course.lat || 52.3676;
+          const lng = roundData.course.lng || 4.9041;
+          const response = await fetch(
+            'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng + '&current=temperature_2m&timezone=auto'
+          );
+          const data = await response.json();
+          const temp = Math.round(data.current.temperature_2m);
+          setRoundData(prev => ({ ...prev, temperature: temp }));
+        } catch (error) {
+          console.error('Weather fetch failed for course:', error);
+          setRoundData(prev => ({ ...prev, temperature: 15 }));
+        } finally {
+          setFetchingWeather(false);
+        }
+      };
+      fetchCourseWeather();
     }
   }, [roundData.course]);
 
@@ -358,10 +474,10 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       useDuringRound: 'Deze clubs zijn beschikbaar tijdens je ronde',
       handicap: 'Handicap',
       handicapPlaceholder: 'bijv. 13.5',
-      showScoreInput: 'Score tonen tijdens invoeren slag',
+      showScoreInput: 'Stableford punten tonen',
       yes: 'Ja',
       no: 'Nee',
-      showScoreHelp: 'Wanneer Nee: score wordt alleen getoond aan het einde na het invoeren van de slagen van alle holes',
+      showScoreHelp: 'Wanneer Ja: Stableford punten worden berekend en getoond per hole en aan het einde van de ronde',
       myRounds: 'Mijn Scorekaarten',
       noRoundsYet: 'Nog geen rondes gespeeld',
       viewRound: 'Bekijk',
@@ -437,10 +553,10 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       useDuringRound: 'These clubs will be available during your round',
       handicap: 'Handicap',
       handicapPlaceholder: 'e.g. 13.5',
-      showScoreInput: 'Show score while entering shots',
+      showScoreInput: 'Show Stableford points',
       yes: 'Yes',
       no: 'No',
-      showScoreHelp: 'When No: score is only shown at the end after entering all shots for all holes',
+      showScoreHelp: 'When Yes: Stableford points are calculated and shown per hole and at the end of the round',
       myRounds: 'My Scorecards',
       noRoundsYet: 'No rounds played yet',
       viewRound: 'View',
@@ -744,7 +860,24 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     const completedHoles = roundData.holes.filter(h => h.score);
     const totalScore = completedHoles.reduce((sum, h) => sum + parseInt(h.score || 0), 0);
     const totalPutts = completedHoles.reduce((sum, h) => sum + parseInt(h.putts || 0), 0);
-    return { totalScore, totalPutts, holesPlayed: completedHoles.length };
+    
+    // Calculate total Stableford points
+    let totalStableford = 0;
+    let hasStableford = false;
+    
+    completedHoles.forEach(hole => {
+      const holeData = allHolesData.find(h => h.hole_number === hole.hole);
+      if (holeData && courseRating && settings.handicap) {
+        const si = settings.gender === 'vrouw' ? holeData.stroke_index_ladies : holeData.stroke_index_men;
+        const pts = calculateStablefordForHole(hole.score, holeData.par || 4, si);
+        if (pts !== null) {
+          totalStableford += pts;
+          hasStableford = true;
+        }
+      }
+    });
+    
+    return { totalScore, totalPutts, holesPlayed: completedHoles.length, totalStableford, hasStableford };
   };
 
   const stats = calculateStats();
@@ -1062,6 +1195,11 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                       setCurrentHoleShots([]);
                       setSelectedClub(''); setSuggestedDistance(null);
                       setPhotoExpanded(false); setShowStrategy(false);
+                      // Fetch course rating for Stableford
+                      await fetchCourseRating(roundData.course.name, roundData.loop.name, settings.gender, roundData.teeColor);
+                      // Fetch all holes SI data
+                      await fetchAllHolesForLoop(roundData.course.name, roundData.loop.name);
+                      // Fetch first hole data
                       await fetchHoleFromDatabase(roundData.course.name, roundData.loop.name, firstHole);
                       setShowHoleOverview(true);
                       setCurrentScreen('track');
@@ -1198,6 +1336,21 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
                 <button onClick={() => { setShowHoleOverview(false); setPhotoExpanded(false); setShowStrategy(false); }}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">BEGIN HOLE</button>
+                
+                {/* Abort Round Button */}
+                <button onClick={() => {
+                  const msg = settings.language === 'nl' 
+                    ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' 
+                    : 'Are you sure? The round will not be saved.';
+                  if (window.confirm(msg)) {
+                    setCurrentScreen('home');
+                    setRoundData({ course: null, loop: null, teeColor: null, date: new Date().toISOString().split('T')[0], startTime: new Date().toTimeString().slice(0, 5), temperature: null, holes: [] });
+                    setCurrentHoleInfo(null); setCurrentHoleShots([]); setDbHoleData(null);
+                    setPhotoExpanded(false); setShowStrategy(false); setShowHoleOverview(false);
+                  }
+                }} className="w-full bg-red-500/20 border-2 border-red-500/50 hover:bg-red-500/30 rounded-xl py-3 font-body font-medium text-red-300 mt-3 transition">
+                  {settings.language === 'nl' ? 'Ronde afbreken' : 'Abort round'}
+                </button>
               </div>
             </div>
           )}
@@ -1205,7 +1358,16 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           {/* Header */}
           <div className="p-6 bg-gradient-to-b from-black/20 to-transparent">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setCurrentScreen('home')}><ChevronLeft className="w-6 h-6" /></button>
+              <button onClick={() => {
+                const msg = settings.language === 'nl' 
+                  ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' 
+                  : 'Are you sure? The round will not be saved.';
+                if (window.confirm(msg)) {
+                  setCurrentScreen('home');
+                  setRoundData({ course: null, loop: null, teeColor: null, date: new Date().toISOString().split('T')[0], startTime: new Date().toTimeString().slice(0, 5), temperature: null, holes: [] });
+                  setCurrentHoleInfo(null); setCurrentHoleShots([]); setDbHoleData(null);
+                }
+              }}><ChevronLeft className="w-6 h-6" /></button>
               <button onClick={() => { setShowHoleOverview(true); setPhotoExpanded(false); setShowStrategy(false); }}
                 className="glass-card px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-white/10 transition">
                 <MapPin className="w-4 h-4 text-emerald-400" />
@@ -1331,29 +1493,84 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               <div className="space-y-4 mt-6 animate-slide-up">
                 <div className="glass-card rounded-2xl p-6 bg-emerald-500/10 border-emerald-400/30">
                   <div className="font-display text-2xl text-emerald-300 mb-4 text-center">Hole Afronden</div>
-                  {currentHoleShots.some(shot => shot.club === 'Putter') && (
-                    <div className="mb-4 p-4 bg-emerald-500/20 rounded-xl border border-emerald-400/30">
-                      <div className="font-body text-sm text-emerald-300 text-center">
-                        {'\u26F3'} {(() => {
-                          const totalPutts = currentHoleShots.filter(shot => shot.club === 'Putter').reduce((sum, shot) => sum + (shot.putts || 1), 0);
-                          return totalPutts + ' putt' + (totalPutts !== 1 ? 's' : '') + ' geregistreerd';
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                  <div className="mb-4">
-                    <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">{tr('score')}</label>
-                    <input type="number" id="score-input-bottom" placeholder="0" defaultValue=""
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center" />
-                  </div>
-                  <button onClick={() => {
-                    const scoreInput = document.getElementById('score-input-bottom');
-                    const score = parseInt(scoreInput?.value) || 0;
-                    const putts = currentHoleShots.filter(shot => shot.club === 'Putter').reduce((sum, shot) => sum + (shot.putts || 1), 0);
-                    if (score > 0) { finishHole(putts, score); } else { alert('Voer een score in!'); }
-                  }} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-                    {'\u2713'} {tr('completeHole').toUpperCase()}
-                  </button>
+                  
+                  {/* Auto-calculated score summary */}
+                  {(() => {
+                    const totalPutts = currentHoleShots.filter(s => s.club === 'Putter').reduce((sum, s) => sum + (s.putts || 1), 0);
+                    const nonPuttShots = currentHoleShots.filter(s => s.club !== 'Putter').length;
+                    const autoScore = nonPuttShots + totalPutts;
+                    const si = getStrokeIndex(currentHole);
+                    const holePar = currentHoleInfo?.par || 4;
+                    const stablefordPts = calculateStablefordForHole(autoScore, holePar, si);
+                    const playingHcp = calculatePlayingHandicap();
+                    const scoreToPar = autoScore - holePar;
+                    
+                    return (
+                      <>
+                        {/* Putts summary */}
+                        {totalPutts > 0 && (
+                          <div className="mb-4 p-3 bg-emerald-500/20 rounded-xl border border-emerald-400/30">
+                            <div className="font-body text-sm text-emerald-300 text-center">
+                              {'\u26F3'} {totalPutts} putt{totalPutts !== 1 ? 's' : ''} geregistreerd
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Auto score display */}
+                        <div className="text-center mb-4">
+                          <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">
+                            {settings.language === 'nl' ? 'Score deze hole' : 'Score this hole'}
+                          </div>
+                          <div className="flex items-center justify-center gap-4">
+                            <div>
+                              <div className={'font-display text-6xl ' + (scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300')}>
+                                {autoScore}
+                              </div>
+                              <div className="font-body text-xs text-emerald-200/60 mt-1">
+                                {scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'Par'} ({nonPuttShots} {settings.language === 'nl' ? 'slagen' : 'shots'} + {totalPutts} {totalPutts === 1 ? 'putt' : 'putts'})
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Stableford points - only show if setting enabled and data available */}
+                        {settings.showScore && stablefordPts !== null && (
+                          <div className="mb-4 p-4 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl border border-yellow-500/30">
+                            <div className="text-center">
+                              <div className="font-body text-xs text-yellow-200/70 mb-1 uppercase tracking-wider">Stableford</div>
+                              <div className="font-display text-5xl text-yellow-300">{stablefordPts}</div>
+                              <div className="font-body text-xs text-yellow-200/50 mt-1">
+                                {settings.language === 'nl' ? 'punten' : 'points'}
+                                {playingHcp !== null && (' \u2022 Baan HCP: ' + playingHcp)}
+                                {si && (' \u2022 SI: ' + si)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Manual score override */}
+                        <div className="mb-4">
+                          <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">
+                            {settings.language === 'nl' ? 'Score aanpassen (optioneel)' : 'Adjust score (optional)'}
+                          </label>
+                          <input type="number" id="score-input-bottom" placeholder={autoScore.toString()} defaultValue=""
+                            className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center" />
+                          <div className="font-body text-xs text-emerald-200/50 mt-1 text-center">
+                            {settings.language === 'nl' ? 'Laat leeg om berekende score te gebruiken' : 'Leave empty to use calculated score'}
+                          </div>
+                        </div>
+
+                        <button onClick={() => {
+                          const scoreInput = document.getElementById('score-input-bottom');
+                          const manualScore = parseInt(scoreInput?.value);
+                          const finalScore = manualScore > 0 ? manualScore : autoScore;
+                          finishHole(totalPutts, finalScore);
+                        }} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+                          {'\u2713'} {tr('completeHole').toUpperCase()}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -1376,6 +1593,16 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               <div className="font-display text-8xl mb-2 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">{stats.totalScore}</div>
               <div className="font-body text-emerald-200/60 text-sm">{stats.holesPlayed} {tr('holesPlayed')}</div>
             </div>
+            {/* Stableford Total */}
+            {stats.hasStableford && settings.showScore && (
+              <div className="glass-card rounded-2xl p-6 text-center bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-2 border-yellow-500/30">
+                <div className="font-body text-xs text-yellow-200/70 mb-2 uppercase tracking-wider">Stableford Punten</div>
+                <div className="font-display text-7xl text-yellow-300">{stats.totalStableford}</div>
+                <div className="font-body text-xs text-yellow-200/50 mt-2">
+                  Baan HCP: {calculatePlayingHandicap()} {'\u2022'} {settings.gender === 'man' ? 'Heren' : 'Dames'}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="glass-card rounded-2xl p-4 text-center">
                 <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">{tr('totalPutts')}</div>
@@ -1390,21 +1617,33 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">Score per hole</label>
               <div className="space-y-2">
                 {roundData.holes.map((hole) => {
-                  const par = 4;
+                  const holeData = allHolesData.find(h => h.hole_number === hole.hole);
+                  const par = holeData?.par || 4;
                   const scoreToPar = hole.score - par;
                   const scoreColor = scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300';
+                  const si = holeData ? (settings.gender === 'vrouw' ? holeData.stroke_index_ladies : holeData.stroke_index_men) : null;
+                  const stbPts = si ? calculateStablefordForHole(hole.score, par, si) : null;
+                  
                   return (
                     <div key={hole.hole} className="glass-card rounded-xl p-4 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-emerald-500/30 rounded-full flex items-center justify-center"><div className="font-display text-xl text-emerald-300">{hole.hole}</div></div>
                         <div>
-                          <div className="font-body text-xs text-emerald-200/60">Par {par}</div>
+                          <div className="font-body text-xs text-emerald-200/60">Par {par}{si ? ' \u2022 SI ' + si : ''}</div>
                           <div className="font-body text-xs text-emerald-200/50">{hole.shots?.length || 0} slagen + {hole.putts} putts</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={'font-display text-4xl ' + scoreColor}>{hole.score}</div>
-                        <div className="font-body text-xs text-emerald-200/60">{scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'E'}</div>
+                      <div className="text-right flex items-center gap-3">
+                        {settings.showScore && stbPts !== null && (
+                          <div className="bg-yellow-500/20 rounded-lg px-2 py-1">
+                            <div className="font-display text-lg text-yellow-300">{stbPts}</div>
+                            <div className="font-body text-[10px] text-yellow-200/60">stb</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className={'font-display text-4xl ' + scoreColor}>{hole.score}</div>
+                          <div className="font-body text-xs text-emerald-200/60">{scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'E'}</div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1468,6 +1707,25 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
               <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{tr('handicap')}</label>
               <input type="number" step="0.1" value={settings.handicap || ''} onChange={(e) => setSettings({...settings, handicap: parseFloat(e.target.value) || null})} placeholder="bijv. 13.5"
                 className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+            </div>
+            {/* Gender */}
+            <div className="glass-card rounded-2xl p-6">
+              <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">
+                {settings.language === 'nl' ? 'GESLACHT' : 'GENDER'}
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setSettings({...settings, gender: 'man'})}
+                  className={'rounded-xl py-4 font-body font-medium transition ' + (settings.gender === 'man' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/10 text-white hover:bg-white/15')}>
+                  {settings.language === 'nl' ? 'Man' : 'Male'}
+                </button>
+                <button onClick={() => setSettings({...settings, gender: 'vrouw'})}
+                  className={'rounded-xl py-4 font-body font-medium transition ' + (settings.gender === 'vrouw' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/10 text-white hover:bg-white/15')}>
+                  {settings.language === 'nl' ? 'Vrouw' : 'Female'}
+                </button>
+              </div>
+              <div className="mt-3 font-body text-xs text-emerald-200/60">
+                {settings.language === 'nl' ? 'I.v.m. handicapberekening a.d.h.v. baanhandicaptabel' : 'For course handicap calculation based on handicap table'}
+              </div>
             </div>
             <button onClick={() => setCurrentScreen('bag')} className="w-full btn-secondary rounded-xl py-4 font-display text-xl tracking-wider">
               {'\u26F3'} {tr('myBag').toUpperCase()}{settings.bag.length > 0 && ' (' + settings.bag.length + '/14)'}
