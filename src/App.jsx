@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.23`;
+  const appVersion = `${commitHash} v2.00`;
   
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
@@ -69,19 +69,39 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [allHolesData, setAllHolesData] = useState([]);
 
   // Fetch course rating for Stableford calculation
-  const fetchCourseRating = async (courseName, loopName, gender, teeColor) => {
+  const fetchCourseRating = async (courseName, loopName, gender, teeColor, isCombo, comboId) => {
     try {
       const loopId = loopName.toLowerCase();
       const firstWord = courseName.toLowerCase().split(' ')[0];
+      let data, error;
       
-      const { data, error } = await supabase
-        .from('course_ratings')
-        .select('*')
-        .ilike('course_id', '%' + firstWord + '%')
-        .eq('loop_id', loopId)
-        .eq('gender', gender)
-        .eq('tee_color', teeColor.toLowerCase())
-        .single();
+      if (isCombo && comboId) {
+        // 18-hole combo: fetch by combo_id
+        console.log('Fetching combo course rating:', comboId, gender, teeColor.toLowerCase());
+        const result = await supabase
+          .from('course_ratings')
+          .select('*')
+          .eq('combo_id', comboId)
+          .eq('gender', gender)
+          .eq('tee_color', teeColor.toLowerCase())
+          .single();
+        data = result.data;
+        error = result.error;
+      } else {
+        // 9-hole single loop: fetch by loop_id without combo_id
+        console.log('Fetching 9-hole course rating:', loopId, gender, teeColor.toLowerCase());
+        const result = await supabase
+          .from('course_ratings')
+          .select('*')
+          .ilike('course_id', '%' + firstWord + '%')
+          .eq('loop_id', loopId)
+          .is('combo_id', null)
+          .eq('gender', gender)
+          .eq('tee_color', teeColor.toLowerCase())
+          .single();
+        data = result.data;
+        error = result.error;
+      }
       
       if (data) {
         console.log('Course rating loaded:', data);
@@ -97,24 +117,61 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   };
 
   // Fetch all holes data for the loop (for SI values)
-  const fetchAllHolesForLoop = async (courseName, loopName) => {
+  // For 18-hole combos, fetch from combo_stroke_index
+  const fetchAllHolesForLoop = async (courseName, loopName, isCombo, comboId) => {
     try {
-      const loopId = loopName.toLowerCase();
-      const firstWord = courseName.toLowerCase().split(' ')[0];
-      
-      const { data, error } = await supabase
-        .from('golf_holes')
-        .select('hole_number, par, stroke_index_men, stroke_index_ladies')
-        .ilike('course_id', '%' + firstWord + '%')
-        .eq('loop_id', loopId)
-        .order('hole_number');
-      
-      if (data && data.length > 0) {
-        console.log('All holes data loaded:', data.length, 'holes');
-        setAllHolesData(data);
+      if (isCombo && comboId) {
+        // 18-hole combo: get SI from combo_stroke_index
+        console.log('Fetching combo SI data:', comboId);
+        const { data, error } = await supabase
+          .from('combo_stroke_index')
+          .select('hole_number, stroke_index_men, stroke_index_ladies, source_loop')
+          .eq('combo_id', comboId)
+          .order('hole_number');
+        
+        if (data && data.length > 0) {
+          // Also need par for each hole - fetch from golf_holes for each source loop
+          const enrichedData = await Promise.all(data.map(async (hole) => {
+            const sourceFirstWord = courseName.toLowerCase().split(' ')[0];
+            const { data: holeData } = await supabase
+              .from('golf_holes')
+              .select('par')
+              .ilike('course_id', '%' + sourceFirstWord + '%')
+              .eq('loop_id', hole.source_loop)
+              .eq('hole_number', hole.hole_number <= 9 ? hole.hole_number : hole.hole_number - 9)
+              .single();
+            
+            return {
+              ...hole,
+              par: holeData?.par || 4
+            };
+          }));
+          
+          console.log('Combo holes data loaded:', enrichedData.length, 'holes');
+          setAllHolesData(enrichedData);
+        } else {
+          console.log('No combo SI data found');
+          setAllHolesData([]);
+        }
       } else {
-        console.log('No holes data found for loop');
-        setAllHolesData([]);
+        // 9-hole single loop
+        const loopId = loopName.toLowerCase();
+        const firstWord = courseName.toLowerCase().split(' ')[0];
+        
+        const { data, error } = await supabase
+          .from('golf_holes')
+          .select('hole_number, par, stroke_index_men, stroke_index_ladies')
+          .ilike('course_id', '%' + firstWord + '%')
+          .eq('loop_id', loopId)
+          .order('hole_number');
+        
+        if (data && data.length > 0) {
+          console.log('All holes data loaded:', data.length, 'holes');
+          setAllHolesData(data);
+        } else {
+          console.log('No holes data found for loop');
+          setAllHolesData([]);
+        }
       }
     } catch (err) {
       console.error('Error fetching all holes:', err);
@@ -140,13 +197,21 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     const playingHcp = calculatePlayingHandicap();
     if (playingHcp === null || !strokeIndex) return null;
     
+    // Determine if 9 or 18 holes based on course rating data
+    const is18Holes = courseRating?.holes === 18;
+    
     // How many extra strokes on this hole?
-    // For 9 holes: if playingHcp >= SI, you get 1 extra stroke
-    // If playingHcp >= SI + 9, you get 2 extra strokes, etc.
     let extraStrokes = 0;
-    if (playingHcp >= strokeIndex) extraStrokes += 1;
-    if (playingHcp >= strokeIndex + 9) extraStrokes += 1;
-    if (playingHcp >= strokeIndex + 18) extraStrokes += 1;
+    if (is18Holes) {
+      // 18 holes: SI 1-18, playingHcp distributed across 18
+      if (playingHcp >= strokeIndex) extraStrokes += 1;
+      if (playingHcp >= strokeIndex + 18) extraStrokes += 1;
+    } else {
+      // 9 holes: SI 1-9, playingHcp distributed across 9
+      if (playingHcp >= strokeIndex) extraStrokes += 1;
+      if (playingHcp >= strokeIndex + 9) extraStrokes += 1;
+      if (playingHcp >= strokeIndex + 18) extraStrokes += 1;
+    }
     
     // Net score
     const netScore = score - extraStrokes;
@@ -789,10 +854,28 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       setPhotoExpanded(false); setShowStrategy(false);
       setCurrentHole(nextHole);
       
-      // Fetch next hole data from database
-      await fetchHoleFromDatabase(roundData.course.name, roundData.loop.name, nextHole);
+      // Determine which source loop this hole belongs to
+      const isCombo = roundData.loop.isFull || false;
+      let fetchLoopName = roundData.loop.name;
       
-      // Build hole info will happen via the useEffect
+      if (isCombo) {
+        // For combos, check combo_stroke_index to find source_loop
+        const comboHole = allHolesData.find(h => h.hole_number === nextHole);
+        if (comboHole && comboHole.source_loop) {
+          fetchLoopName = comboHole.source_loop;
+        } else {
+          // Fallback: hole 1-9 = first loop, 10-18 = second loop
+          const loops = roundData.loop.name.split(/[+&]/);
+          fetchLoopName = nextHole <= 9 ? loops[0].trim() : (loops[1] || loops[0]).trim();
+        }
+      }
+      
+      // For combo holes 10-18, the actual hole_number in golf_holes is 1-9
+      const dbHoleNumber = isCombo && nextHole > 9 ? nextHole - 9 : nextHole;
+      
+      // Fetch next hole data from database
+      await fetchHoleFromDatabase(roundData.course.name, fetchLoopName, dbHoleNumber);
+      
       setShowHoleOverview(true);
     } else {
       setSavedRounds([updatedRound, ...savedRounds]);
@@ -803,12 +886,18 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   // Rebuild hole info when dbHoleData changes and we're on tracking screen
   React.useEffect(() => {
     if (currentScreen === 'track' && currentHole && roundData.course && !loadingHoleData) {
-      console.log('Rebuilding hole info. dbHoleData:', dbHoleData ? 'loaded' : 'null');
+      console.log('Rebuilding hole info. dbHoleData:', dbHoleData ? 'loaded' : 'null', 'currentHole:', currentHole);
       
       // Build hole info using dbHoleData if available
       const teeColor = roundData.teeColor ? roundData.teeColor.toLowerCase() : null;
       
-      if (dbHoleData && dbHoleData.hole_number === currentHole) {
+      // For combo holes 10-18, dbHoleData has hole_number 1-9
+      const dbHoleMatches = dbHoleData && (
+        dbHoleData.hole_number === currentHole || 
+        (roundData.loop?.isFull && currentHole > 9 && dbHoleData.hole_number === currentHole - 9)
+      );
+      
+      if (dbHoleMatches) {
         const distances = dbHoleData.distances || {};
         const totalDistance = teeColor && distances[teeColor] ? distances[teeColor] : 
           Object.values(distances)[0] || 300;
@@ -1195,12 +1284,19 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                       setCurrentHoleShots([]);
                       setSelectedClub(''); setSuggestedDistance(null);
                       setPhotoExpanded(false); setShowStrategy(false);
+                      
+                      // Determine if this is a combo (18-hole) or single loop (9-hole)
+                      const isCombo = roundData.loop.isFull || false;
+                      const comboId = isCombo ? roundData.loop.name.toLowerCase().replace(/\s*[+&]\s*/g, '-').replace(/\s+/g, '-') : null;
+                      console.log('Starting round. isCombo:', isCombo, 'comboId:', comboId, 'loop:', roundData.loop);
+                      
                       // Fetch course rating for Stableford
-                      await fetchCourseRating(roundData.course.name, roundData.loop.name, settings.gender, roundData.teeColor);
+                      await fetchCourseRating(roundData.course.name, roundData.loop.name, settings.gender, roundData.teeColor, isCombo, comboId);
                       // Fetch all holes SI data
-                      await fetchAllHolesForLoop(roundData.course.name, roundData.loop.name);
+                      await fetchAllHolesForLoop(roundData.course.name, roundData.loop.name, isCombo, comboId);
                       // Fetch first hole data
-                      await fetchHoleFromDatabase(roundData.course.name, roundData.loop.name, firstHole);
+                      const firstLoopName = isCombo ? roundData.loop.name.split(/[+&]/)[0].trim() : roundData.loop.name;
+                      await fetchHoleFromDatabase(roundData.course.name, firstLoopName, firstHole);
                       setShowHoleOverview(true);
                       setCurrentScreen('track');
                     }} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider mt-6">START RONDE</button>
