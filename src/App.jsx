@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.33`;
+  const appVersion = `${commitHash} v2.00`;
   
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
@@ -1200,8 +1200,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                     <div className="grid grid-cols-3 gap-2 mb-4">
                       {roundData.course.loops.filter(l => !l.isFull).map((loop) => (
                         <button key={loop.id} onClick={() => setRoundData({ ...roundData, loop })}
-                          className="glass-card rounded-xl p-4 text-center hover:bg-white/15 transition group">
-                          <div className="font-display text-2xl text-emerald-300 group-hover:text-emerald-200 transition mb-1">{loop.name}</div>
+                          className="glass-card rounded-xl p-4 text-center hover:bg-white/15 transition group overflow-hidden">
+                          <div className="font-display text-2xl text-emerald-300 group-hover:text-emerald-200 transition mb-1 truncate uppercase">{loop.name}</div>
                           <div className="font-body text-xs text-emerald-200/60">9 holes</div>
                         </button>
                       ))}
@@ -1209,17 +1209,20 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                     {roundData.course.loops.filter(l => l.isFull).length > 0 && (
                       <>
                         <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider mt-4">Of kies een combinatie (18 holes)</label>
-                        <div className="space-y-2">
+                        <select 
+                          onChange={(e) => {
+                            const selectedLoop = roundData.course.loops.find(l => l.id === e.target.value);
+                            if (selectedLoop) setRoundData({ ...roundData, loop: selectedLoop });
+                          }}
+                          defaultValue=""
+                          className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 font-body text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition appearance-none cursor-pointer"
+                          style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%2310b981\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M8 12L2 6h12z\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center'}}
+                        >
+                          <option value="" disabled style={{background: '#1a3a2a', color: '#999'}}>Selecteer een 18-holes combinatie...</option>
                           {roundData.course.loops.filter(l => l.isFull).map((loop) => (
-                            <button key={loop.id} onClick={() => setRoundData({ ...roundData, loop })}
-                              className="w-full glass-card rounded-xl p-4 text-left hover:bg-white/15 transition group">
-                              <div className="flex items-center justify-between">
-                                <div className="font-body font-semibold text-white group-hover:text-emerald-300 transition">{loop.name}</div>
-                                <div className="font-body text-sm text-emerald-400">18 holes</div>
-                              </div>
-                            </button>
+                            <option key={loop.id} value={loop.id} style={{background: '#1a3a2a', color: 'white'}}>{loop.name} (18 holes)</option>
                           ))}
-                        </div>
+                        </select>
                       </>
                     )}
                   </div>
