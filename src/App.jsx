@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.34`;
+  const appVersion = `${commitHash} v2.00`;
   
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
@@ -67,6 +67,37 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [loadingHoleData, setLoadingHoleData] = useState(false);
   const [courseRating, setCourseRating] = useState(null);
   const [allHolesData, setAllHolesData] = useState([]);
+
+  // Fetch available tee colors from hole 1 of the selected loop
+  const fetchAvailableTees = async (courseName, loopName) => {
+    try {
+      const loopId = loopName.toLowerCase();
+      const firstWord = courseName.toLowerCase().split(' ')[0];
+      
+      const { data } = await supabase
+        .from('golf_holes')
+        .select('distances')
+        .ilike('course_id', '%' + firstWord + '%')
+        .eq('loop_id', loopId)
+        .eq('hole_number', 1)
+        .single();
+      
+      if (data && data.distances) {
+        // Get tee colors from the distance keys, capitalize first letter
+        const colorOrder = ['wit', 'geel', 'oranje', 'blauw', 'rood'];
+        const available = Object.keys(data.distances)
+          .filter(k => data.distances[k] > 0)
+          .sort((a, b) => colorOrder.indexOf(a) - colorOrder.indexOf(b))
+          .map(k => k.charAt(0).toUpperCase() + k.slice(1));
+        console.log('Available tees from DB:', available);
+        return available;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching tees:', err);
+      return null;
+    }
+  };
 
   // Fetch course rating for Stableford calculation
   const fetchCourseRating = async (courseName, loopName, gender, teeColor, isCombo, comboId) => {
@@ -444,7 +475,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     'Driver', 'Houten 3', 'Houten 5', 'Houten 7',
     'Hybride 3', 'Hybride 4',
     'Ijzer 1', 'Ijzer 2', 'Ijzer 3', 'Ijzer 4', 'Ijzer 5', 'Ijzer 6', 'Ijzer 7', 'Ijzer 8', 'Ijzer 9',
-    'PW', 'GW', 'AW', 'LW', 'Putter'
+    'PW', 'GW', 'SW', 'AW', 'LW', 'Putter'
   ];
 
   const getAvailableClubs = () => {
@@ -1199,7 +1230,10 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                     <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Welke lus speel je?</label>
                     <div className="grid grid-cols-3 gap-2 mb-4">
                       {roundData.course.loops.filter(l => !l.isFull).map((loop) => (
-                        <button key={loop.id} onClick={() => setRoundData({ ...roundData, loop })}
+                        <button key={loop.id} onClick={async () => {
+                          const tees = await fetchAvailableTees(roundData.course.name, loop.name);
+                          setRoundData({ ...roundData, loop, availableTees: tees || roundData.course.teeColors });
+                        }}
                           className="glass-card rounded-xl p-4 text-center hover:bg-white/15 transition group overflow-hidden">
                           <div className="font-display text-2xl text-emerald-300 group-hover:text-emerald-200 transition mb-1 truncate uppercase">{loop.name}</div>
                           <div className="font-body text-xs text-emerald-200/60">9 holes</div>
@@ -1210,9 +1244,14 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                       <>
                         <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider mt-4">Of kies een combinatie (18 holes)</label>
                         <select 
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const selectedLoop = roundData.course.loops.find(l => l.id === e.target.value);
-                            if (selectedLoop) setRoundData({ ...roundData, loop: selectedLoop });
+                            if (selectedLoop) {
+                              // For combo, get tees from first loop
+                              const firstLoopId = selectedLoop.id.split('-')[0];
+                              const tees = await fetchAvailableTees(roundData.course.name, firstLoopId);
+                              setRoundData({ ...roundData, loop: selectedLoop, availableTees: tees || roundData.course.teeColors });
+                            }
                           }}
                           defaultValue=""
                           className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 font-body text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition appearance-none cursor-pointer"
@@ -1242,7 +1281,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                     </div>
                     <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">Van welke tee speel je?</label>
                     <div className="grid grid-cols-2 gap-3">
-                      {(roundData.course.teeColors || ['Wit']).map((color) => (
+                      {(roundData.availableTees || roundData.course.teeColors || ['Wit']).map((color) => (
                         <button key={color} onClick={() => setRoundData({ ...roundData, teeColor: color })}
                           className={`${getTeeColorClass(color)} rounded-xl py-5 font-body font-bold text-lg hover:scale-105 transition shadow-lg`}>
                           {color}
@@ -1339,123 +1378,117 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           
           {/* ===== HOLE OVERVIEW MODAL ===== */}
           {showHoleOverview && (
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-slide-up">
-              <div className="glass-card rounded-3xl p-6 max-w-md w-full border-2 border-emerald-400/50 max-h-[90vh] overflow-y-auto">
-                {/* Hole Header */}
-                <div className="text-center mb-4">
-                  <div className="font-display text-6xl mb-2 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</div>
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="font-body text-emerald-200/70 text-sm uppercase tracking-wider">Par {currentHoleInfo.par}</div>
-                    <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                    <div className="font-body text-emerald-200/70 text-sm uppercase tracking-wider">{currentHoleInfo.totalDistance}m</div>
-                  </div>
-                </div>
-
-                {/* HOLE PHOTO with toggle */}
-                <div className="mb-4">
-                  {currentHoleInfo.photoUrl ? (
-                    <div className="relative">
-                      <button onClick={() => setPhotoExpanded(!photoExpanded)} className="w-full">
-                        <img 
-                          src={currentHoleInfo.photoUrl} 
-                          alt={'Hole ' + currentHoleInfo.number}
-                          className={'w-full object-contain rounded-2xl border border-emerald-600/30 transition-all duration-300 ' + (photoExpanded ? 'max-h-[70vh]' : 'max-h-48')}
-                        />
-                      </button>
-                      <div className="text-center mt-2">
-                        <span className="font-body text-xs text-emerald-200/50">
-                          {photoExpanded ? tr('tapToShrink') : tr('tapToEnlarge')}
-                        </span>
+            <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex flex-col animate-slide-up" onClick={() => { setShowHoleOverview(false); setPhotoExpanded(false); setShowStrategy(false); }}>
+              {/* Close hint */}
+              <div className="p-4 text-center">
+                <span className="font-body text-xs text-emerald-200/50">Tik ergens om te sluiten</span>
+              </div>
+              
+              {/* Hole Photo - fullscreen */}
+              <div className="flex-1 flex items-center justify-center px-4" onClick={(e) => e.stopPropagation()}>
+                {currentHoleInfo.photoUrl ? (
+                  <div className="relative w-full max-w-lg">
+                    <img 
+                      src={currentHoleInfo.photoUrl} 
+                      alt={'Hole ' + currentHoleInfo.number}
+                      className="w-full object-contain rounded-2xl border border-emerald-600/30"
+                      style={{maxHeight: '70vh'}}
+                    />
+                    {/* Position indicator - red marker showing remaining distance */}
+                    {remainingDistance > 0 && currentHoleInfo.totalDistance > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: Math.max(5, Math.min(85, (1 - remainingDistance / currentHoleInfo.totalDistance) * 80 + 5)) + '%',
+                        transform: 'translateY(-50%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        flexDirection: 'row-reverse'
+                      }}>
+                        {/* Distance label */}
+                        <div className="bg-red-500 text-white font-bold text-xs px-2 py-1 rounded-lg shadow-lg whitespace-nowrap">
+                          {remainingDistance}m &#x2192;
+                        </div>
+                        {/* Red arrow/dot */}
+                        <div className="w-0 h-0" style={{
+                          borderTop: '8px solid transparent',
+                          borderBottom: '8px solid transparent',
+                          borderRight: '12px solid #ef4444'
+                        }}></div>
+                      </div>
+                    )}
+                    {/* Green flag indicator at top */}
+                    <div style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '3%',
+                      transform: 'translateY(-50%)'
+                    }}>
+                      <div className="bg-emerald-500 text-white font-bold text-xs px-2 py-1 rounded-lg shadow-lg">
+                        &#9971; Green
                       </div>
                     </div>
-                  ) : (
-                    <div className="h-32 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                      <div className="text-center text-emerald-200/40 text-sm">
-                        {'\u{1F4F8}'} {tr('noPhoto')}
-                      </div>
+                  </div>
+                ) : (
+                  <div className="h-48 w-full max-w-lg bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+                    <div className="text-center text-emerald-200/40 text-sm">
+                      {'\u{1F4F8}'} {tr('noPhoto')}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom info bar */}
+              <div className="p-4" onClick={(e) => e.stopPropagation()}>
+                <div className="glass-card rounded-2xl p-4 max-w-lg mx-auto">
+                  <div className="text-center mb-3">
+                    <div className="font-display text-4xl bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</div>
+                    <div className="flex items-center justify-center gap-4 mt-1">
+                      <span className="font-body text-emerald-200/70 text-sm">Par {currentHoleInfo.par}</span>
+                      <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                      <span className="font-body text-emerald-200/70 text-sm">{currentHoleInfo.totalDistance}m</span>
+                      {remainingDistance !== currentHoleInfo.totalDistance && (
+                        <>
+                          <div className="w-1 h-1 bg-red-400 rounded-full"></div>
+                          <span className="font-body text-red-300 text-sm font-bold">Nog {remainingDistance}m</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Strategy toggle */}
+                  <button onClick={() => setShowStrategy(!showStrategy)}
+                    className={'w-full rounded-xl py-2 px-4 font-body font-medium mb-2 transition border ' + 
+                      (showStrategy ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/20 text-white hover:bg-white/10')}>
+                    {'\u{1F3CC}\u{FE0F}'} {tr('howToPlay')}
+                    <span className="ml-2 text-xs">{showStrategy ? '\u25B2' : '\u25BC'}</span>
+                  </button>
+                  
+                  {showStrategy && currentHoleInfo.holeStrategy && (
+                    <div className="glass-card rounded-xl p-3 mb-2 animate-slide-up">
+                      <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
                     </div>
                   )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => { setShowHoleOverview(false); setPhotoExpanded(false); setShowStrategy(false); }}
+                      className="btn-primary rounded-xl py-3 font-display text-base tracking-wider">SLUITEN</button>
+                    <button onClick={() => {
+                      const msg = settings.language === 'nl' 
+                        ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' 
+                        : 'Are you sure? The round will not be saved.';
+                      if (window.confirm(msg)) {
+                        setCurrentScreen('home');
+                        setRoundData({ course: null, loop: null, teeColor: null, date: new Date().toISOString().split('T')[0], startTime: new Date().toTimeString().slice(0, 5), temperature: null, holes: [] });
+                        setCurrentHoleInfo(null); setCurrentHoleShots([]); setDbHoleData(null);
+                        setPhotoExpanded(false); setShowStrategy(false); setShowHoleOverview(false);
+                      }
+                    }} className="bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 rounded-xl py-3 font-body font-medium text-red-300 transition text-sm">
+                      {settings.language === 'nl' ? 'Ronde afbreken' : 'Abort round'}
+                    </button>
+                  </div>
                 </div>
-
-                {/* HOW TO PLAY BUTTON */}
-                <button onClick={() => setShowStrategy(!showStrategy)}
-                  className={'w-full rounded-xl py-3 px-4 font-body font-medium mb-4 transition border-2 ' + 
-                    (showStrategy ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/20 text-white hover:bg-white/10')}>
-                  {'\u{1F3CC}\u{FE0F}'} {tr('howToPlay')}
-                  <span className="ml-2">{showStrategy ? '\u25B2' : '\u25BC'}</span>
-                </button>
-
-                {/* STRATEGY TEXT (collapsible) */}
-                {showStrategy && (
-                  <div className="glass-card rounded-xl p-4 mb-4 animate-slide-up">
-                    {currentHoleInfo.holeStrategy ? (
-                      <>
-                        <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
-                        <p className={'font-body text-xs mt-3 italic ' + (currentHoleInfo.strategyIsAiGenerated ? 'text-yellow-400' : 'text-emerald-400')}>
-                          {currentHoleInfo.strategyIsAiGenerated 
-                            ? '\u26A0\u{FE0F} ' + tr('aiGenerated')
-                            : '\u2705 ' + tr('fromClub')}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="font-body text-white/50 text-sm italic">{tr('noStrategyAvailable')}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Distances per tee color */}
-                {currentHoleInfo.distances && Object.keys(currentHoleInfo.distances).length > 0 && (
-                  <div className="glass-card rounded-xl p-4 mb-4">
-                    <div className="font-body text-xs text-emerald-200/70 mb-3 uppercase tracking-wider text-center">{tr('importantDistances')}</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.entries(currentHoleInfo.distances).map(([color, dist]) => {
-                        const isSelected = roundData.teeColor && color.toLowerCase() === roundData.teeColor.toLowerCase();
-                        return (
-                          <div key={color} className={'rounded-lg p-2 text-center ' + (isSelected ? 'bg-emerald-500/30 border border-emerald-400/50' : 'bg-white/5')}>
-                            <div className="font-body text-xs text-emerald-200/60 capitalize">{color}</div>
-                            <div className={'font-display text-lg ' + (isSelected ? 'text-emerald-300' : 'text-white')}>{dist}m</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Hazards */}
-                {currentHoleInfo.hazards && currentHoleInfo.hazards.length > 0 && (
-                  <div className="glass-card rounded-xl p-4 mb-4">
-                    <div className="font-body text-xs text-emerald-200/70 mb-3 uppercase tracking-wider text-center">{tr('hazards')}</div>
-                    <div className="space-y-2">
-                      {currentHoleInfo.hazards.map((hazard, i) => (
-                        <div key={i} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <div className={'w-3 h-3 rounded-full ' + (hazard.type.includes('water') ? 'bg-blue-500' : 'bg-yellow-600')}></div>
-                            <span className="font-body text-sm text-white capitalize">{hazard.type} {hazard.side}</span>
-                          </div>
-                          <span className="font-display text-base text-white/70">{hazard.distance}m</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <button onClick={() => { setShowHoleOverview(false); setPhotoExpanded(false); setShowStrategy(false); }}
-                  className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">BEGIN HOLE</button>
-                
-                {/* Abort Round Button */}
-                <button onClick={() => {
-                  const msg = settings.language === 'nl' 
-                    ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' 
-                    : 'Are you sure? The round will not be saved.';
-                  if (window.confirm(msg)) {
-                    setCurrentScreen('home');
-                    setRoundData({ course: null, loop: null, teeColor: null, date: new Date().toISOString().split('T')[0], startTime: new Date().toTimeString().slice(0, 5), temperature: null, holes: [] });
-                    setCurrentHoleInfo(null); setCurrentHoleShots([]); setDbHoleData(null);
-                    setPhotoExpanded(false); setShowStrategy(false); setShowHoleOverview(false);
-                  }
-                }} className="w-full bg-red-500/20 border-2 border-red-500/50 hover:bg-red-500/30 rounded-xl py-3 font-body font-medium text-red-300 mt-3 transition">
-                  {settings.language === 'nl' ? 'Ronde afbreken' : 'Abort round'}
-                </button>
               </div>
             </div>
           )}
