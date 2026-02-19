@@ -10,8 +10,17 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.35`;
+  const appVersion = `${commitHash} v2.00`;
   
+  // Default bag for known users
+  const getDefaultBag = () => {
+    const email = user?.email?.toLowerCase();
+    if (email === 'cefas@golfstats.nl') {
+      return ['Driver', 'Houten 3', 'Houten 5', 'Hybride 3', 'Ijzer 5', 'Ijzer 6', 'Ijzer 7', 'Ijzer 8', 'Ijzer 9', 'PW', 'AW', 'SW', 'Putter'];
+    }
+    return [];
+  };
+
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
     units: 'meters',
@@ -20,7 +29,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     showScore: false,
     gender: 'man',
     homeCity: 'Amsterdam',
-    bag: []
+    bag: getDefaultBag()
   });
   
   React.useEffect(() => {
@@ -1378,116 +1387,85 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           
           {/* ===== HOLE OVERVIEW MODAL ===== */}
           {showHoleOverview && (
-            <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex flex-col animate-slide-up" onClick={() => { setShowHoleOverview(false); setPhotoExpanded(false); setShowStrategy(false); }}>
-              {/* Close hint */}
-              <div className="p-4 text-center">
-                <span className="font-body text-xs text-emerald-200/50">Tik ergens om te sluiten</span>
-              </div>
-              
-              {/* Hole Photo - fullscreen */}
-              <div className="flex-1 flex items-center justify-center px-4" onClick={(e) => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex flex-col animate-slide-up">
+              {/* TOP: Hole photo - max 45% of screen */}
+              <div className="flex-shrink-0 px-4 pt-3 flex justify-center" style={{maxHeight: '45vh'}}>
                 {currentHoleInfo.photoUrl ? (
-                  <div className="relative w-full max-w-lg">
+                  <div className="relative h-full">
                     <img 
                       src={currentHoleInfo.photoUrl} 
                       alt={'Hole ' + currentHoleInfo.number}
-                      className="w-full object-contain rounded-2xl border border-emerald-600/30"
-                      style={{maxHeight: '70vh'}}
+                      className="h-full object-contain rounded-xl border border-emerald-600/30"
+                      style={{maxHeight: '44vh'}}
                     />
-                    {/* Position indicator - red marker showing remaining distance */}
+                    {/* Position indicator - red marker */}
                     {remainingDistance > 0 && currentHoleInfo.totalDistance > 0 && (
                       <div style={{
                         position: 'absolute',
-                        right: '8px',
-                        top: Math.max(5, Math.min(85, (1 - remainingDistance / currentHoleInfo.totalDistance) * 80 + 5)) + '%',
+                        right: '6px',
+                        top: Math.max(8, Math.min(88, (1 - remainingDistance / currentHoleInfo.totalDistance) * 80 + 8)) + '%',
                         transform: 'translateY(-50%)',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '3px',
                         flexDirection: 'row-reverse'
                       }}>
-                        {/* Distance label */}
-                        <div className="bg-red-500 text-white font-bold text-xs px-2 py-1 rounded-lg shadow-lg whitespace-nowrap">
-                          {remainingDistance}m &#x2192;
+                        <div className="bg-red-500 text-white font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap" style={{fontSize: '11px'}}>
+                          {remainingDistance}m
                         </div>
-                        {/* Red arrow/dot */}
                         <div className="w-0 h-0" style={{
-                          borderTop: '8px solid transparent',
-                          borderBottom: '8px solid transparent',
-                          borderRight: '12px solid #ef4444'
+                          borderTop: '6px solid transparent',
+                          borderBottom: '6px solid transparent',
+                          borderRight: '8px solid #ef4444'
                         }}></div>
                       </div>
                     )}
-                    {/* Green flag indicator at top */}
-                    <div style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '3%',
-                      transform: 'translateY(-50%)'
-                    }}>
-                      <div className="bg-emerald-500 text-white font-bold text-xs px-2 py-1 rounded-lg shadow-lg">
+                    {/* Green flag at top */}
+                    <div style={{position: 'absolute', right: '6px', top: '4%'}}>
+                      <div className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded shadow-lg" style={{fontSize: '10px'}}>
                         &#9971; Green
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="h-48 w-full max-w-lg bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                    <div className="text-center text-emerald-200/40 text-sm">
-                      {'\u{1F4F8}'} {tr('noPhoto')}
-                    </div>
+                  <div className="h-32 w-full max-w-sm bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
+                    <span className="text-emerald-200/40 text-sm">{'\u{1F4F8}'} {tr('noPhoto')}</span>
                   </div>
                 )}
               </div>
 
-              {/* Bottom info bar */}
-              <div className="p-4" onClick={(e) => e.stopPropagation()}>
-                <div className="glass-card rounded-2xl p-4 max-w-lg mx-auto">
-                  <div className="text-center mb-3">
-                    <div className="font-display text-4xl bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</div>
-                    <div className="flex items-center justify-center gap-4 mt-1">
-                      <span className="font-body text-emerald-200/70 text-sm">Par {currentHoleInfo.par}</span>
-                      <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                      <span className="font-body text-emerald-200/70 text-sm">{currentHoleInfo.totalDistance}m</span>
-                      {remainingDistance !== currentHoleInfo.totalDistance && (
-                        <>
-                          <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                          <span className="font-body text-red-300 text-sm font-bold">Nog {remainingDistance}m</span>
-                        </>
-                      )}
-                    </div>
+              {/* BOTTOM: Info panel - scrollable, always visible */}
+              <div className="flex-1 overflow-y-auto px-4 pt-3 pb-4">
+                <div className="max-w-lg mx-auto">
+                  {/* Hole header */}
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <span className="font-display text-2xl bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</span>
+                    <span className="font-body text-emerald-200/70 text-sm">Par {currentHoleInfo.par}</span>
+                    <span className="font-body text-emerald-200/70 text-sm">{currentHoleInfo.totalDistance}m</span>
+                    {remainingDistance !== currentHoleInfo.totalDistance && (
+                      <span className="font-body text-red-400 text-sm font-bold">Nog {remainingDistance}m</span>
+                    )}
                   </div>
-                  
+
                   {/* Strategy toggle */}
-                  <button onClick={() => setShowStrategy(!showStrategy)}
-                    className={'w-full rounded-xl py-2 px-4 font-body font-medium mb-2 transition border ' + 
-                      (showStrategy ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/20 text-white hover:bg-white/10')}>
-                    {'\u{1F3CC}\u{FE0F}'} {tr('howToPlay')}
-                    <span className="ml-2 text-xs">{showStrategy ? '\u25B2' : '\u25BC'}</span>
-                  </button>
-                  
-                  {showStrategy && currentHoleInfo.holeStrategy && (
-                    <div className="glass-card rounded-xl p-3 mb-2 animate-slide-up">
-                      <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
-                    </div>
+                  {currentHoleInfo.holeStrategy && (
+                    <>
+                      <button onClick={() => setShowStrategy(!showStrategy)}
+                        className={'w-full rounded-xl py-3 px-4 font-body font-medium mb-2 transition border ' + 
+                          (showStrategy ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/20 text-white hover:bg-white/10')}>
+                        {'\u{1F3CC}\u{FE0F}'} {tr('howToPlay')}
+                        <span className="ml-2 text-xs">{showStrategy ? '\u25B2' : '\u25BC'}</span>
+                      </button>
+                      
+                      {showStrategy && (
+                        <div className="bg-white/5 rounded-xl p-3 mb-2 border border-white/10 animate-slide-up">
+                          <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => { setShowHoleOverview(false); setPhotoExpanded(false); setShowStrategy(false); }}
-                      className="btn-primary rounded-xl py-3 font-display text-base tracking-wider">SLUITEN</button>
-                    <button onClick={() => {
-                      const msg = settings.language === 'nl' 
-                        ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' 
-                        : 'Are you sure? The round will not be saved.';
-                      if (window.confirm(msg)) {
-                        setCurrentScreen('home');
-                        setRoundData({ course: null, loop: null, teeColor: null, date: new Date().toISOString().split('T')[0], startTime: new Date().toTimeString().slice(0, 5), temperature: null, holes: [] });
-                        setCurrentHoleInfo(null); setCurrentHoleShots([]); setDbHoleData(null);
-                        setPhotoExpanded(false); setShowStrategy(false); setShowHoleOverview(false);
-                      }
-                    }} className="bg-red-500/20 border border-red-500/50 hover:bg-red-500/30 rounded-xl py-3 font-body font-medium text-red-300 transition text-sm">
-                      {settings.language === 'nl' ? 'Ronde afbreken' : 'Abort round'}
-                    </button>
-                  </div>
+                  {/* Action buttons removed - tap anywhere to close */}
                 </div>
               </div>
             </div>
