@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-  const appVersion = `${commitHash} v1.21`;
+  const appVersion = `${commitHash} v2.00`;
   
   const [settings, setSettings] = useState({
     name: profile?.username || profile?.name || 'Golfer',
@@ -152,19 +152,51 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     setDbHoleData(null);
     
     try {
-      // Build course_id the same way the upload tool does: lowercase coursename-loopname
-      const courseId = courseName.toLowerCase() + '-' + loopName.toLowerCase();
       const loopId = loopName.toLowerCase();
       
+      // First try exact match with coursename-loopname
+      const courseId = courseName.toLowerCase().replace(/\s+/g, '-') + '-' + loopId;
       console.log('Fetching hole data for:', courseId, loopId, holeNumber);
       
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('golf_holes')
         .select('*')
         .eq('course_id', courseId)
         .eq('loop_id', loopId)
         .eq('hole_number', holeNumber)
         .single();
+      
+      // If not found, try searching with first word of course name
+      if (error || !data) {
+        const firstWord = courseName.toLowerCase().split(' ')[0];
+        const partialCourseId = firstWord + '-' + loopId;
+        console.log('Trying partial match:', partialCourseId);
+        
+        const result = await supabase
+          .from('golf_holes')
+          .select('*')
+          .ilike('course_id', '%' + firstWord + '%')
+          .eq('loop_id', loopId)
+          .eq('hole_number', holeNumber)
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
+      
+      if (error || !data) {
+        // Last resort: just search by loop_id and hole_number
+        console.log('Trying loop_id + hole_number only');
+        const result = await supabase
+          .from('golf_holes')
+          .select('*')
+          .eq('loop_id', loopId)
+          .eq('hole_number', holeNumber)
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
       
       if (error) {
         console.log('No hole data found in database:', error.message);
@@ -655,10 +687,49 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   // Rebuild hole info when dbHoleData changes and we're on tracking screen
   React.useEffect(() => {
     if (currentScreen === 'track' && currentHole && roundData.course && !loadingHoleData) {
-      const holeInfo = getHoleInfo(roundData.course.id, currentHole);
-      setCurrentHoleInfo(holeInfo);
-      if (currentHoleShots.length === 0) {
-        setRemainingDistance(holeInfo.totalDistance);
+      console.log('Rebuilding hole info. dbHoleData:', dbHoleData ? 'loaded' : 'null');
+      
+      // Build hole info using dbHoleData if available
+      const teeColor = roundData.teeColor ? roundData.teeColor.toLowerCase() : null;
+      
+      if (dbHoleData && dbHoleData.hole_number === currentHole) {
+        const distances = dbHoleData.distances || {};
+        const totalDistance = teeColor && distances[teeColor] ? distances[teeColor] : 
+          Object.values(distances)[0] || 300;
+        
+        const holeInfo = {
+          number: currentHole,
+          par: dbHoleData.par || 4,
+          totalDistance: totalDistance,
+          distances: distances,
+          hazards: dbHoleData.hazards || [],
+          photoUrl: dbHoleData.photo_url || null,
+          holeStrategy: dbHoleData.hole_strategy || null,
+          strategyIsAiGenerated: dbHoleData.strategy_is_ai_generated || false,
+          greenDepth: 25,
+          fairwayWidth: 30
+        };
+        
+        console.log('Hole info built from DB:', holeInfo.par, 'strategy:', holeInfo.holeStrategy ? 'yes' : 'no', 'photo:', holeInfo.photoUrl ? 'yes' : 'no');
+        setCurrentHoleInfo(holeInfo);
+        if (currentHoleShots.length === 0) {
+          setRemainingDistance(totalDistance);
+        }
+      } else {
+        // Fallback
+        const pars = [4, 3, 5, 4, 4, 3, 5, 4, 4];
+        const par = pars[(currentHole - 1) % 9];
+        const baseDistance = par === 3 ? 150 : par === 4 ? 350 : 480;
+        const holeInfo = {
+          number: currentHole, par, totalDistance: baseDistance,
+          distances: {}, hazards: [], photoUrl: null,
+          holeStrategy: null, strategyIsAiGenerated: false,
+          greenDepth: 25, fairwayWidth: 30
+        };
+        setCurrentHoleInfo(holeInfo);
+        if (currentHoleShots.length === 0) {
+          setRemainingDistance(baseDistance);
+        }
       }
     }
   }, [dbHoleData, loadingHoleData, currentHole, currentScreen]);
