@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
-import { supabase } from './supabase'
+import { supabase } from './lib/supabase'
 import LoginScreen from './LoginScreen'
 import AdminDashboard from './AdminDashboard'
 import GolfStatsApp from './App'
