@@ -9,6 +9,7 @@ import { calculateDistance } from './lib/gps';
 import { useCourseData } from './hooks/useCourseData';
 import { useWeather } from './hooks/useWeather';
 import { useRound } from './hooks/useRound';
+import { useGpsTracking } from './hooks/useGpsTracking';
 
 // Components
 import SplashScreen from './components/SplashScreen';
@@ -61,6 +62,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const weather = useWeather();
   const courseData = useCourseData();
   const round = useRound();
+  const gps = useGpsTracking(round.currentHoleInfo?.greenLat, round.currentHoleInfo?.greenLng);
 
   // Convenience aliases
   const t = (key) => tr(settings.language, key);
@@ -91,12 +93,16 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     }
   }, [round.roundData.course]);
 
-  // Suggest distance after club is selected
+  // Suggest distance after club is selected (prefer GPS shot distance)
   React.useEffect(() => {
-    if (round.selectedClub && round.remainingDistance) {
-      round.setSuggestedDistance(round.remainingDistance);
+    if (round.selectedClub && round.selectedClub !== 'Putter') {
+      if (gps.gpsTracking && gps.gpsShotDistance != null) {
+        round.setSuggestedDistance(gps.gpsShotDistance);
+      } else if (round.remainingDistance) {
+        round.setSuggestedDistance(round.remainingDistance);
+      }
     }
-  }, [round.selectedClub, round.remainingDistance, round.currentHoleShots.length]);
+  }, [round.selectedClub, round.remainingDistance, round.currentHoleShots.length, gps.gpsShotDistance, gps.gpsTracking]);
 
   // Rebuild hole info when DB data loads
   React.useEffect(() => {
@@ -126,6 +132,13 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       }
     }
   }, [courseData.dbHoleData, courseData.loadingHoleData, round.currentHole, currentScreen]);
+
+  // GPS distance → remaining distance sync
+  React.useEffect(() => {
+    if (gps.gpsDistanceToGreen != null && gps.gpsTracking) {
+      round.setRemainingDistance(gps.gpsDistanceToGreen);
+    }
+  }, [gps.gpsDistanceToGreen, gps.gpsTracking]);
 
   // Search debounce
   React.useEffect(() => {
@@ -220,6 +233,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       }
       const dbHoleNumber = isCombo && nextHole > 9 ? nextHole - 9 : nextHole;
 
+      gps.resetForNewHole();
       round.setCurrentHoleInfo(null);
       round.setCurrentHoleShots([]);
       round.setSelectedClub(''); round.setSuggestedDistance(null); round.setSelectedLie('');
@@ -229,6 +243,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       await courseData.fetchHoleFromDatabase(course.name, fetchLoopName, dbHoleNumber);
       round.setShowHoleOverview(true);
     } else {
+      gps.stopTracking();
       round.finishRound(updatedRound);
       setCurrentScreen('stats');
     }
@@ -258,6 +273,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
         .club-btn { transition: all 0.2s ease; }
         .club-btn:hover { transform: scale(1.05); }
         .club-btn.selected { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16,185,129,0.5); }
+        @keyframes gpsBlink { 0%, 100% { opacity: 1; box-shadow: 0 0 8px 4px rgba(239,68,68,0.7); } 50% { opacity: 0.4; box-shadow: 0 0 4px 2px rgba(239,68,68,0.3); } }
+        .gps-dot { animation: gpsBlink 1.2s ease-in-out infinite; }
       `}</style>
 
       {/* ==================== SPLASH ==================== */}
@@ -341,9 +358,11 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           Dist={Dist}
           t={t}
           finishHole={finishHole}
+          gps={gps}
           onQuit={() => {
             const msg = settings.language === 'nl' ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' : 'Are you sure? The round will not be saved.';
             if (window.confirm(msg)) {
+              gps.stopTracking();
               setCurrentScreen('home');
               round.resetRound();
             }

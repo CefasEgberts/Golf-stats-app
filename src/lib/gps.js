@@ -30,3 +30,19 @@ export const getCurrentPosition = () =>
       timeout: 10000
     })
   );
+
+/**
+ * Watch GPS position continuously. Returns watchId for cleanup.
+ */
+export const watchGpsPosition = (onPosition, onError) =>
+  navigator.geolocation.watchPosition(onPosition, onError, {
+    enableHighAccuracy: true,
+    maximumAge: 3000,
+    timeout: 15000
+  });
+
+/**
+ * Stop watching GPS position.
+ */
+export const clearGpsWatch = (watchId) =>
+  navigator.geolocation.clearWatch(watchId);

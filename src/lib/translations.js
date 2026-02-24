@@ -76,7 +76,11 @@ export const translations = {
     tapToEnlarge: 'Tik op foto om te vergroten',
     tapToShrink: 'Tik om te verkleinen',
     loadingHole: 'Hole data laden...',
-    noPhoto: 'Geen foto beschikbaar'
+    noPhoto: 'Geen foto beschikbaar',
+    gpsActive: 'GPS actief',
+    gpsStarting: 'GPS starten...',
+    gpsUnavailable: 'GPS niet beschikbaar',
+    beginHoleGps: 'BEGIN HOLE + GPS'
   },
   en: {
     golfStats: 'GOLF STATS',
@@ -155,7 +159,11 @@ export const translations = {
     tapToEnlarge: 'Tap photo to enlarge',
     tapToShrink: 'Tap to shrink',
     loadingHole: 'Loading hole data...',
-    noPhoto: 'No photo available'
+    noPhoto: 'No photo available',
+    gpsActive: 'GPS active',
+    gpsStarting: 'Starting GPS...',
+    gpsUnavailable: 'GPS unavailable',
+    beginHoleGps: 'BEGIN HOLE + GPS'
   }
 };
 

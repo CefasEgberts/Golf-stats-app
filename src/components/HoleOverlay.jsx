@@ -1,6 +1,30 @@
 import React from 'react';
+import { haversineMeters } from '../lib/gps';
 
-export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t }) {
+export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps }) {
+  const hasGreenCoords = currentHoleInfo.greenLat != null && currentHoleInfo.greenLng != null;
+
+  // Calculate GPS dot position on photo
+  const getGpsDotTop = () => {
+    if (!gps?.gpsTracking || !gps.gpsPosition || !gps.teePosition || !hasGreenCoords) return null;
+    const totalDist = haversineMeters(gps.teePosition.lat, gps.teePosition.lng, currentHoleInfo.greenLat, currentHoleInfo.greenLng);
+    if (totalDist < 1) return null;
+    const remainDist = haversineMeters(gps.gpsPosition.lat, gps.gpsPosition.lng, currentHoleInfo.greenLat, currentHoleInfo.greenLng);
+    const progress = 1 - (remainDist / totalDist);
+    // Map progress: 0 (tee) = 88%, 1 (green) = 4%
+    return Math.max(4, Math.min(88, 88 - progress * 84));
+  };
+
+  const gpsDotTop = getGpsDotTop();
+
+  const handleStartGps = (e) => {
+    e.stopPropagation();
+    gps.startTracking();
+    // Small delay so first position can arrive before capturing tee
+    setTimeout(() => gps.captureTeePosition(), 500);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col" onClick={onClose}>
       <div className="flex-shrink-0 px-4 pt-3 pb-2 text-center">
@@ -21,6 +45,13 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
             <img src={currentHoleInfo.photoUrl} alt={`Hole ${currentHoleInfo.number}`}
               className="object-contain rounded-xl border border-emerald-600/30 transition-all duration-300"
               style={{ maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%' }} />
+            {/* GPS blinking dot */}
+            {gpsDotTop != null && (
+              <div style={{ position: 'absolute', left: '50%', top: gpsDotTop + '%', transform: 'translate(-50%, -50%)' }}>
+                <div className="gps-dot w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
+              </div>
+            )}
+            {/* Remaining distance arrow */}
             {remainingDistance > 0 && currentHoleInfo.totalDistance > 0 && (
               <div style={{ position: 'absolute', right: '8px', top: Math.max(8, Math.min(88, (1 - remainingDistance / currentHoleInfo.totalDistance) * 80 + 8)) + '%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '3px', flexDirection: 'row-reverse' }}>
                 <div className="bg-red-500 text-white font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap" style={{ fontSize: '11px' }}>{remainingDistance}m</div>
@@ -52,6 +83,19 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 </div>
               )}
             </>
+          )}
+          {/* GPS Start button */}
+          {hasGreenCoords && !gps?.gpsTracking && (
+            <button onClick={handleStartGps}
+              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
+              📡 {t('beginHoleGps')}
+            </button>
+          )}
+          {!hasGreenCoords && (
+            <button onClick={onClose}
+              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+              {t('beginHole')}
+            </button>
           )}
         </div>
       </div>
