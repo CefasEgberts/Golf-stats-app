@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v1.41
+- **Versie**: v1.42
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -18,7 +18,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 ## Projectstructuur
 ```
 src/
-├── App.jsx                    # 937 regels — hoofdcomponent, routing, tracking screen, hole overlay
+├── App.jsx                    # 424 regels — state, hooks, effects, routing
 ├── main.jsx                   # Entry point (115 regels)
 ├── LoginScreen.jsx            # Login (166 regels)
 ├── AdminDashboard.jsx         # Admin dashboard (338 regels)
@@ -33,16 +33,21 @@ src/
 │   ├── useCourseData.js       # Database queries (169 regels)
 │   └── useRound.js            # Ronde state management (110 regels)
 ├── components/
-│   ├── SplashScreen.jsx       # ✅ Geëxtraheerd (60 regels)
-│   ├── SettingsScreen.jsx     # ✅ Geëxtraheerd (118 regels)
-│   ├── BagScreen.jsx          # ✅ Geëxtraheerd (83 regels)
-│   ├── StatsScreen.jsx        # ✅ Geëxtraheerd (109 regels)
-│   └── RoundHistory.jsx       # ✅ Geëxtraheerd (54 regels)
+│   ├── SplashScreen.jsx       # Splash screen (60 regels)
+│   ├── HomeScreen.jsx         # Baan zoeken, lus/tee selectie, start ronde (259 regels)
+│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden (203 regels)
+│   ├── HoleOverlay.jsx        # Hole info modal met foto, strategie, positie-pijl (60 regels)
+│   ├── AllStatsScreen.jsx     # Statistieken overzicht (45 regels)
+│   ├── ClubAnalysis.jsx       # Club analyse placeholder (20 regels)
+│   ├── StatsScreen.jsx        # Scorekaart na ronde (109 regels)
+│   ├── SettingsScreen.jsx     # Instellingen (118 regels)
+│   ├── BagScreen.jsx          # Club bag management (83 regels)
+│   └── RoundHistory.jsx       # Ronde historie (54 regels)
 ```
 
 ### Refactor status
-Fase 1 is gedaan: SplashScreen, BagScreen, SettingsScreen, StatsScreen, RoundHistory zijn geëxtraheerd.
-**Nog in App.jsx**: HomeScreen, TrackingScreen en HoleOverlay moeten nog naar eigen componenten.
+Componentextractie is **volledig afgerond**. Alle schermen zijn geëxtraheerd uit App.jsx.
+App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component routing.
 
 ## Database Schema
 
@@ -117,7 +122,7 @@ Fase 1 is gedaan: SplashScreen, BagScreen, SettingsScreen, StatsScreen, RoundHis
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v1.41)
+## Huidige Features (v1.42)
 1. Splash screen met weer + begroeting
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
@@ -138,7 +143,6 @@ Fase 1 is gedaan: SplashScreen, BagScreen, SettingsScreen, StatsScreen, RoundHis
 ### Hoge prioriteit
 - [ ] Spaarnwoude SQL uitvoeren (5 stappen in samenvatting-bestand)
 - [ ] GPS live tracking feature bouwen (rode knipperende dot, afstand tot green)
-- [ ] App.jsx verder opsplitsen (HomeScreen, TrackingScreen, HoleOverlay extraheren)
 
 ### Medium prioriteit
 - [ ] DNS fixen golfstats.nl (TransIP A record + CNAME)
