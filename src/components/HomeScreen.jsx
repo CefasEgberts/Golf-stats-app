@@ -1,0 +1,259 @@
+import React from 'react';
+import { Plus, TrendingUp, BarChart3, Calendar, MapPin, Settings, Home } from 'lucide-react';
+
+export default function HomeScreen({
+  settings, round, courseData, weather, userLocation, setUserLocation,
+  showSearch, setShowSearch, searchQuery, setSearchQuery, filteredCourses,
+  getNearbyCoursesSimulated, resetToHome, startRound, getTeeColorClass, t,
+  onSettings, onAllStats, onClubs, onRoundHistory, onLogout, onAdmin
+}) {
+  return (
+    <div className="animate-slide-up">
+      <div className="p-6 pt-12">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="font-display text-6xl mb-2 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">{t('golfStats')}</h1>
+            <p className="font-body text-emerald-200/70 text-sm">{t('tagline')}</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onAllStats} className="glass-card p-3 rounded-xl hover:bg-white/15 transition"><BarChart3 className="w-6 h-6 text-emerald-400" /></button>
+            {onAdmin && <button onClick={onAdmin} className="glass-card p-3 rounded-xl hover:bg-white/15 transition"><span className="text-emerald-400 text-xl">👑</span></button>}
+            <button onClick={onSettings} className="glass-card p-3 rounded-xl hover:bg-white/15 transition"><Settings className="w-6 h-6 text-emerald-400" /></button>
+            {onLogout && <button onClick={onLogout} className="glass-card p-3 rounded-xl hover:bg-white/15 transition"><span className="text-red-400 text-xl">🚪</span></button>}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 mt-8">
+        {/* Saved Rounds */}
+        {round.savedRounds.length > 0 && (
+          <div className="glass-card rounded-3xl p-8 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-display text-3xl mb-1">{t('myRounds').toUpperCase()}</h2>
+                <p className="font-body text-emerald-200/60 text-sm">{round.savedRounds.length} {round.savedRounds.length === 1 ? 'ronde' : 'rondes'}</p>
+              </div>
+              <BarChart3 className="w-12 h-12 text-emerald-400" />
+            </div>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {round.savedRounds.slice(0, 20).map((r, index) => (
+                <div key={index} className="glass-card rounded-xl p-4 flex items-center justify-between hover:bg-white/10 transition">
+                  <button onClick={() => onRoundHistory(r)} className="flex-1 text-left">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-body font-semibold text-white">{r.course.name}</div>
+                        <div className="font-body text-xs text-emerald-200/60 mt-1">{r.loop.name}</div>
+                        <div className="font-body text-xs text-emerald-200/50 mt-1">{r.date}</div>
+                      </div>
+                      <div className="text-right mr-4">
+                        <div className="font-display text-2xl text-emerald-300">{r.holes.reduce((s, h) => s + (h.score || 0), 0)}</div>
+                        <div className="font-body text-xs text-emerald-200/60">{t('viewRound')}</div>
+                      </div>
+                    </div>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); if (window.confirm('Weet je zeker dat je deze ronde wilt verwijderen?')) round.setSavedRounds(prev => prev.filter((_, i) => i !== index)); }}
+                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* New Round Card */}
+        <div className="glass-card rounded-3xl p-8 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-display text-3xl mb-1">{t('newRound').toUpperCase()}</h2>
+              <p className="font-body text-emerald-200/60 text-sm">{t('startTracking')}</p>
+            </div>
+            <div className="flex gap-2">
+              {(round.roundData.course || userLocation || showSearch) && (
+                <button onClick={resetToHome} className="p-3 rounded-xl hover:bg-white/10 transition"><Home className="w-6 h-6 text-emerald-400" /></button>
+              )}
+              <Plus className="w-12 h-12 text-emerald-400" />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Location / Search buttons */}
+            {!userLocation && !round.roundData.course && !showSearch && (
+              <div className="space-y-3">
+                <button onClick={getNearbyCoursesSimulated} disabled={courseData.nearbyCoursesLoading}
+                  className="w-full btn-primary rounded-xl py-4 font-body font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                  <MapPin className="w-5 h-5" />{courseData.nearbyCoursesLoading ? 'Zoeken...' : 'Vind banen in de buurt'}
+                </button>
+                <button onClick={() => setShowSearch(true)} className="w-full btn-secondary rounded-xl py-4 font-body font-medium">
+                  Zoek op naam of plaats
+                </button>
+              </div>
+            )}
+
+            {/* Search Input */}
+            {showSearch && !round.roundData.course && (
+              <div className="space-y-3 animate-slide-up">
+                <div className="relative">
+                  <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Zoek baan of plaats..." autoFocus
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                  {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300">✕</button>}
+                </div>
+                <button onClick={() => { setShowSearch(false); setSearchQuery(''); }} className="w-full btn-secondary rounded-xl py-3 font-body text-sm">
+                  Gebruik locatie in plaats daarvan
+                </button>
+              </div>
+            )}
+
+            {/* Course List */}
+            {((userLocation && !round.roundData.course) || (showSearch && searchQuery)) && (
+              <div className="space-y-3 animate-slide-up">
+                <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">
+                  {showSearch ? `${filteredCourses.length} banen gevonden` : 'Banen bij jou in de buurt'}
+                </label>
+                {filteredCourses.length === 0 && showSearch && (
+                  <div className="glass-card rounded-xl p-6 text-center"><div className="font-body text-emerald-200/60">Geen banen gevonden voor "{searchQuery}"</div></div>
+                )}
+                {filteredCourses.map((course) => (
+                  <button key={course.id} onClick={() => { round.setRoundData({ ...round.roundData, course }); setShowSearch(false); setSearchQuery(''); }}
+                    className="w-full glass-card rounded-xl p-4 text-left hover:bg-white/15 transition group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-body font-semibold text-white group-hover:text-emerald-300 transition">{course.name}</div>
+                        <div className="font-body text-xs text-emerald-200/60 mt-1">{course.city}</div>
+                      </div>
+                      {!showSearch && <div className="font-display text-xl text-emerald-400">{course.distance}km</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Loop Selection */}
+            {round.roundData.course && !round.roundData.loop && (
+              <div className="space-y-3 animate-slide-up">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="font-body font-semibold text-emerald-300 text-lg">{round.roundData.course.name}</div>
+                    <div className="font-body text-xs text-emerald-200/60">{round.roundData.course.city}</div>
+                  </div>
+                  <button onClick={() => round.setRoundData({ ...round.roundData, course: null })} className="font-body text-xs text-emerald-300 hover:text-emerald-200">Wijzigen</button>
+                </div>
+                <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Welke lus speel je?</label>
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {round.roundData.course.loops.filter(l => !l.isFull).map((loop) => (
+                    <button key={loop.id} onClick={async () => {
+                      const tees = await courseData.fetchAvailableTees(round.roundData.course.name, loop.name);
+                      round.setRoundData({ ...round.roundData, loop, availableTees: tees || round.roundData.course.teeColors });
+                    }} className="glass-card rounded-xl p-4 text-center hover:bg-white/15 transition group overflow-hidden">
+                      <div className="font-display text-2xl text-emerald-300 group-hover:text-emerald-200 transition mb-1 truncate uppercase">{loop.name}</div>
+                      <div className="font-body text-xs text-emerald-200/60">9 holes</div>
+                    </button>
+                  ))}
+                </div>
+                {round.roundData.course.loops.filter(l => l.isFull).length > 0 && (
+                  <>
+                    <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider mt-4">Of kies een combinatie (18 holes)</label>
+                    <select onChange={async (e) => {
+                      const selectedLoop = round.roundData.course.loops.find(l => l.id === e.target.value);
+                      if (selectedLoop) {
+                        const firstLoopId = selectedLoop.id.split('-')[0];
+                        const tees = await courseData.fetchAvailableTees(round.roundData.course.name, firstLoopId);
+                        round.setRoundData({ ...round.roundData, loop: selectedLoop, availableTees: tees || round.roundData.course.teeColors });
+                      }
+                    }} defaultValue=""
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 font-body text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition appearance-none cursor-pointer"
+                      style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'%2310b981\' viewBox=\'0 0 16 16\'%3E%3Cpath d=\'M8 12L2 6h12z\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center' }}>
+                      <option value="" disabled style={{ background: '#1a3a2a', color: '#999' }}>Selecteer een 18-holes combinatie...</option>
+                      {round.roundData.course.loops.filter(l => l.isFull).map((loop) => (
+                        <option key={loop.id} value={loop.id} style={{ background: '#1a3a2a', color: 'white' }}>{loop.name} (18 holes)</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Tee Color */}
+            {round.roundData.course && round.roundData.loop && !round.roundData.teeColor && (
+              <div className="space-y-3 animate-slide-up">
+                <div className="glass-card rounded-xl p-4 bg-emerald-500/10 border-emerald-400/30 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-body font-semibold text-white">{round.roundData.course.name}</div>
+                      <div className="font-body text-xs text-emerald-200/70 mt-1">{round.roundData.loop.name}</div>
+                    </div>
+                    <button onClick={() => round.setRoundData({ ...round.roundData, loop: null })} className="font-body text-xs text-emerald-300 hover:text-emerald-200">Wijzigen</button>
+                  </div>
+                </div>
+                <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">Van welke tee speel je?</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {(round.roundData.availableTees || round.roundData.course.teeColors || ['Wit']).map((color) => (
+                    <button key={color} onClick={() => round.setRoundData({ ...round.roundData, teeColor: color })}
+                      className={`${getTeeColorClass(color)} rounded-xl py-5 font-body font-bold text-lg hover:scale-105 transition shadow-lg`}>
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Date/Time/Start */}
+            {round.roundData.course && round.roundData.loop && round.roundData.teeColor && (
+              <div className="space-y-4 animate-slide-up">
+                <div className="glass-card rounded-xl p-4 bg-emerald-500/10 border-emerald-400/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <div className="font-body font-semibold text-white">{round.roundData.course.name}</div>
+                      <div className="font-body text-xs text-emerald-200/70 mt-1">{round.roundData.loop.name}</div>
+                    </div>
+                    <button onClick={() => round.setRoundData({ ...round.roundData, teeColor: null })} className="font-body text-xs text-emerald-300 hover:text-emerald-200">Wijzigen</button>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-xs font-semibold inline-block mt-2 ${getTeeColorClass(round.roundData.teeColor)}`}>{round.roundData.teeColor} Tee</div>
+                </div>
+                <div>
+                  <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Starttijd</label>
+                  <input type="time" value={round.roundData.startTime} onChange={(e) => round.setRoundData({ ...round.roundData, startTime: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Temperatuur (°C)</label>
+                  <input type="number" value={round.roundData.temperature || ''} onChange={(e) => round.setRoundData({ ...round.roundData, temperature: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder={weather.fetchingWeather ? 'Ophalen...' : 'bijv. 18'} disabled={weather.fetchingWeather}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition disabled:opacity-50" />
+                </div>
+                <div>
+                  <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Datum</label>
+                  <div className="relative">
+                    <input type="date" value={round.roundData.date} onChange={(e) => round.setRoundData({ ...round.roundData, date: e.target.value })}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                    <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 pointer-events-none" />
+                  </div>
+                </div>
+                <button onClick={startRound} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider mt-6">START RONDE</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Stats */}
+        {!userLocation && !round.roundData.course && (
+          <div className="grid grid-cols-2 gap-4">
+            <button onClick={onAllStats} className="glass-card rounded-2xl p-6 text-left hover:bg-white/10 transition">
+              <TrendingUp className="w-8 h-8 text-emerald-400 mb-3" />
+              <div className="font-display text-2xl">{settings.handicap || '--'}</div>
+              <div className="font-body text-xs text-emerald-200/60 uppercase tracking-wider">Handicap</div>
+            </button>
+            <button onClick={onClubs} className="glass-card rounded-2xl p-6 text-left hover:bg-white/10 transition">
+              <BarChart3 className="w-8 h-8 text-teal-400 mb-3" />
+              <div className="font-display text-2xl">{round.savedRounds.length}</div>
+              <div className="font-body text-xs text-emerald-200/60 uppercase tracking-wider">Rondes</div>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
