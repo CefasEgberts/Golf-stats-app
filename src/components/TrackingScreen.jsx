@@ -114,7 +114,6 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             )}
           </div>
         )}
-        </div>
       </div>
 
       {/* Main Content */}
