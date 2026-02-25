@@ -7,6 +7,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const si = getStrokeIndex(courseData.allHolesData, round.currentHole, settings.gender);
   const [showGreenDistances, setShowGreenDistances] = useState(false);
   const [showPenalty, setShowPenalty] = useState(false);
+  const [showFinishHole, setShowFinishHole] = useState(false);
 
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
@@ -261,48 +262,65 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           const playingHcp = calculatePlayingHandicap(settings.handicap, courseData.courseRating);
           const scoreToPar = autoScore - holePar;
 
+          // Running totals from previous holes
+          const prevStableford = round.roundData.holes?.reduce((sum, h) => {
+            const hPar = courseData.allHolesData?.find(d => d.hole_number === h.hole)?.par || 4;
+            const hSi = courseData.allHolesData?.find(d => d.hole_number === h.hole);
+            const hSiVal = hSi ? (settings.gender === 'man' ? hSi.stroke_index_men : hSi.stroke_index_ladies) : null;
+            const pts = calculateStablefordForHole(h.score, hPar, hSiVal, courseData.courseRating, settings.handicap);
+            return sum + (pts || 0);
+          }, 0) || 0;
+          const runningTotal = prevStableford + (stablefordPts || 0);
+
           return (
-            <div className="space-y-4 mt-6 animate-slide-up">
-              <div className="glass-card rounded-2xl p-6 bg-emerald-500/10 border-emerald-400/30">
-                <div className="font-display text-2xl text-emerald-300 mb-4 text-center">Hole Afronden</div>
-                {totalPutts > 0 && (
-                  <div className="mb-4 p-3 bg-emerald-500/20 rounded-xl border border-emerald-400/30">
-                    <div className="font-body text-sm text-emerald-300 text-center">⛳ {totalPutts} putt{totalPutts !== 1 ? 's' : ''} geregistreerd</div>
-                  </div>
-                )}
-                <div className="text-center mb-4">
-                  <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">Score deze hole</div>
-                  <div className={'font-display text-6xl ' + (scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300')}>{autoScore}</div>
-                  <div className="font-body text-xs text-emerald-200/60 mt-1">
-                    {scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'Par'} ({nonPuttShots} slagen + {totalPutts} putts{totalPenalties > 0 ? ` + ${totalPenalties} straf` : ''})
-                  </div>
+            <div className="mt-6">
+              <button onClick={() => setShowFinishHole(!showFinishHole)}
+                className="w-full glass-card rounded-2xl p-4 flex items-center justify-between bg-emerald-500/10 border-emerald-400/30 hover:bg-emerald-500/15 transition">
+                <div className="flex items-center gap-3">
+                  <span className="font-display text-xl text-emerald-300">Hole Afronden</span>
+                  <span className={'font-display text-xl ' + (scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300')}>
+                    {autoScore} ({scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'Par'})
+                  </span>
                 </div>
-                {settings.showScore && stablefordPts !== null && (
-                  <div className="mb-4 p-4 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl border border-yellow-500/30">
-                    <div className="text-center">
-                      <div className="font-body text-xs text-yellow-200/70 mb-1 uppercase tracking-wider">Stableford</div>
-                      <div className="font-display text-5xl text-yellow-300">{stablefordPts}</div>
-                      <div className="font-body text-xs text-yellow-200/50 mt-1">
-                        punten{playingHcp !== null && ` • Baan HCP: ${playingHcp}`}{si && ` • SI: ${si}`}
-                      </div>
+                <span className="text-emerald-200/50 text-xs">{showFinishHole ? '▲' : '▼'}</span>
+              </button>
+              {showFinishHole && (
+                <div className="glass-card rounded-2xl p-6 mt-1 bg-emerald-500/10 border-emerald-400/30 animate-slide-up">
+                  {totalPutts > 0 && (
+                    <div className="mb-4 p-3 bg-emerald-500/20 rounded-xl border border-emerald-400/30">
+                      <div className="font-body text-sm text-emerald-300 text-center">⛳ {totalPutts} putt{totalPutts !== 1 ? 's' : ''} geregistreerd</div>
+                    </div>
+                  )}
+                  <div className="text-center mb-4">
+                    <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">Score deze hole</div>
+                    <div className={'font-display text-6xl ' + (scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300')}>{autoScore}</div>
+                    <div className="font-body text-xs text-emerald-200/60 mt-1">
+                      {scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'Par'} ({nonPuttShots} slagen + {totalPutts} putts{totalPenalties > 0 ? ` + ${totalPenalties} straf` : ''})
                     </div>
                   </div>
-                )}
-                <div className="mb-4">
-                  <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Score aanpassen (optioneel)</label>
-                  <input type="number" id="score-input-bottom" placeholder={autoScore.toString()} defaultValue=""
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center" />
-                  <div className="font-body text-xs text-emerald-200/50 mt-1 text-center">Laat leeg om berekende score te gebruiken</div>
+                  {settings.showScore && stablefordPts !== null && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl border border-yellow-500/30">
+                      <div className="text-center">
+                        <div className="font-body text-xs text-yellow-200/70 mb-1 uppercase tracking-wider">Stableford</div>
+                        <div className="font-display text-5xl text-yellow-300">{stablefordPts}</div>
+                        <div className="font-body text-xs text-yellow-200/50 mt-1">
+                          punten{playingHcp !== null && ` • Baan HCP: ${playingHcp}`}{si && ` • SI: ${si}`}
+                        </div>
+                        {round.roundData.holes?.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-yellow-500/20">
+                            <div className="font-body text-xs text-yellow-200/50">Totaal na {round.roundData.holes.length + 1} holes</div>
+                            <div className="font-display text-3xl text-yellow-300">{runningTotal}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <button onClick={() => { finishHole(totalPutts, autoScore); setShowFinishHole(false); }}
+                    className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+                    ✓ {t('completeHole').toUpperCase()}
+                  </button>
                 </div>
-                <button onClick={() => {
-                  const scoreInput = document.getElementById('score-input-bottom');
-                  const manualScore = parseInt(scoreInput?.value);
-                  const finalScore = manualScore > 0 ? manualScore : autoScore;
-                  finishHole(totalPutts, finalScore);
-                }} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-                  ✓ {t('completeHole').toUpperCase()}
-                </button>
-              </div>
+              )}
             </div>
           );
         })()}
