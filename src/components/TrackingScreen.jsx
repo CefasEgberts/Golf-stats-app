@@ -43,7 +43,9 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
         <div className="glass-card rounded-2xl p-6 text-center">
           <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">{t('toGo')}</div>
           <div className="font-display text-7xl text-white">{convertDistance(round.remainingDistance)}<span className="text-4xl text-emerald-300 ml-2">{getUnitLabel()}</span></div>
-          <div className="font-body text-xs text-emerald-200/60 mt-2">{t('toMiddleGreen')}</div>
+          <div className="font-body text-xs text-emerald-200/60 mt-2">
+            {gps?.gpsTracking && gps.gpsDistanceToGreen != null ? t('gpsLiveDistance') : t('toMiddleGreen')}
+          </div>
           {/* GPS status indicator */}
           {gps?.gpsTracking && (
             <div className="flex items-center justify-center gap-2 mt-3">
@@ -52,11 +54,49 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               {gps.gpsAccuracy != null && (
                 <span className="font-body text-xs text-emerald-200/50">±{gps.gpsAccuracy}m</span>
               )}
+              <button onClick={() => gps.stopTracking()}
+                className="ml-2 px-2 py-0.5 bg-red-500/20 border border-red-400/30 rounded-lg font-body text-xs text-red-300 hover:bg-red-500/30 transition">
+                {t('gpsStop')}
+              </button>
             </div>
           )}
           {gps?.gpsError && (
             <div className="font-body text-xs text-red-400 mt-2">{gps.gpsError}</div>
           )}
+        </div>
+        {/* Green distances grid */}
+        {gps?.gpsTracking && gps.gpsGreenDistances && (
+          <div className="glass-card rounded-2xl p-4 mt-3">
+            <div className="font-body text-xs text-emerald-200/70 mb-3 uppercase tracking-wider text-center">{t('greenDistances')}</div>
+            <div className="grid grid-cols-3 gap-2 items-center">
+              <div></div>
+              <div className="text-center">
+                <div className="font-body text-xs text-emerald-200/50">{t('back')}</div>
+                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.back != null ? convertDistance(gps.gpsGreenDistances.back) : '-'}</div>
+              </div>
+              <div></div>
+              <div className="text-center">
+                <div className="font-body text-xs text-emerald-200/50">{t('left')}</div>
+                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.left != null ? convertDistance(gps.gpsGreenDistances.left) : '-'}</div>
+              </div>
+              <div className="text-center bg-emerald-500/20 rounded-xl py-2">
+                <div className="font-body text-xs text-emerald-300">⛳</div>
+                <div className="font-display text-2xl text-emerald-300">{gps.gpsGreenDistances.center != null ? convertDistance(gps.gpsGreenDistances.center) : '-'}</div>
+              </div>
+              <div className="text-center">
+                <div className="font-body text-xs text-emerald-200/50">{t('right')}</div>
+                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.right != null ? convertDistance(gps.gpsGreenDistances.right) : '-'}</div>
+              </div>
+              <div></div>
+              <div className="text-center">
+                <div className="font-body text-xs text-emerald-200/50">{t('front')}</div>
+                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.front != null ? convertDistance(gps.gpsGreenDistances.front) : '-'}</div>
+              </div>
+              <div></div>
+            </div>
+            <div className="font-body text-xs text-emerald-200/40 text-center mt-2">{getUnitLabel()}</div>
+          </div>
+        )}
         </div>
       </div>
 

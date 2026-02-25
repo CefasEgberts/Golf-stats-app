@@ -19,9 +19,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
 
   const handleStartGps = (e) => {
     e.stopPropagation();
-    gps.startTracking();
-    // Small delay so first position can arrive before capturing tee
-    setTimeout(() => gps.captureTeePosition(), 500);
+    gps.startTrackingWithTeeCapture();
     onClose();
   };
 

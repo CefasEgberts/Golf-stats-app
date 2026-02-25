@@ -80,7 +80,13 @@ export const translations = {
     gpsActive: 'GPS actief',
     gpsStarting: 'GPS starten...',
     gpsUnavailable: 'GPS niet beschikbaar',
-    beginHoleGps: 'BEGIN HOLE + GPS'
+    gpsLiveDistance: '📡 GPS live afstand',
+    gpsStop: 'Stop',
+    greenDistances: 'Afstanden tot green',
+    front: 'Voor',
+    back: 'Achter',
+    left: 'Links',
+    right: 'Rechts',    beginHoleGps: 'BEGIN HOLE + GPS'
   },
   en: {
     golfStats: 'GOLF STATS',
@@ -163,6 +169,13 @@ export const translations = {
     gpsActive: 'GPS active',
     gpsStarting: 'Starting GPS...',
     gpsUnavailable: 'GPS unavailable',
+    gpsLiveDistance: '📡 GPS live distance',
+    gpsStop: 'Stop',
+    greenDistances: 'Distances to green',
+    front: 'Front',
+    back: 'Back',
+    left: 'Left',
+    right: 'Right',
     beginHoleGps: 'BEGIN HOLE + GPS'
   }
 };

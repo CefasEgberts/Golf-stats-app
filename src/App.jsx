@@ -62,7 +62,13 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const weather = useWeather();
   const courseData = useCourseData();
   const round = useRound();
-  const gps = useGpsTracking(round.currentHoleInfo?.greenLat, round.currentHoleInfo?.greenLng);
+  const greenPoints = round.currentHoleInfo ? {
+    frontLat: round.currentHoleInfo.greenFrontLat, frontLng: round.currentHoleInfo.greenFrontLng,
+    backLat: round.currentHoleInfo.greenBackLat, backLng: round.currentHoleInfo.greenBackLng,
+    leftLat: round.currentHoleInfo.greenLeftLat, leftLng: round.currentHoleInfo.greenLeftLng,
+    rightLat: round.currentHoleInfo.greenRightLat, rightLng: round.currentHoleInfo.greenRightLng
+  } : null;
+  const gps = useGpsTracking(round.currentHoleInfo?.greenLat, round.currentHoleInfo?.greenLng, greenPoints);
 
   // Convenience aliases
   const t = (key) => tr(settings.language, key);
@@ -120,7 +126,11 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           number: round.currentHole, par: d.par || 4, totalDistance, distances,
           hazards: d.hazards || [], photoUrl: d.photo_url || null,
           holeStrategy: d.hole_strategy || null, strategyIsAiGenerated: d.strategy_is_ai_generated || false,
-          greenLat: d.latitude || null, greenLng: d.longitude || null
+          greenLat: d.latitude || null, greenLng: d.longitude || null,
+          greenFrontLat: d.green_front_lat || null, greenFrontLng: d.green_front_lng || null,
+          greenBackLat: d.green_back_lat || null, greenBackLng: d.green_back_lng || null,
+          greenLeftLat: d.green_left_lat || null, greenLeftLng: d.green_left_lng || null,
+          greenRightLat: d.green_right_lat || null, greenRightLng: d.green_right_lng || null
         };
         round.setCurrentHoleInfo(holeInfo);
         if (round.currentHoleShots.length === 0) round.setRemainingDistance(totalDistance);
