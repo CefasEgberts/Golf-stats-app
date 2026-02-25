@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v1.46
+- **Versie**: v1.48
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -18,7 +18,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 ## Projectstructuur
 ```
 src/
-├── App.jsx                    # 444 regels — state, hooks, effects, routing
+├── App.jsx                    # 453 regels — state, hooks, effects, routing
 ├── main.jsx                   # Entry point (115 regels)
 ├── LoginScreen.jsx            # Login (166 regels)
 ├── AdminDashboard.jsx         # Admin dashboard (338 regels)
@@ -26,17 +26,17 @@ src/
 │   ├── supabase.js            # Supabase client init (6 regels)
 │   ├── gps.js                 # GPS functies + haversine + watchPosition (48 regels)
 │   ├── constants.js           # Clubs, steden, tee kleuren (51 regels)
-│   ├── translations.js        # nl/en vertalingen (170 regels)
+│   ├── translations.js        # nl/en vertalingen (183 regels)
 │   └── stableford.js          # Handicap + Stableford berekeningen (50 regels)
 ├── hooks/
 │   ├── useWeather.js          # Weer ophalen (57 regels)
-│   ├── useGpsTracking.js       # GPS live tracking hook (105 regels)
+│   ├── useGpsTracking.js       # GPS live tracking hook + 5-point green distances (157 regels)
 │   ├── useCourseData.js       # Database queries (169 regels)
 │   └── useRound.js            # Ronde state management (110 regels)
 ├── components/
 │   ├── SplashScreen.jsx       # Splash screen (60 regels)
 │   ├── HomeScreen.jsx         # Baan zoeken, lus/tee selectie, start ronde (259 regels)
-│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status (220 regels)
+│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status (258 regels)
 │   ├── HoleOverlay.jsx        # Hole info modal met foto, GPS dot, strategie (102 regels)
 │   ├── AllStatsScreen.jsx     # Statistieken overzicht (45 regels)
 │   ├── ClubAnalysis.jsx       # Club analyse placeholder (20 regels)
@@ -123,7 +123,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v1.46)
+## Huidige Features (v1.48)
 1. Splash screen met weer + begroeting
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
@@ -139,12 +139,14 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 13. Ronde historie (bekijken + verwijderen)
 14. Login + admin dashboard
 15. **GPS live tracking** (afstand tot green, geslagen afstand, knipperend rood punt op hole-foto)
+16. **5-point green GPS distances** (front/back/left/right/center afstanden tot green)
 
 ## TODO's
 
 ### Hoge prioriteit
 - [ ] Spaarnwoude SQL uitvoeren (5 stappen in samenvatting-bestand)
 - [x] GPS live tracking feature bouwen (rode knipperende dot, afstand tot green) ✅ v1.44
+- [x] 5-point green GPS distances (front/back/left/right/center) ✅ v1.48
 
 ### Medium prioriteit
 - [ ] DNS fixen golfstats.nl (TransIP A record + CNAME)

@@ -84,10 +84,16 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           )}
           {/* GPS Start button */}
           {hasGreenCoords && !gps?.gpsTracking && (
-            <button onClick={handleStartGps}
-              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
-              📡 {t('beginHoleGps')}
-            </button>
+            <>
+              <button onClick={handleStartGps}
+                className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
+                📡 {t('beginHoleGps')}
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); gps.startSimulation(52.338813477839146, 4.655211160362996); onClose(); }}
+                className="w-full mt-2 bg-yellow-500/20 border border-yellow-400/30 rounded-xl py-3 font-body text-sm text-yellow-300 hover:bg-yellow-500/30 transition flex items-center justify-center gap-2">
+                🧪 Simuleer GPS (tee hole 1)
+              </button>
+            </>
           )}
           {!hasGreenCoords && (
             <button onClick={onClose}

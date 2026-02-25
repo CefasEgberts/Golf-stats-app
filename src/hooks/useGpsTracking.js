@@ -140,6 +140,45 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     setGpsShotDistance(null);
   }, []);
 
+  // ── Simulation mode ──────────────────────────────────────────────
+  const [simMode, setSimMode] = useState(false);
+
+  const startSimulation = useCallback((teeLat, teeLng) => {
+    setSimMode(true);
+    setGpsTracking(true);
+    setGpsError(null);
+    setGpsAccuracy(1);
+    const teePos = { lat: teeLat, lng: teeLng };
+    setGpsPosition(teePos);
+    setTeePosition({ ...teePos });
+    setLastShotPosition(null);
+  }, []);
+
+  // Simulate moving towards green by a given distance in meters
+  const simulateShot = useCallback((distanceMeters) => {
+    if (!gpsPosition || (greenLat == null || greenLng == null)) return;
+    const totalDist = haversineMeters(gpsPosition.lat, gpsPosition.lng, greenLat, greenLng);
+    if (totalDist < 1) return;
+    const fraction = Math.min(distanceMeters / totalDist, 1);
+    const newLat = gpsPosition.lat + (greenLat - gpsPosition.lat) * fraction;
+    const newLng = gpsPosition.lng + (greenLng - gpsPosition.lng) * fraction;
+    setLastShotPosition({ ...gpsPosition });
+    setGpsPosition({ lat: newLat, lng: newLng });
+  }, [gpsPosition, greenLat, greenLng]);
+
+  const stopSimulation = useCallback(() => {
+    setSimMode(false);
+    setGpsTracking(false);
+    setGpsPosition(null);
+    setTeePosition(null);
+    setLastShotPosition(null);
+    setGpsError(null);
+    setGpsAccuracy(null);
+    setGpsDistanceToGreen(null);
+    setGpsGreenDistances(null);
+    setGpsShotDistance(null);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -152,6 +191,7 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   return {
     gpsTracking, gpsPosition, teePosition, lastShotPosition,
     gpsError, gpsAccuracy, gpsDistanceToGreen, gpsGreenDistances, gpsShotDistance,
-    startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition, captureShot, resetForNewHole
+    startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition, captureShot, resetForNewHole,
+    simMode, startSimulation, simulateShot, stopSimulation
   };
 };

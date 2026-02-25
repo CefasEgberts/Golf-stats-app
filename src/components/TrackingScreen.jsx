@@ -252,6 +252,29 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             </div>
           );
         })()}
+
+        {/* GPS Simulation controls (dev mode) */}
+        {gps?.simMode && (
+          <div className="mt-6 glass-card rounded-2xl p-4 border-2 border-yellow-500/30 bg-yellow-500/5">
+            <div className="font-body text-xs text-yellow-300 mb-3 uppercase tracking-wider text-center">🧪 GPS Simulatie</div>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => gps.simulateShot(50)}
+                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+50m</button>
+              <button onClick={() => gps.simulateShot(100)}
+                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+100m</button>
+              <button onClick={() => gps.simulateShot(150)}
+                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+150m</button>
+              <button onClick={() => gps.simulateShot(190)}
+                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+190m</button>
+              <button onClick={() => gps.simulateShot(200)}
+                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+200m</button>
+              <button onClick={() => gps.simulateShot(gps.gpsDistanceToGreen || 0)}
+                className="bg-emerald-500/20 border border-emerald-400/30 rounded-lg py-2 font-body text-sm text-emerald-200 hover:bg-emerald-500/30 transition">→ Green</button>
+            </div>
+            <button onClick={() => gps.stopSimulation()}
+              className="w-full mt-2 bg-red-500/20 border border-red-400/30 rounded-lg py-2 font-body text-xs text-red-300 hover:bg-red-500/30 transition">Stop simulatie</button>
+          </div>
+        )}
       </div>
     </div>
   );
