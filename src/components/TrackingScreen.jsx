@@ -97,7 +97,6 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             <div className="font-body text-xs text-emerald-200/40 text-center mt-2">{getUnitLabel()}</div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Main Content */}
