@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChevronLeft, MapPin } from 'lucide-react';
 import { calculateStablefordForHole, calculatePlayingHandicap, getStrokeIndex } from '../lib/stableford';
 import HoleOverlay from './HoleOverlay';
@@ -8,6 +8,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showGreenDistances, setShowGreenDistances] = useState(false);
   const [showPenalty, setShowPenalty] = useState(false);
   const [showFinishHole, setShowFinishHole] = useState(false);
+  const finishHoleRef = useRef(null);
 
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
@@ -274,8 +275,12 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           const runningTotal = prevStableford + (stablefordPts || 0);
 
           return (
-            <div className="mt-6">
-              <button onClick={() => setShowFinishHole(!showFinishHole)}
+            <div className="mt-6" ref={finishHoleRef}>
+              <button onClick={() => { 
+                const newState = !showFinishHole; 
+                setShowFinishHole(newState); 
+                if (newState) setTimeout(() => finishHoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+              }}
                 className="w-full glass-card rounded-2xl p-4 flex items-center justify-between bg-emerald-500/10 border-emerald-400/30 hover:bg-emerald-500/15 transition">
                 <div className="flex items-center gap-3">
                   <span className="font-display text-xl text-emerald-300">Hole Afronden</span>
