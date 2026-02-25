@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v1.64
+- **Versie**: v1.66
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
