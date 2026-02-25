@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v1.78`;
+const appVersion = `${commitHash} v1.47`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -350,7 +350,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           onSettings={() => setCurrentScreen('settings')}
           onAllStats={() => setCurrentScreen('allStats')}
           onClubs={() => setCurrentScreen('clubs')}
-          onRoundHistory={(r) => { round.setRoundData(r); setCurrentScreen('roundHistory'); }}
+          onRoundHistory={(r) => { if (r) { round.setRoundData(r); setCurrentScreen('roundHistory'); } else { setCurrentScreen('roundsList'); } }}
           onLogout={onLogout}
           onAdmin={onAdmin}
         />
@@ -414,6 +414,47 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           showBagLimitWarning={showBagLimitWarning}
           onBack={() => setCurrentScreen('settings')}
         />
+      )}
+
+      {/* ==================== ROUNDS LIST ==================== */}
+      {currentScreen === 'roundsList' && (
+        <div className="animate-slide-up">
+          <div className="p-6 flex items-center justify-between">
+            <button onClick={() => setCurrentScreen('home')} className="p-2"><span className="text-white text-2xl">‹</span></button>
+            <h1 className="font-display text-3xl">{t('myRounds').toUpperCase()}</h1>
+            <div className="w-10" />
+          </div>
+          <div className="px-6 space-y-3">
+            {round.savedRounds.length === 0 && (
+              <div className="glass-card rounded-xl p-8 text-center">
+                <div className="font-body text-emerald-200/60">Nog geen rondes gespeeld</div>
+              </div>
+            )}
+            {round.savedRounds.map((r, index) => (
+              <div key={index} className="glass-card rounded-xl p-4 flex items-center justify-between hover:bg-white/10 transition">
+                <button onClick={() => { round.setRoundData(r); setCurrentScreen('roundHistory'); }} className="flex-1 text-left">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="font-body font-semibold text-white">{r.course?.name}</div>
+                      <div className="font-body text-xs text-emerald-200/60 mt-1">{r.loop?.name} • {r.teeColor}</div>
+                      <div className="font-body text-xs text-emerald-200/50 mt-1">{r.date} • {r.startTime}</div>
+                    </div>
+                    <div className="text-right mr-4">
+                      <div className="font-display text-2xl text-emerald-300">{r.holes?.reduce((s, h) => s + (h.score || 0), 0)}</div>
+                      <div className="font-body text-xs text-emerald-200/60">{r.holes?.length} holes</div>
+                    </div>
+                  </div>
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); if (window.confirm('Weet je zeker dat je deze ronde wilt verwijderen?')) round.setSavedRounds(prev => prev.filter((_, i) => i !== index)); }}
+                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* ==================== ROUND HISTORY ==================== */}
