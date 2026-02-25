@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v1.67`;
+const appVersion = `${commitHash} v1.47`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -369,6 +369,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           t={t}
           finishHole={finishHole}
           gps={gps}
+          wind={weather.courseWind}
           onQuit={() => {
             const msg = settings.language === 'nl' ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' : 'Are you sure? The round will not be saved.';
             if (window.confirm(msg)) {

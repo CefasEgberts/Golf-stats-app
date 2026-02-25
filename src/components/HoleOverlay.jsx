@@ -1,8 +1,14 @@
 import React from 'react';
 import { haversineMeters } from '../lib/gps';
 
-export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps }) {
+export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind }) {
   const hasGreenCoords = currentHoleInfo.greenLat != null && currentHoleInfo.greenLng != null;
+
+  // Wind direction label and rotation for arrow
+  const getWindLabel = (deg) => {
+    const dirs = ['N', 'NO', 'O', 'ZO', 'Z', 'ZW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
+  };
 
   // Calculate GPS dot position on photo
   const getGpsDotTop = () => {
@@ -59,6 +65,19 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
             <div style={{ position: 'absolute', right: '8px', top: '4%' }}>
               <div className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded shadow-lg" style={{ fontSize: '10px' }}>⛳ Green</div>
             </div>
+            {/* Wind indicator */}
+            {wind && wind.beaufort >= 2 && (
+              <div style={{ position: 'absolute', left: '8px', top: '4%' }} onClick={(e) => e.stopPropagation()}>
+                <div className={'px-2 py-1.5 rounded shadow-lg flex items-center gap-1.5 ' +
+                  (wind.beaufort >= 5 ? 'bg-red-500/90' : wind.beaufort >= 4 ? 'bg-orange-500/90' : 'bg-blue-500/70')}>
+                  <span style={{ display: 'inline-block', transform: `rotate(${wind.direction}deg)`, fontSize: '14px' }}>↓</span>
+                  <div>
+                    <div className="text-white font-bold" style={{ fontSize: '11px' }}>Bft {wind.beaufort}</div>
+                    <div className="text-white/80" style={{ fontSize: '9px' }}>{getWindLabel(wind.direction)} {wind.speed} km/h</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="h-32 w-full max-w-sm bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
@@ -68,7 +87,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
       </div>
       <div className="flex-shrink-0 px-4 pb-4 pt-2" onClick={(e) => e.stopPropagation()}>
         <div className="max-w-lg mx-auto">
-          {currentHoleInfo.holeStrategy && (
+          {(currentHoleInfo.holeStrategy || (wind && wind.beaufort >= 2)) && (
             <>
               <button onClick={() => setShowStrategy(!showStrategy)}
                 className={'w-full rounded-xl py-3 px-4 font-body font-medium transition border ' +
@@ -76,8 +95,87 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 🏌️ {t('howToPlay')} <span className="ml-2 text-xs">{showStrategy ? '▲' : '▼'}</span>
               </button>
               {showStrategy && (
-                <div className="bg-white/5 rounded-xl p-3 mt-2 border border-white/10 animate-slide-up max-h-[30vh] overflow-y-auto">
-                  <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
+                <div className="bg-white/5 rounded-xl p-3 mt-2 border border-white/10 animate-slide-up max-h-[45vh] overflow-y-auto">
+                  {/* Standaard info */}
+                  {currentHoleInfo.holeStrategy && (
+                    <div className="mb-3">
+                      <div className="font-body text-xs text-emerald-300 font-semibold mb-2 uppercase tracking-wider">📋 Standaard info</div>
+                      <p className="font-body text-white text-sm leading-relaxed">{currentHoleInfo.holeStrategy}</p>
+                    </div>
+                  )}
+                  {/* Wind advies */}
+                  {wind && wind.beaufort >= 2 && (() => {
+                    const windDir = wind.direction;
+                    const windLabel = getWindLabel(windDir);
+                    const bft = wind.beaufort;
+                    const speedMph = Math.round(wind.speed * 0.621371);
+                    const dist = remainingDistance || currentHoleInfo.totalDistance;
+
+                    // Determine wind relative to hole direction (tee→green bearing)
+                    // For now use wind compass direction for advice
+                    const isHeadwind = windDir >= 135 && windDir <= 225;
+                    const isTailwind = windDir <= 45 || windDir >= 315;
+                    const isLeftWind = windDir > 225 && windDir < 315;
+                    const isRightWind = windDir > 45 && windDir < 135;
+
+                    // Distance adjustment
+                    let distAdvice = '';
+                    let extraMeters = 0;
+                    if (isHeadwind) {
+                      extraMeters = Math.round(dist * speedMph * 0.01);
+                      distAdvice = `Tegenwind: reken ${extraMeters}m extra (${dist}m + ${Math.round(speedMph)}% = ${dist + extraMeters}m effectief)`;
+                    } else if (isTailwind) {
+                      extraMeters = Math.round(dist * speedMph * 0.005);
+                      distAdvice = `Meewind: trek ${extraMeters}m af (${dist}m - ${Math.round(speedMph * 0.5)}% = ${dist - extraMeters}m effectief)`;
+                    } else {
+                      // Crosswind has partial head/tail component
+                      const headComponent = -Math.cos(windDir * Math.PI / 180);
+                      if (headComponent > 0.2) {
+                        extraMeters = Math.round(dist * speedMph * 0.01 * headComponent);
+                        distAdvice = `Schuin tegenwind: reken ~${extraMeters}m extra`;
+                      } else if (headComponent < -0.2) {
+                        extraMeters = Math.round(dist * speedMph * 0.005 * Math.abs(headComponent));
+                        distAdvice = `Schuin meewind: trek ~${extraMeters}m af`;
+                      }
+                    }
+
+                    // Side drift advice
+                    let sideAdvice = '';
+                    if (isLeftWind) {
+                      sideAdvice = 'Wind van links: richt 15-20m links van de vlag. De bal driftt naar rechts.';
+                    } else if (isRightWind) {
+                      sideAdvice = 'Wind van rechts: richt 15-20m rechts van de vlag. De bal driftt naar links.';
+                    }
+
+                    // Club advice
+                    let clubAdvice = '';
+                    if (bft >= 4) {
+                      if (isHeadwind) {
+                        clubAdvice = 'Neem 1,5 tot 2 clubs meer en sla rustiger om "onder de wind" te blijven.';
+                      } else if (isTailwind) {
+                        clubAdvice = 'Neem 1 club minder. De wind draagt de bal verder.';
+                      } else if (isLeftWind || isRightWind) {
+                        clubAdvice = `Neem bij twijfel één club extra. ${isLeftWind ? 'Mik links' : 'Mik rechts'}, de bal driftt ${isLeftWind ? 'naar rechts' : 'naar links'}.`;
+                      }
+                    } else if (bft >= 3) {
+                      if (isHeadwind) clubAdvice = 'Overweeg 1 club meer tegen de wind in.';
+                      else if (isLeftWind || isRightWind) clubAdvice = `Compenseer ~10m ${isLeftWind ? 'links' : 'rechts'} van je doel.`;
+                    }
+
+                    return (
+                      <div className={'p-3 rounded-xl border mt-2 ' + (bft >= 5 ? 'bg-red-500/10 border-red-400/30' : bft >= 4 ? 'bg-orange-500/10 border-orange-400/30' : 'bg-blue-500/10 border-blue-400/30')}>
+                        <div className="font-body text-xs text-emerald-300 font-semibold mb-2 uppercase tracking-wider">
+                          💨 Windadvies — Bft {bft} uit {windLabel} ({wind.speed} km/h)
+                        </div>
+                        <div className="font-body text-sm text-white space-y-2">
+                          {distAdvice && <p>📏 {distAdvice}</p>}
+                          {sideAdvice && <p>🎯 {sideAdvice}</p>}
+                          {clubAdvice && <p>🏌️ {clubAdvice}</p>}
+                          {bft >= 4 && <p className="text-xs text-emerald-200/60 italic">Tip: Hoe hoger de balvlucht (wedge/9-ijzer), hoe meer de wind grip heeft. Overweeg een lagere balvlucht.</p>}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </>

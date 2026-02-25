@@ -3,7 +3,7 @@ import { ChevronLeft, MapPin } from 'lucide-react';
 import { calculateStablefordForHole, calculatePlayingHandicap, getStrokeIndex } from '../lib/stableford';
 import HoleOverlay from './HoleOverlay';
 
-export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps }) {
+export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps, wind }) {
   const si = getStrokeIndex(courseData.allHolesData, round.currentHole, settings.gender);
   const [showGreenDistances, setShowGreenDistances] = useState(false);
   const [showPenalty, setShowPenalty] = useState(false);
@@ -22,6 +22,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           onClose={() => { round.setShowHoleOverview(false); round.setShowStrategy(false); }}
           t={t}
           gps={gps}
+          wind={wind}
         />
       )}
 
