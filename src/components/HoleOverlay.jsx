@@ -40,6 +40,13 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           {remainingDistance !== currentHoleInfo.totalDistance && (
             <span className="font-body text-red-400 text-sm font-bold">Nog {remainingDistance}m</span>
           )}
+          {wind && wind.beaufort >= 2 && (
+            <span className={'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ' +
+              (wind.beaufort >= 5 ? 'bg-red-500/80 text-white' : wind.beaufort >= 4 ? 'bg-orange-500/80 text-white' : 'bg-blue-500/60 text-white')}>
+              <span style={{ display: 'inline-block', transform: `rotate(${wind.direction}deg)` }}>↓</span>
+              Bft {wind.beaufort} {getWindLabel(wind.direction)}
+            </span>
+          )}
         </div>
       </div>
       <div className={'flex-1 flex items-center justify-center px-4 transition-all duration-300 ' + (showStrategy ? 'max-h-[40vh]' : '')}
@@ -65,19 +72,6 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
             <div style={{ position: 'absolute', right: '8px', top: '4%' }}>
               <div className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded shadow-lg" style={{ fontSize: '10px' }}>⛳ Green</div>
             </div>
-            {/* Wind indicator */}
-            {wind && wind.beaufort >= 2 && (
-              <div style={{ position: 'absolute', left: '8px', top: '4%' }} onClick={(e) => e.stopPropagation()}>
-                <div className={'px-2 py-1.5 rounded shadow-lg flex items-center gap-1.5 ' +
-                  (wind.beaufort >= 5 ? 'bg-red-500/90' : wind.beaufort >= 4 ? 'bg-orange-500/90' : 'bg-blue-500/70')}>
-                  <span style={{ display: 'inline-block', transform: `rotate(${wind.direction}deg)`, fontSize: '14px' }}>↓</span>
-                  <div>
-                    <div className="text-white font-bold" style={{ fontSize: '11px' }}>Bft {wind.beaufort}</div>
-                    <div className="text-white/80" style={{ fontSize: '9px' }}>{getWindLabel(wind.direction)} {wind.speed} km/h</div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="h-32 w-full max-w-sm bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
@@ -159,6 +153,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                       }
                     } else if (bft >= 3) {
                       if (isHeadwind) clubAdvice = 'Overweeg 1 club meer tegen de wind in.';
+                      else if (isTailwind) clubAdvice = 'Je hebt wind mee — overweeg een half clubje minder.';
                       else if (isLeftWind || isRightWind) clubAdvice = `Compenseer ~10m ${isLeftWind ? 'links' : 'rechts'} van je doel.`;
                     }
 
