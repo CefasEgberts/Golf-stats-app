@@ -125,7 +125,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('shot')} {round.currentHoleShots.length + 1}: {t('whichClub')}</label>
           <div className="grid grid-cols-4 gap-2">
             {clubs.map((club) => (
-              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); }}
+              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); if (club === 'Putter') round.setSelectedLie('green'); }}
                 className={'club-btn glass-card rounded-xl py-3 px-2 font-body text-sm font-medium ' + (round.selectedClub === club ? 'selected' : '')}>{club}</button>
             ))}
             <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); }}
@@ -193,7 +193,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               </div>
             )}
 
-            {/* Lie */}
+            {/* Lie - auto-selected to green for Putter */}
             <div>
               <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('lie')}</label>
               <div className="grid grid-cols-3 gap-3">
