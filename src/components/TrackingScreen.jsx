@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, MapPin } from 'lucide-react';
 import { calculateStablefordForHole, calculatePlayingHandicap, getStrokeIndex } from '../lib/stableford';
 import HoleOverlay from './HoleOverlay';
 
 export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps }) {
   const si = getStrokeIndex(courseData.allHolesData, round.currentHole, settings.gender);
+  const [showGreenDistances, setShowGreenDistances] = useState(false);
 
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
@@ -66,37 +67,53 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
         </div>
         {/* Green distances grid */}
         {gps?.gpsTracking && gps.gpsGreenDistances && (
-          <div className="glass-card rounded-2xl p-4 mt-3">
-            <div className="font-body text-xs text-emerald-200/70 mb-3 uppercase tracking-wider text-center">{t('greenDistances')}</div>
-            <div className="grid grid-cols-3 gap-2 items-center">
-              <div></div>
-              <div className="text-center">
-                <div className="font-body text-xs text-emerald-200/50">{t('back')}</div>
-                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.back != null ? convertDistance(gps.gpsGreenDistances.back) : '-'}</div>
+          <div className="mt-3">
+            <button onClick={() => setShowGreenDistances(!showGreenDistances)}
+              className="w-full glass-card rounded-2xl p-3 flex items-center justify-between hover:bg-white/10 transition">
+              <span className="font-body text-xs text-emerald-200/70 uppercase tracking-wider">{t('greenDistances')}</span>
+              <div className="flex items-center gap-3">
+                <span className="font-display text-lg text-emerald-300">
+                  {gps.gpsGreenDistances.front != null && gps.gpsGreenDistances.back != null
+                    ? `${convertDistance(gps.gpsGreenDistances.front)} - ${convertDistance(gps.gpsGreenDistances.back)} ${getUnitLabel()}`
+                    : `${convertDistance(gps.gpsGreenDistances.center)} ${getUnitLabel()}`}
+                </span>
+                <span className="text-emerald-200/50 text-xs">{showGreenDistances ? '▲' : '▼'}</span>
               </div>
-              <div></div>
-              <div className="text-center">
-                <div className="font-body text-xs text-emerald-200/50">{t('left')}</div>
-                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.left != null ? convertDistance(gps.gpsGreenDistances.left) : '-'}</div>
+            </button>
+            {showGreenDistances && (
+              <div className="glass-card rounded-2xl p-4 mt-1 animate-slide-up">
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  <div></div>
+                  <div className="text-center">
+                    <div className="font-body text-xs text-emerald-200/50">{t('back')}</div>
+                    <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.back != null ? convertDistance(gps.gpsGreenDistances.back) : '-'}</div>
+                  </div>
+                  <div></div>
+                  <div className="text-center">
+                    <div className="font-body text-xs text-emerald-200/50">{t('left')}</div>
+                    <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.left != null ? convertDistance(gps.gpsGreenDistances.left) : '-'}</div>
+                  </div>
+                  <div className="text-center bg-emerald-500/20 rounded-xl py-2">
+                    <div className="font-body text-xs text-emerald-300">⛳</div>
+                    <div className="font-display text-2xl text-emerald-300">{gps.gpsGreenDistances.center != null ? convertDistance(gps.gpsGreenDistances.center) : '-'}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-body text-xs text-emerald-200/50">{t('right')}</div>
+                    <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.right != null ? convertDistance(gps.gpsGreenDistances.right) : '-'}</div>
+                  </div>
+                  <div></div>
+                  <div className="text-center">
+                    <div className="font-body text-xs text-emerald-200/50">{t('front')}</div>
+                    <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.front != null ? convertDistance(gps.gpsGreenDistances.front) : '-'}</div>
+                  </div>
+                  <div></div>
+                </div>
+                <div className="font-body text-xs text-emerald-200/40 text-center mt-2">{getUnitLabel()}</div>
               </div>
-              <div className="text-center bg-emerald-500/20 rounded-xl py-2">
-                <div className="font-body text-xs text-emerald-300">⛳</div>
-                <div className="font-display text-2xl text-emerald-300">{gps.gpsGreenDistances.center != null ? convertDistance(gps.gpsGreenDistances.center) : '-'}</div>
-              </div>
-              <div className="text-center">
-                <div className="font-body text-xs text-emerald-200/50">{t('right')}</div>
-                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.right != null ? convertDistance(gps.gpsGreenDistances.right) : '-'}</div>
-              </div>
-              <div></div>
-              <div className="text-center">
-                <div className="font-body text-xs text-emerald-200/50">{t('front')}</div>
-                <div className="font-display text-2xl text-white">{gps.gpsGreenDistances.front != null ? convertDistance(gps.gpsGreenDistances.front) : '-'}</div>
-              </div>
-              <div></div>
-            </div>
-            <div className="font-body text-xs text-emerald-200/40 text-center mt-2">{getUnitLabel()}</div>
+            )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Main Content */}
