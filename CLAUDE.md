@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v1.44
+- **Versie**: v1.46
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -18,7 +18,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 ## Projectstructuur
 ```
 src/
-├── App.jsx                    # 424 regels — state, hooks, effects, routing
+├── App.jsx                    # 444 regels — state, hooks, effects, routing
 ├── main.jsx                   # Entry point (115 regels)
 ├── LoginScreen.jsx            # Login (166 regels)
 ├── AdminDashboard.jsx         # Admin dashboard (338 regels)
@@ -30,7 +30,7 @@ src/
 │   └── stableford.js          # Handicap + Stableford berekeningen (50 regels)
 ├── hooks/
 │   ├── useWeather.js          # Weer ophalen (57 regels)
-│   ├── useGpsTracking.js       # GPS live tracking hook (95 regels)
+│   ├── useGpsTracking.js       # GPS live tracking hook (105 regels)
 │   ├── useCourseData.js       # Database queries (169 regels)
 │   └── useRound.js            # Ronde state management (110 regels)
 ├── components/
@@ -123,7 +123,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v1.44)
+## Huidige Features (v1.46)
 1. Splash screen met weer + begroeting
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
