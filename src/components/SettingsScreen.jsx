@@ -105,6 +105,28 @@ export default function SettingsScreen({ settings, setSettings, appVersion, onSa
           </div>
         </div>
 
+        {/* Score zichtbaarheid */}
+        <div className="glass-card rounded-2xl p-6">
+          <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">
+            {settings.language === 'nl' ? 'SCORE PER HOLE ZICHTBAAR' : 'SHOW SCORE PER HOLE'}
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setSettings({ ...settings, showScore: true })}
+              className={'rounded-xl py-4 font-body font-medium transition ' +
+                (settings.showScore ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/10 text-white hover:bg-white/15')}>
+              {settings.language === 'nl' ? 'Ja' : 'Yes'}
+            </button>
+            <button onClick={() => setSettings({ ...settings, showScore: false })}
+              className={'rounded-xl py-4 font-body font-medium transition ' +
+                (!settings.showScore ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/10 text-white hover:bg-white/15')}>
+              {settings.language === 'nl' ? 'Nee' : 'No'}
+            </button>
+          </div>
+          <div className="mt-3 font-body text-xs text-emerald-200/60">
+            {settings.language === 'nl' ? 'Bij Nee zie je de score pas na de laatste hole' : 'If No, you only see the score after the last hole'}
+          </div>
+        </div>
+
         <button onClick={onBag} className="w-full btn-secondary rounded-xl py-4 font-display text-xl tracking-wider">
           ⛳ {tr('myBag').toUpperCase()}{settings.bag.length > 0 && ` (${settings.bag.length}/14)`}
         </button>
