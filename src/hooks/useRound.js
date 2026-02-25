@@ -56,6 +56,15 @@ export const useRound = () => {
     setSelectedClub(''); setSuggestedDistance(null); setManualDistance(''); setSelectedLie('');
   };
 
+  const addPenalty = (penaltyStrokes) => {
+    setCurrentHoleShots(prev => [...prev, {
+      shotNumber: prev.length + 1,
+      club: 'Strafslag', distanceToGreen: remainingDistance,
+      distancePlayed: 0, lie: 'penalty', penaltyStrokes
+    }]);
+    setSelectedClub(''); setSuggestedDistance(null); setManualDistance(''); setSelectedLie('');
+  };
+
   const undoLastShot = () => {
     if (currentHoleShots.length === 0) return;
     const lastShot = currentHoleShots[currentHoleShots.length - 1];
@@ -105,6 +114,6 @@ export const useRound = () => {
     showHoleOverview, setShowHoleOverview,
     photoExpanded, setPhotoExpanded,
     showStrategy, setShowStrategy,
-    resetRound, addShot, undoLastShot, deleteShot, saveHole, finishRound
+    resetRound, addShot, addPenalty, undoLastShot, deleteShot, saveHole, finishRound
   };
 };

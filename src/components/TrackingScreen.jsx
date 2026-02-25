@@ -6,6 +6,7 @@ import HoleOverlay from './HoleOverlay';
 export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps }) {
   const si = getStrokeIndex(courseData.allHolesData, round.currentHole, settings.gender);
   const [showGreenDistances, setShowGreenDistances] = useState(false);
+  const [showPenalty, setShowPenalty] = useState(false);
 
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
@@ -113,6 +114,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Main Content */}
@@ -122,10 +124,47 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('shot')} {round.currentHoleShots.length + 1}: {t('whichClub')}</label>
           <div className="grid grid-cols-4 gap-2">
             {clubs.map((club) => (
-              <button key={club} onClick={() => round.setSelectedClub(club)}
+              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); }}
                 className={'club-btn glass-card rounded-xl py-3 px-2 font-body text-sm font-medium ' + (round.selectedClub === club ? 'selected' : '')}>{club}</button>
             ))}
+            <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); }}
+              className={'club-btn rounded-xl py-3 px-2 font-body text-sm font-medium border-2 transition ' +
+                (showPenalty ? 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-500/50' : 'bg-red-500/20 border-red-400/30 text-red-300 hover:bg-red-500/30')}>
+              🚩 Strafslag
+            </button>
           </div>
+
+          {/* Penalty dropdown */}
+          {showPenalty && (
+            <div className="mt-4 space-y-3 animate-slide-up">
+              <div className="flex gap-2">
+                <button onClick={() => { round.addPenalty(1); setShowPenalty(false); }}
+                  className="flex-1 bg-red-500/20 border-2 border-red-400/30 rounded-xl py-4 font-display text-xl text-red-300 hover:bg-red-500/30 transition">
+                  +1 Strafslag
+                </button>
+                <button onClick={() => { round.addPenalty(2); setShowPenalty(false); }}
+                  className="flex-1 bg-red-500/20 border-2 border-red-400/30 rounded-xl py-4 font-display text-xl text-red-300 hover:bg-red-500/30 transition">
+                  +2 Strafslagen
+                </button>
+              </div>
+              <div className="glass-card rounded-xl p-4 border border-red-400/20 bg-red-500/5">
+                <div className="font-body text-xs text-red-300 font-semibold mb-2">1 Strafslag:</div>
+                <div className="font-body text-xs text-emerald-200/70 space-y-1">
+                  <p>• <strong className="text-white">Bal verloren</strong> of buiten de baan: terug naar vorige plek</p>
+                  <p>• <strong className="text-white">Water hindernis</strong>: spelen vanaf vorige plek of droppen in de lijn</p>
+                  <p>• <strong className="text-white">Onspeelbare bal</strong>: droppen of terug naar vorige plek</p>
+                  <p>• <strong className="text-white">Bal beweegt</strong>: bij weghalen losse voorwerpen of per ongeluk</p>
+                </div>
+                <div className="font-body text-xs text-red-300 font-semibold mt-3 mb-2">2 Strafslagen:</div>
+                <div className="font-body text-xs text-emerald-200/70 space-y-1">
+                  <p>• <strong className="text-white">Verkeerde bal</strong> spelen</p>
+                  <p>• <strong className="text-white">Foutieve drop</strong>: verkeerde plek of manier</p>
+                  <p>• <strong className="text-white">Te veel clubs</strong>: meer dan 14 in je tas</p>
+                  <p>• <strong className="text-white">Verkeerde green</strong>: spelen vanaf andere green</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Distance / Putts */}
@@ -198,12 +237,12 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                         <span className="font-body font-semibold text-white">{shot.club}</span>
                       </div>
                       <div className="font-body text-xs text-emerald-200/60">
-                        {shot.club === 'Putter' ? `${shot.putts || 1} putt${(shot.putts || 1) !== 1 ? 's' : ''}` : `${Dist({ value: shot.distanceToGreen })} → ${Dist({ value: shot.distanceToGreen - shot.distancePlayed })}`}
+                        {shot.club === 'Strafslag' ? `+${shot.penaltyStrokes} strafslag${shot.penaltyStrokes > 1 ? 'en' : ''}` : shot.club === 'Putter' ? `${shot.putts || 1} putt${(shot.putts || 1) !== 1 ? 's' : ''}` : `${Dist({ value: shot.distanceToGreen })} → ${Dist({ value: shot.distanceToGreen - shot.distancePlayed })}`}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="font-display text-2xl text-emerald-300">{shot.club === 'Putter' ? `${shot.putts || 1}×` : Dist({ value: shot.distancePlayed })}</div>
+                    <div className={'font-display text-2xl ' + (shot.club === 'Strafslag' ? 'text-red-400' : 'text-emerald-300')}>{shot.club === 'Strafslag' ? `+${shot.penaltyStrokes}` : shot.club === 'Putter' ? `${shot.putts || 1}×` : Dist({ value: shot.distancePlayed })}</div>
                     <button onClick={() => round.deleteShot(shot.shotNumber)} className="text-red-400 hover:text-red-300 text-2xl font-bold transition w-8 h-8 flex items-center justify-center">×</button>
                   </div>
                 </div>
@@ -215,8 +254,9 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
         {/* Finish Hole */}
         {round.currentHoleShots.length > 0 && (() => {
           const totalPutts = round.currentHoleShots.filter(s => s.club === 'Putter').reduce((sum, s) => sum + (s.putts || 1), 0);
-          const nonPuttShots = round.currentHoleShots.filter(s => s.club !== 'Putter').length;
-          const autoScore = nonPuttShots + totalPutts;
+          const totalPenalties = round.currentHoleShots.filter(s => s.club === 'Strafslag').reduce((sum, s) => sum + (s.penaltyStrokes || 0), 0);
+          const nonPuttShots = round.currentHoleShots.filter(s => s.club !== 'Putter' && s.club !== 'Strafslag').length;
+          const autoScore = nonPuttShots + totalPutts + totalPenalties;
           const holePar = round.currentHoleInfo?.par || 4;
           const stablefordPts = calculateStablefordForHole(autoScore, holePar, si, courseData.courseRating, settings.handicap);
           const playingHcp = calculatePlayingHandicap(settings.handicap, courseData.courseRating);
@@ -235,7 +275,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                   <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">Score deze hole</div>
                   <div className={'font-display text-6xl ' + (scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300')}>{autoScore}</div>
                   <div className="font-body text-xs text-emerald-200/60 mt-1">
-                    {scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'Par'} ({nonPuttShots} slagen + {totalPutts} putts)
+                    {scoreToPar > 0 ? '+' + scoreToPar : scoreToPar < 0 ? scoreToPar : 'Par'} ({nonPuttShots} slagen + {totalPutts} putts{totalPenalties > 0 ? ` + ${totalPenalties} straf` : ''})
                   </div>
                 </div>
                 {settings.showScore && stablefordPts !== null && (
