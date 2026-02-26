@@ -1,4 +1,5 @@
 import React from 'react';
+import appVersion from '../../version.txt?raw';
 
 export default function SplashScreen({ weather, settings }) {
   const getGreeting = () => {
@@ -35,7 +36,7 @@ export default function SplashScreen({ weather, settings }) {
   const weatherIcon = !weather ? '⛅' : weather.condition === 'rainy' ? '🌧️' : weather.condition === 'cloudy' ? '⛅' : '☀️';
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-center px-8">
+    <div className="min-h-screen flex flex-col items-center justify-center text-center px-8 relative">
       <div className="animate-slide-up">
         <div className="text-8xl mb-6">⛳</div>
         <div className="font-display text-7xl mb-2 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">
@@ -54,6 +55,9 @@ export default function SplashScreen({ weather, settings }) {
             <div className="font-body text-emerald-200/60">Weer laden...</div>
           </div>
         )}
+      </div>
+      <div className="absolute bottom-6 left-0 right-0 text-center">
+        <span className="font-body text-xs text-emerald-200/30">v{appVersion.trim()}</span>
       </div>
     </div>
   );
