@@ -162,7 +162,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
   const getNearbyCoursesSimulated = async () => {
     courseData.setNearbyCoursesLoading(true);
-    const processCourses = (courses, lat, lng) => {
+    const processCourses = (courses, lat, lng, accuracy) => {
       const withDist = courses.map(c => ({
         id: c.id, name: c.name, city: c.city, loops: c.loops,
         teeColors: c.tee_colors, lat: parseFloat(c.latitude), lng: parseFloat(c.longitude),
@@ -170,27 +170,46 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       })).sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
       courseData.setGoogleCourses(withDist.slice(0, 20));
       courseData.setNearbyCoursesLoading(false);
+      if (accuracy && accuracy > 500) {
+        console.warn('GPS nauwkeurigheid laag:', Math.round(accuracy) + 'm');
+      }
     };
 
+    const fetchAndProcess = async (lat, lng, accuracy) => {
+      setUserLocation({ lat, lng });
+      const { supabase } = await import('./lib/supabase');
+      const { data: courses } = await supabase.from('golf_courses').select('*');
+      if (courses) processCourses(courses, lat, lng, accuracy);
+      else courseData.setNearbyCoursesLoading(false);
+    };
+
+    const getPosition = (options) => new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, options)
+    );
+
     if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-          const { supabase } = await import('./lib/supabase');
-          const { data: courses } = await supabase.from('golf_courses').select('*');
-          if (courses) processCourses(courses, latitude, longitude);
-          else courseData.setNearbyCoursesLoading(false);
-        },
-        async () => {
-          const coords = CITY_COORDINATES[settings.homeCity] || CITY_COORDINATES['Amsterdam'];
-          setUserLocation(coords);
-          const { supabase } = await import('./lib/supabase');
-          const { data: courses } = await supabase.from('golf_courses').select('*');
-          if (courses) processCourses(courses, coords.lat, coords.lng);
-          else courseData.setNearbyCoursesLoading(false);
+      try {
+        // Eerste poging: snel maar mogelijk onnauwkeurig
+        const pos = await getPosition({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        const { latitude, longitude, accuracy } = pos.coords;
+
+        // Als GPS te onnauwkeurig is (>500m), doe een tweede poging
+        if (accuracy > 500) {
+          try {
+            const pos2 = await getPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+            await fetchAndProcess(pos2.coords.latitude, pos2.coords.longitude, pos2.coords.accuracy);
+          } catch {
+            // Tweede poging mislukt, gebruik eerste resultaat
+            await fetchAndProcess(latitude, longitude, accuracy);
+          }
+        } else {
+          await fetchAndProcess(latitude, longitude, accuracy);
         }
-      );
+      } catch {
+        // GPS helemaal niet beschikbaar, val terug op thuisstad
+        const coords = CITY_COORDINATES[settings.homeCity] || CITY_COORDINATES['Amsterdam'];
+        await fetchAndProcess(coords.lat, coords.lng, null);
+      }
     } else {
       courseData.setNearbyCoursesLoading(false);
     }
