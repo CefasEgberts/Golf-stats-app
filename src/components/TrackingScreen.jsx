@@ -24,6 +24,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           t={t}
           gps={gps}
           wind={wind}
+          hasShots={round.currentHoleShots.length > 0}
         />
       )}
 

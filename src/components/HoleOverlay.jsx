@@ -1,7 +1,7 @@
 import React from 'react';
 import { haversineMeters } from '../lib/gps';
 
-export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind }) {
+export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots }) {
   const hasGreenCoords = currentHoleInfo.greenLat != null && currentHoleInfo.greenLng != null;
 
   // Wind direction label (absolute compass)
@@ -221,7 +221,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           {/* Close button */}
           <button onClick={onClose}
             className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-            {t('beginHole')}
+            {hasShots ? '← Terug naar invoer' : t('beginHole')}
           </button>
         </div>
       </div>
