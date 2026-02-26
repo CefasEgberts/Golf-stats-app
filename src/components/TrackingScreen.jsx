@@ -204,17 +204,35 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                 )}
               </>
             ) : gps?.simMode ? (
-              /* Sim mode: show distance input with GPS suggestion */
-              <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
-                <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider text-center">{t('distancePlayed')}</div>
-                <div className="text-center mb-4">
-                  <input type="number" value={round.manualDistance} onChange={(e) => round.setManualDistance(e.target.value)}
-                    placeholder={(gps?.gpsShotDistance && gps.gpsTracking ? gps.gpsShotDistance : round.suggestedDistance)?.toString()}
-                    className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center inline-block" />
-                  <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
+              /* Sim mode: simulate shot first, then show measured distance */
+              <>
+                <div className="glass-card rounded-2xl p-4 border-2 border-yellow-500/30 bg-yellow-500/5">
+                  <div className="font-body text-xs text-yellow-300 mb-3 uppercase tracking-wider text-center">🧪 Simuleer slag met {round.selectedClub}</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => gps.simulateShot(50)}
+                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+50m</button>
+                    <button onClick={() => gps.simulateShot(100)}
+                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+100m</button>
+                    <button onClick={() => gps.simulateShot(150)}
+                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+150m</button>
+                    <button onClick={() => gps.simulateShot(190)}
+                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+190m</button>
+                    <button onClick={() => gps.simulateShot(200)}
+                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+200m</button>
+                    <button onClick={() => gps.simulateShot(gps.gpsDistanceToGreen || 0)}
+                      className="bg-emerald-500/20 border border-emerald-400/30 rounded-lg py-2 font-body text-sm text-emerald-200 hover:bg-emerald-500/30 transition">→ Green</button>
+                  </div>
                 </div>
-                <div className="font-body text-xs text-emerald-200/50 text-center">{t('adjust')}</div>
-              </div>
+                {gps.gpsShotDistance != null && (
+                  <div className="glass-card rounded-xl p-4 bg-yellow-500/10 border-yellow-400/30">
+                    <div className="font-body text-xs text-yellow-200/70 mb-1 uppercase tracking-wider text-center">Gesimuleerde afstand</div>
+                    <div className="text-center">
+                      <span className="font-display text-5xl text-white">{convertDistance(gps.gpsShotDistance)}</span>
+                      <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               /* Manual mode: enter distance manually */
               <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
@@ -229,8 +247,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               </div>
             )}
 
-            {/* Lie selection - show after START in GPS mode, or always in manual/sim/putter */}
-            {(round.selectedClub === 'Putter' || !gps?.gpsTracking || gps?.simMode || shotStarted) && (
+            {/* Lie selection - show after START in GPS mode, after sim shot, or always in manual/putter */}
+            {(round.selectedClub === 'Putter' || (!gps?.gpsTracking && !gps?.simMode) || shotStarted || (gps?.simMode && gps.gpsShotDistance != null)) && (
               <>
                 {round.selectedClub !== 'Putter' && (
                   <div>
@@ -256,8 +274,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
                 <button onClick={() => {
                   if (gps?.gpsTracking) gps.captureShot();
-                  // In GPS mode, auto-set distance from GPS
-                  if (gps?.gpsTracking && !gps?.simMode && gps.gpsShotDistance != null && !round.manualDistance) {
+                  // In GPS or sim mode, auto-set distance from GPS
+                  if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
                   round.addShot();
@@ -380,26 +398,11 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           );
         })()}
 
-        {/* GPS Simulation controls (dev mode) */}
+        {/* Sim mode: stop button */}
         {gps?.simMode && (
-          <div className="mt-6 glass-card rounded-2xl p-4 border-2 border-yellow-500/30 bg-yellow-500/5">
-            <div className="font-body text-xs text-yellow-300 mb-3 uppercase tracking-wider text-center">🧪 GPS Simulatie</div>
-            <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => gps.simulateShot(50)}
-                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+50m</button>
-              <button onClick={() => gps.simulateShot(100)}
-                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+100m</button>
-              <button onClick={() => gps.simulateShot(150)}
-                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+150m</button>
-              <button onClick={() => gps.simulateShot(190)}
-                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+190m</button>
-              <button onClick={() => gps.simulateShot(200)}
-                className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+200m</button>
-              <button onClick={() => gps.simulateShot(gps.gpsDistanceToGreen || 0)}
-                className="bg-emerald-500/20 border border-emerald-400/30 rounded-lg py-2 font-body text-sm text-emerald-200 hover:bg-emerald-500/30 transition">→ Green</button>
-            </div>
+          <div className="mt-6">
             <button onClick={() => gps.stopSimulation()}
-              className="w-full mt-2 bg-red-500/20 border border-red-400/30 rounded-lg py-2 font-body text-xs text-red-300 hover:bg-red-500/30 transition">Stop simulatie</button>
+              className="w-full bg-red-500/20 border border-red-400/30 rounded-xl py-3 font-body text-sm text-red-300 hover:bg-red-500/30 transition">🛑 Stop simulatie</button>
           </div>
         )}
       </div>
