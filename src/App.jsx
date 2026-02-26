@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.06`;
+const appVersion = `${commitHash} v1.82`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -233,8 +233,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
   // ── Round flow ───────────────────────────────────────────────────────────
 
-  const startRound = async () => {
-    const { loop, course, teeColor, gpsMode } = round.roundData;
+  const startRound = async (gpsMode) => {
+    const { loop, course, teeColor } = round.roundData;
     const firstHole = loop.holes[0];
     const isCombo = loop.isFull || false;
     const comboId = isCombo ? loop.id : null;
@@ -251,7 +251,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     await courseData.fetchHoleFromDatabase(course.name, firstLoopName, firstHole);
 
     // Start GPS based on chosen mode
-    if (gpsMode === true) {
+    if (gpsMode === 'gps') {
       gps.startTrackingWithTeeCapture();
     } else if (gpsMode === 'test') {
       const d = courseData.dbHoleData;
@@ -259,6 +259,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       const teeLng = d?.tee_longitude || 4.655211160362996;
       gps.startSimulation(teeLat, teeLng);
     }
+    // Store gpsMode in roundData for TrackingScreen to use
+    round.setRoundData(prev => ({ ...prev, gpsMode }));
 
     round.setShowHoleOverview(true);
     setCurrentScreen('track');

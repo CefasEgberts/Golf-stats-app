@@ -207,18 +207,18 @@ export default function HomeScreen({
                 </div>
                 {/* GPS / Manual buttons */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => { round.setRoundData({ ...round.roundData, gpsMode: true }); startRound(); }}
+                  <button onClick={() => startRound('gps')}
                     className="btn-primary rounded-xl py-4 font-display text-base tracking-wider flex items-center justify-center gap-2">
                     📡 GPS
                   </button>
-                  <button onClick={() => { round.setRoundData({ ...round.roundData, gpsMode: false }); startRound(); }}
+                  <button onClick={() => startRound('manual')}
                     className="btn-secondary rounded-xl py-4 font-display text-base tracking-wider flex items-center justify-center gap-2 border border-white/20">
                     ✏️ HANDMATIG
                   </button>
                 </div>
                 {/* Test button - alleen voor cefas */}
                 {user?.email?.toLowerCase() === 'cefas@golfstats.nl' && (
-                  <button onClick={() => { round.setRoundData({ ...round.roundData, gpsMode: 'test' }); startRound(); }}
+                  <button onClick={() => startRound('test')}
                     className="w-full bg-yellow-500/20 border border-yellow-400/30 rounded-xl py-3 font-body text-sm text-yellow-300 hover:bg-yellow-500/30 transition flex items-center justify-center gap-1">
                     🧪 Test modus (GPS simulatie)
                   </button>
