@@ -5,6 +5,7 @@ export default function HomeScreen({
   settings, round, courseData, weather, userLocation, setUserLocation,
   showSearch, setShowSearch, searchQuery, setSearchQuery, filteredCourses,
   getNearbyCoursesSimulated, resetToHome, startRound, getTeeColorClass, t,
+  user, gps,
   onSettings, onAllStats, onClubs, onRoundHistory, onLogout, onAdmin
 }) {
   return (
@@ -190,24 +191,41 @@ export default function HomeScreen({
                   <div>
                     <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Starttijd</label>
                     <input type="time" value={round.roundData.startTime} onChange={(e) => round.setRoundData({ ...round.roundData, startTime: e.target.value })}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 font-body text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-3 font-body text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
                   </div>
                   <div>
                     <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Temp (°C)</label>
                     <input type="number" value={round.roundData.temperature || ''} onChange={(e) => round.setRoundData({ ...round.roundData, temperature: e.target.value ? parseInt(e.target.value) : null })}
                       placeholder={weather.fetchingWeather ? '...' : '18'} disabled={weather.fetchingWeather}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 font-body text-white text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition disabled:opacity-50" />
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-3 font-body text-white text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition disabled:opacity-50" />
                   </div>
                 </div>
                 <div>
                   <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Datum</label>
                   <div className="relative">
                     <input type="date" value={round.roundData.date} onChange={(e) => round.setRoundData({ ...round.roundData, date: e.target.value })}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 font-body text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-3 font-body text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400 pointer-events-none" />
                   </div>
                 </div>
-                <button onClick={startRound} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">START RONDE</button>
+                {/* GPS / Manual buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => { round.setRoundData({ ...round.roundData, gpsMode: true }); startRound(); }}
+                    className="btn-primary rounded-xl py-4 font-display text-base tracking-wider flex items-center justify-center gap-2">
+                    📡 BEGIN + GPS
+                  </button>
+                  <button onClick={() => { round.setRoundData({ ...round.roundData, gpsMode: false }); startRound(); }}
+                    className="btn-secondary rounded-xl py-4 font-display text-base tracking-wider flex items-center justify-center gap-2 border border-white/20">
+                    ✏️ HANDMATIG
+                  </button>
+                </div>
+                {/* Test button - alleen voor cefas */}
+                {user?.email?.toLowerCase() === 'cefas@golfstats.nl' && (
+                  <button onClick={() => { round.setRoundData({ ...round.roundData, gpsMode: 'test' }); startRound(); }}
+                    className="w-full bg-yellow-500/20 border border-yellow-400/30 rounded-xl py-3 font-body text-sm text-yellow-300 hover:bg-yellow-500/30 transition flex items-center justify-center gap-1">
+                    🧪 Test modus (GPS simulatie)
+                  </button>
+                )}
               </div>
             )}
           </div>

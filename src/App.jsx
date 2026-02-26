@@ -369,6 +369,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           startRound={startRound}
           getTeeColorClass={getTeeColorClass}
           t={t}
+          user={user}
+          gps={gps}
           onSettings={() => setCurrentScreen('settings')}
           onAllStats={() => setCurrentScreen('allStats')}
           onClubs={() => setCurrentScreen('clubs')}
