@@ -70,12 +70,6 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
 
   const gpsDotTop = getGpsDotTop();
 
-  const handleStartGps = (e) => {
-    e.stopPropagation();
-    gps.startTrackingWithTeeCapture();
-    onClose();
-  };
-
   return (
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col" onClick={onClose}>
       <div className="flex-shrink-0 px-4 pt-3 pb-2 text-center">
@@ -224,25 +218,11 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               )}
             </>
           )}
-          {/* GPS Start button */}
-          {hasGreenCoords && !gps?.gpsTracking && (
-            <div className="flex gap-2 mt-3">
-              <button onClick={handleStartGps}
-                className="flex-1 btn-primary rounded-xl py-4 font-display text-lg tracking-wider flex items-center justify-center gap-2">
-                📡 {t('beginHoleGps')}
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); gps.startSimulation(52.338813477839146, 4.655211160362996); onClose(); }}
-                className="flex-1 bg-yellow-500/20 border border-yellow-400/30 rounded-xl py-4 font-body text-sm text-yellow-300 hover:bg-yellow-500/30 transition flex items-center justify-center gap-1">
-                🧪 Test
-              </button>
-            </div>
-          )}
-          {!hasGreenCoords && (
-            <button onClick={onClose}
-              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-              {t('beginHole')}
-            </button>
-          )}
+          {/* Close button */}
+          <button onClick={onClose}
+            className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+            {t('beginHole')}
+          </button>
         </div>
       </div>
     </div>

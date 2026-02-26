@@ -153,7 +153,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   // Search debounce
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      if (showSearch && searchQuery.length >= 2) courseData.searchCoursesInDatabase(searchQuery);
+      const q = searchQuery.trim();
+      if (showSearch && q.length >= 2) courseData.searchCoursesInDatabase(q);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, showSearch]);
@@ -217,10 +218,11 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
   const filteredCourses = (() => {
     const list = courseData.googleCourses;
-    if (!searchQuery.trim()) return userLocation ? list.slice(0, 20) : [];
+    const q = searchQuery.trim();
+    if (!q) return userLocation ? list.slice(0, 20) : [];
     return list.filter(c =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.city && c.city.toLowerCase().includes(searchQuery.toLowerCase()))
+      c.name.toLowerCase().includes(q.toLowerCase()) ||
+      (c.city && c.city.toLowerCase().includes(q.toLowerCase()))
     );
   })();
 
@@ -390,6 +392,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           finishHole={finishHole}
           gps={gps}
           wind={weather.courseWind}
+          user={user}
           onQuit={() => {
             const msg = settings.language === 'nl' ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' : 'Are you sure? The round will not be saved.';
             if (window.confirm(msg)) {

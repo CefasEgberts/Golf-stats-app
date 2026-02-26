@@ -3,7 +3,7 @@ import { ChevronLeft, MapPin } from 'lucide-react';
 import { calculateStablefordForHole, calculatePlayingHandicap, getStrokeIndex } from '../lib/stableford';
 import HoleOverlay from './HoleOverlay';
 
-export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps, wind }) {
+export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps, wind, user }) {
   const si = getStrokeIndex(courseData.allHolesData, round.currentHole, settings.gender);
   const [showGreenDistances, setShowGreenDistances] = useState(false);
   const [showPenalty, setShowPenalty] = useState(false);
@@ -45,6 +45,22 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             <span className="font-body text-emerald-200/70">{round.currentHoleInfo.totalDistance}m</span>
           </div>
         </div>
+        {/* GPS Start buttons - below hole header */}
+        {round.currentHoleInfo?.greenLat != null && !gps?.gpsTracking && !gps?.simMode && (
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => gps.startTrackingWithTeeCapture()}
+              className={'btn-primary rounded-xl py-3 font-display text-base tracking-wider flex items-center justify-center gap-2 ' +
+                (user?.email?.toLowerCase() === 'cefas@golfstats.nl' ? 'flex-1' : 'w-full')}>
+              📡 {t('beginHoleGps')}
+            </button>
+            {user?.email?.toLowerCase() === 'cefas@golfstats.nl' && (
+              <button onClick={() => gps.startSimulation(52.338813477839146, 4.655211160362996)}
+                className="flex-1 bg-yellow-500/20 border border-yellow-400/30 rounded-xl py-3 font-body text-sm text-yellow-300 hover:bg-yellow-500/30 transition flex items-center justify-center gap-1">
+                🧪 Test
+              </button>
+            )}
+          </div>
+        )}
         <div className="glass-card rounded-2xl p-6 text-center">
           <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider">{t('toGo')}</div>
           <div className="font-display text-7xl text-white">{convertDistance(round.remainingDistance)}<span className="text-4xl text-emerald-300 ml-2">{getUnitLabel()}</span></div>
