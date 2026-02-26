@@ -187,25 +187,22 @@ export default function HomeScreen({
                     <button onClick={() => round.setRoundData({ ...round.roundData, teeColor: null })} className="font-body text-xs text-emerald-300 hover:text-emerald-200">Wijzigen</button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <div style={{flex: '5 1 0', overflow: 'hidden'}}>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
                     <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Datum</label>
                     <input type="date" value={round.roundData.date} onChange={(e) => round.setRoundData({ ...round.roundData, date: e.target.value })}
-                      style={{maxWidth: '100%'}}
-                      className="w-full block bg-white/10 border border-white/20 rounded-xl px-2 py-2 font-body text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 h-[44px]" />
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-2 py-3 font-body text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center appearance-none" />
                   </div>
-                  <div style={{flex: '4 1 0', overflow: 'hidden'}}>
+                  <div>
                     <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Tijd</label>
                     <input type="time" value={round.roundData.startTime} onChange={(e) => round.setRoundData({ ...round.roundData, startTime: e.target.value })}
-                      style={{maxWidth: '100%'}}
-                      className="w-full block bg-white/10 border border-white/20 rounded-xl px-1 py-2 font-body text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 h-[44px]" />
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-2 py-3 font-body text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center appearance-none" />
                   </div>
-                  <div style={{flex: '2 1 0', overflow: 'hidden'}}>
+                  <div>
                     <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">°C</label>
                     <input type="number" value={round.roundData.temperature || ''} onChange={(e) => round.setRoundData({ ...round.roundData, temperature: e.target.value ? parseInt(e.target.value) : null })}
-                      placeholder={weather.fetchingWeather ? '...' : '18'} disabled={weather.fetchingWeather}
-                      style={{maxWidth: '100%'}}
-                      className="w-full block bg-white/10 border border-white/20 rounded-xl px-1 py-2 font-body text-white text-xs placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 text-center h-[44px]" />
+                      placeholder={weather.fetchingWeather ? '..' : '18'} disabled={weather.fetchingWeather}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-2 py-3 font-body text-white text-xs placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition disabled:opacity-50 text-center" />
                   </div>
                 </div>
                 {/* GPS / Manual buttons */}
