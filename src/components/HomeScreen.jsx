@@ -187,22 +187,22 @@ export default function HomeScreen({
                     <button onClick={() => round.setRoundData({ ...round.roundData, teeColor: null })} className="font-body text-xs text-emerald-300 hover:text-emerald-200">Wijzigen</button>
                   </div>
                 </div>
-                <div>
-                  <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Datum</label>
-                  <input type="date" value={round.roundData.date} onChange={(e) => round.setRoundData({ ...round.roundData, date: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Starttijd</label>
-                    <input type="time" value={round.roundData.startTime} onChange={(e) => round.setRoundData({ ...round.roundData, startTime: e.target.value })}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="min-w-0">
+                    <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Datum</label>
+                    <input type="date" value={round.roundData.date} onChange={(e) => round.setRoundData({ ...round.roundData, date: e.target.value })}
+                      className="w-full min-w-0 box-border overflow-hidden bg-white/10 border border-white/20 rounded-xl px-2 py-3 font-body text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
                   </div>
-                  <div>
-                    <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Temp (°C)</label>
+                  <div className="min-w-0">
+                    <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">Tijd</label>
+                    <input type="time" value={round.roundData.startTime} onChange={(e) => round.setRoundData({ ...round.roundData, startTime: e.target.value })}
+                      className="w-full min-w-0 box-border overflow-hidden bg-white/10 border border-white/20 rounded-xl px-2 py-3 font-body text-white text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="font-body text-xs text-emerald-200/70 mb-1 block uppercase tracking-wider">°C</label>
                     <input type="number" value={round.roundData.temperature || ''} onChange={(e) => round.setRoundData({ ...round.roundData, temperature: e.target.value ? parseInt(e.target.value) : null })}
                       placeholder={weather.fetchingWeather ? '...' : '18'} disabled={weather.fetchingWeather}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-body text-white text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition disabled:opacity-50 text-center" />
+                      className="w-full min-w-0 box-border overflow-hidden bg-white/10 border border-white/20 rounded-xl px-2 py-3 font-body text-white text-xs placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition disabled:opacity-50 text-center" />
                   </div>
                 </div>
                 {/* GPS / Manual buttons */}
