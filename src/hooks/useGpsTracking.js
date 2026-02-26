@@ -73,7 +73,8 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     );
   }, []);
 
-  // Start tracking and automatically capture tee position on first GPS fix
+  // Start tracking and use database tee position ONLY for simulation
+  // For real GPS: tee position is captured when user presses START per shot
   const startTrackingWithTeeCapture = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setGpsError('GPS niet beschikbaar');
@@ -81,7 +82,8 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     }
     setGpsError(null);
     setGpsTracking(true);
-    let teeCaptured = false;
+    setTeePosition(null);
+    setLastShotPosition(null);
 
     watchIdRef.current = watchGpsPosition(
       (pos) => {
@@ -89,18 +91,23 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
         setGpsPosition(newPos);
         setGpsAccuracy(Math.round(pos.coords.accuracy));
         setGpsError(null);
-        // Capture tee on first accurate fix
-        if (!teeCaptured) {
-          teeCaptured = true;
-          setTeePosition({ ...newPos });
-          setLastShotPosition(null);
-        }
       },
       (err) => {
         setGpsError(err.message);
       }
     );
   }, []);
+
+  // User presses START: capture current GPS as shot start position
+  const captureStartPosition = useCallback(() => {
+    if (gpsPosition) {
+      if (!teePosition) {
+        setTeePosition({ ...gpsPosition });
+      }
+      setLastShotPosition({ ...gpsPosition });
+      setGpsShotDistance(null);
+    }
+  }, [gpsPosition, teePosition]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current != null) {
@@ -151,7 +158,7 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     const teePos = { lat: teeLat, lng: teeLng };
     setGpsPosition(teePos);
     setTeePosition({ ...teePos });
-    setLastShotPosition(null);
+    setLastShotPosition({ ...teePos });
   }, []);
 
   // Simulate moving towards green by a given distance in meters
@@ -191,7 +198,7 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   return {
     gpsTracking, gpsPosition, teePosition, lastShotPosition,
     gpsError, gpsAccuracy, gpsDistanceToGreen, gpsGreenDistances, gpsShotDistance,
-    startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition, captureShot, resetForNewHole,
+    startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition, captureStartPosition, captureShot, resetForNewHole,
     simMode, startSimulation, simulateShot, stopSimulation
   };
 };

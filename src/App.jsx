@@ -130,10 +130,15 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           greenFrontLat: d.green_front_lat || null, greenFrontLng: d.green_front_lng || null,
           greenBackLat: d.green_back_lat || null, greenBackLng: d.green_back_lng || null,
           greenLeftLat: d.green_left_lat || null, greenLeftLng: d.green_left_lng || null,
-          greenRightLat: d.green_right_lat || null, greenRightLng: d.green_right_lng || null
+          greenRightLat: d.green_right_lat || null, greenRightLng: d.green_right_lng || null,
+          teeLat: d.tee_latitude || null, teeLng: d.tee_longitude || null
         };
         round.setCurrentHoleInfo(holeInfo);
         if (round.currentHoleShots.length === 0) round.setRemainingDistance(totalDistance);
+        // Bij test modus: zet tee positie uit database voor simulatie
+        if (gps.simMode && d.tee_latitude && d.tee_longitude) {
+          gps.startSimulation(d.tee_latitude, d.tee_longitude);
+        }
       } else {
         const par = FALLBACK_PARS[(round.currentHole - 1) % 9];
         const baseDistance = par === 3 ? 150 : par === 4 ? 350 : 480;
@@ -229,7 +234,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   // ── Round flow ───────────────────────────────────────────────────────────
 
   const startRound = async () => {
-    const { loop, course, teeColor } = round.roundData;
+    const { loop, course, teeColor, gpsMode } = round.roundData;
     const firstHole = loop.holes[0];
     const isCombo = loop.isFull || false;
     const comboId = isCombo ? loop.id : null;
@@ -244,6 +249,17 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     await courseData.fetchAllHolesForLoop(course.name, loop.name, isCombo, comboId);
     const firstLoopName = isCombo ? loop.name.split(/[+&]/)[0].trim() : loop.name;
     await courseData.fetchHoleFromDatabase(course.name, firstLoopName, firstHole);
+
+    // Start GPS based on chosen mode
+    if (gpsMode === true) {
+      gps.startTrackingWithTeeCapture();
+    } else if (gpsMode === 'test') {
+      const d = courseData.dbHoleData;
+      const teeLat = d?.tee_latitude || 52.338813477839146;
+      const teeLng = d?.tee_longitude || 4.655211160362996;
+      gps.startSimulation(teeLat, teeLng);
+    }
+
     round.setShowHoleOverview(true);
     setCurrentScreen('track');
   };
