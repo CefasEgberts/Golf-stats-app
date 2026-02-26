@@ -77,6 +77,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 | strategy_is_ai_generated | boolean | |
 | hazards | jsonb | |
 | latitude / longitude | double precision | **Midden van de green** |
+| tee_latitude / tee_longitude | double precision | **Tee-positie** |
 
 ### course_ratings
 | Kolom | Type | Beschrijving |
@@ -112,6 +113,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - **Tee-kleuren**: Wit, Geel, Oranje, Blauw, Rood, Zwart
 - **CR/Slope**: Volledig ingevuld voor 9-hole en 18-hole combo's
 - **GPS green-coords**: ✅ Cruquius holes 1-9 | ❌ Leeghwater | ❌ Lynden
+- **GPS tee-coords**: ✅ Cruquius holes 1-9 | ❌ Leeghwater | ❌ Lynden
 
 ### 2. Spaarnwoude — SQL NOG NIET UITGEVOERD
 - **Lussen**: C (par 37), D (par 36), E (par 35)
