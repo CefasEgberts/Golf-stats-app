@@ -324,6 +324,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                 </div>
               </div>
             )}
+            <div className="mt-8 font-body text-xs text-emerald-200/30">{appVersion}</div>
           </div>
         </div>
       )}
