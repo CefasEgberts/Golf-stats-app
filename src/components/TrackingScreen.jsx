@@ -8,6 +8,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showGreenDistances, setShowGreenDistances] = useState(false);
   const [showPenalty, setShowPenalty] = useState(false);
   const [showFinishHole, setShowFinishHole] = useState(false);
+  const [shotStarted, setShotStarted] = useState(false);
   const finishHoleRef = useRef(null);
 
   return (
@@ -127,10 +128,10 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('shot')} {round.currentHoleShots.length + 1}: {t('whichClub')}</label>
           <div className="grid grid-cols-4 gap-2">
             {clubs.map((club) => (
-              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); if (club === 'Putter') round.setSelectedLie('green'); }}
+              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); if (club === 'Putter') round.setSelectedLie('green'); }}
                 className={'club-btn glass-card rounded-xl py-3 px-2 font-body text-sm font-medium ' + (round.selectedClub === club ? 'selected' : '')}>{club}</button>
             ))}
-            <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); }}
+            <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); setShotStarted(false); }}
               className={'club-btn rounded-xl py-3 px-2 font-body text-sm font-medium border-2 transition ' +
                 (showPenalty ? 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-500/50' : 'bg-red-500/20 border-red-400/30 text-red-300 hover:bg-red-500/30')}>
               🚩 Strafslag
@@ -170,10 +171,11 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           )}
         </div>
 
-        {/* Distance / Putts */}
+        {/* Shot flow after club selection */}
         {round.selectedClub && (
           <div className="space-y-4 animate-slide-up">
             {round.selectedClub === 'Putter' ? (
+              /* Putter: just enter number of putts */
               <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
                 <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider text-center">{t('putts')}</div>
                 <div className="text-center mb-4">
@@ -182,7 +184,27 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                   <span className="font-display text-2xl text-emerald-300 ml-2">{round.manualDistance == 1 ? 'putt' : 'putts'}</span>
                 </div>
               </div>
-            ) : (
+            ) : gps?.gpsTracking && !gps?.simMode ? (
+              /* GPS mode: START button to capture position, then show live distance */
+              <>
+                {!shotStarted ? (
+                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); }}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl py-5 font-display text-2xl tracking-wider text-white shadow-lg shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition">
+                    📍 START
+                  </button>
+                ) : (
+                  <div className="glass-card rounded-xl p-6 bg-blue-500/10 border-blue-400/30">
+                    <div className="font-body text-xs text-blue-200/70 mb-2 uppercase tracking-wider text-center">Geslagen afstand</div>
+                    <div className="text-center mb-2">
+                      <span className="font-display text-6xl text-white">{gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance) : '...'}</span>
+                      <span className="font-display text-3xl text-emerald-300 ml-2">{getUnitLabel()}</span>
+                    </div>
+                    <div className="font-body text-xs text-blue-200/50 text-center">Live GPS afstand vanaf startpositie</div>
+                  </div>
+                )}
+              </>
+            ) : gps?.simMode ? (
+              /* Sim mode: show distance input with GPS suggestion */
               <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
                 <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider text-center">{t('distancePlayed')}</div>
                 <div className="text-center mb-4">
@@ -193,33 +215,59 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                 </div>
                 <div className="font-body text-xs text-emerald-200/50 text-center">{t('adjust')}</div>
               </div>
+            ) : (
+              /* Manual mode: enter distance manually */
+              <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
+                <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider text-center">{t('distancePlayed')}</div>
+                <div className="text-center mb-4">
+                  <input type="number" value={round.manualDistance} onChange={(e) => round.setManualDistance(e.target.value)}
+                    placeholder={round.suggestedDistance?.toString()}
+                    className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center inline-block" />
+                  <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
+                </div>
+                <div className="font-body text-xs text-emerald-200/50 text-center">{t('adjust')}</div>
+              </div>
             )}
 
-            {/* Lie - auto-selected to green for Putter */}
-            <div>
-              <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('lie')}</label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { key: 'fairway', emoji: '🟢', color: 'bg-green-500 border-green-400 text-white shadow-lg shadow-green-500/50' },
-                  { key: 'rough', emoji: '🟤', color: 'bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-500/50' },
-                  { key: 'bunker', emoji: '🟡', color: 'bg-yellow-500 border-yellow-400 text-gray-900 shadow-lg shadow-yellow-500/50' },
-                  { key: 'fringe', emoji: '🟨', color: 'bg-lime-500 border-lime-400 text-gray-900 shadow-lg shadow-lime-500/50' },
-                  { key: 'green', emoji: '🟩', color: 'bg-emerald-400 border-emerald-300 text-white shadow-lg shadow-emerald-400/50' },
-                  { key: 'penalty', emoji: '🔴', color: 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-500/50' }
-                ].map(({ key, emoji, color }) => (
-                  <button key={key} onClick={() => round.setSelectedLie(key)}
-                    className={'rounded-xl py-4 flex items-center justify-center gap-2 font-body font-medium transition border-2 ' +
-                      (round.selectedLie === key ? color : 'bg-white/10 border-white/20 text-white hover:bg-white/15')}>
-                    {emoji} {t(key)}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Lie selection - show after START in GPS mode, or always in manual/sim/putter */}
+            {(round.selectedClub === 'Putter' || !gps?.gpsTracking || gps?.simMode || shotStarted) && (
+              <>
+                {round.selectedClub !== 'Putter' && (
+                  <div>
+                    <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('lie')}</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { key: 'fairway', emoji: '🟢', color: 'bg-green-500 border-green-400 text-white shadow-lg shadow-green-500/50' },
+                        { key: 'rough', emoji: '🟤', color: 'bg-amber-600 border-amber-500 text-white shadow-lg shadow-amber-500/50' },
+                        { key: 'bunker', emoji: '🟡', color: 'bg-yellow-500 border-yellow-400 text-gray-900 shadow-lg shadow-yellow-500/50' },
+                        { key: 'fringe', emoji: '🟨', color: 'bg-lime-500 border-lime-400 text-gray-900 shadow-lg shadow-lime-500/50' },
+                        { key: 'green', emoji: '🟩', color: 'bg-emerald-400 border-emerald-300 text-white shadow-lg shadow-emerald-400/50' },
+                        { key: 'penalty', emoji: '🔴', color: 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-500/50' }
+                      ].map(({ key, emoji, color }) => (
+                        <button key={key} onClick={() => round.setSelectedLie(key)}
+                          className={'rounded-xl py-4 flex items-center justify-center gap-2 font-body font-medium transition border-2 ' +
+                            (round.selectedLie === key ? color : 'bg-white/10 border-white/20 text-white hover:bg-white/15')}>
+                          {emoji} {t(key)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            <button onClick={() => { if (gps?.gpsTracking) gps.captureShot(); round.addShot(); }} disabled={!round.selectedLie}
-              className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
-              {t('distanceOk').toUpperCase()}
-            </button>
+                <button onClick={() => {
+                  if (gps?.gpsTracking) gps.captureShot();
+                  // In GPS mode, auto-set distance from GPS
+                  if (gps?.gpsTracking && !gps?.simMode && gps.gpsShotDistance != null && !round.manualDistance) {
+                    round.setManualDistance(gps.gpsShotDistance.toString());
+                  }
+                  round.addShot();
+                  setShotStarted(false);
+                }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
+                  className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
+                  {t('distanceOk').toUpperCase()}
+                </button>
+              </>
+            )}
           </div>
         )}
 
