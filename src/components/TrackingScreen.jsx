@@ -366,24 +366,31 @@ INSTRUCTIES VOOR JE ADVIES:
                 )}
               </>
             ) : gps?.simMode ? (
-              /* Sim mode: simulate shot first, then show measured distance */
+              /* Sim mode: vrij invoerveld voor geslagen afstand */
               <>
-                <div className="glass-card rounded-2xl p-4 border-2 border-yellow-500/30 bg-yellow-500/5">
+                <div className="glass-card rounded-2xl p-6 border-2 border-yellow-500/30 bg-yellow-500/5">
                   <div className="font-body text-xs text-yellow-300 mb-3 uppercase tracking-wider text-center">🧪 Simuleer slag met {round.selectedClub}</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button onClick={() => gps.simulateShot(50)}
-                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+50m</button>
-                    <button onClick={() => gps.simulateShot(100)}
-                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+100m</button>
-                    <button onClick={() => gps.simulateShot(150)}
-                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+150m</button>
-                    <button onClick={() => gps.simulateShot(190)}
-                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+190m</button>
-                    <button onClick={() => gps.simulateShot(200)}
-                      className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg py-2 font-body text-sm text-yellow-200 hover:bg-yellow-500/30 transition">+200m</button>
-                    <button onClick={() => gps.simulateShot(gps.gpsDistanceToGreen || 0)}
-                      className="bg-emerald-500/20 border border-emerald-400/30 rounded-lg py-2 font-body text-sm text-emerald-200 hover:bg-emerald-500/30 transition">→ Green</button>
+                  <div className="text-center mb-3">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="bijv. 190"
+                      onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val) && val > 0) { gps.simulateShot(val); round.setManualDistance(String(val)); }
+                        }
+                      }}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val > 0) { gps.simulateShot(val); round.setManualDistance(String(val)); }
+                      }}
+                      className="w-36 bg-white/10 border border-yellow-400/30 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition text-center inline-block"
+                    />
+                    <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
                   </div>
+                  <div className="font-body text-xs text-yellow-200/40 text-center">Typ de geslagen afstand en druk Enter</div>
                 </div>
                 {gps.gpsShotDistance != null && (
                   <div className="glass-card rounded-xl p-4 bg-yellow-500/10 border-yellow-400/30">
@@ -392,6 +399,7 @@ INSTRUCTIES VOOR JE ADVIES:
                       <span className="font-display text-5xl text-white">{convertDistance(gps.gpsShotDistance)}</span>
                       <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
                     </div>
+                    <div className="font-body text-xs text-yellow-200/40 text-center mt-1">Nog {convertDistance(gps.gpsDistanceToGreen || 0)}{getUnitLabel()} tot de green</div>
                   </div>
                 )}
               </>
