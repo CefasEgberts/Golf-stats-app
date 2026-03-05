@@ -103,8 +103,8 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 <div className="gps-dot w-4 h-4 bg-red-500 rounded-full border-2 border-white"></div>
               </div>
             )}
-            {/* Remaining distance arrow */}
-            {remainingDistance > 0 && currentHoleInfo.totalDistance > 0 && (
+            {/* Remaining distance arrow - only in GPS mode */}
+            {gps?.gpsTracking && remainingDistance > 0 && currentHoleInfo.totalDistance > 0 && (
               <div style={{ position: 'absolute', right: '8px', top: Math.max(8, Math.min(88, (remainingDistance / currentHoleInfo.totalDistance) * 80 + 8)) + '%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '3px', flexDirection: 'row-reverse' }}>
                 <div className="bg-red-500 text-white font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap" style={{ fontSize: '11px' }}>{remainingDistance}m</div>
                 <div className="w-0 h-0" style={{ borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderRight: '8px solid #ef4444' }}></div>
