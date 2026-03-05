@@ -9,6 +9,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showPenalty, setShowPenalty] = useState(false);
   const [showFinishHole, setShowFinishHole] = useState(false);
   const [shotStarted, setShotStarted] = useState(false);
+  const [displayDistance, setDisplayDistance] = useState('');
   const finishHoleRef = useRef(null);
   const startButtonRef = useRef(null);
 
@@ -129,7 +130,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('shot')} {round.currentHoleShots.length + 1}: {t('whichClub')}</label>
           <div className="grid grid-cols-4 gap-2">
             {clubs.map((club) => (
-              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); if (club === 'Putter') round.setSelectedLie('green'); setTimeout(() => startButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
+              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); setDisplayDistance(''); if (club === 'Putter') round.setSelectedLie('green'); setTimeout(() => startButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
                 className={'club-btn glass-card rounded-xl py-3 px-2 font-body text-sm font-medium ' + (round.selectedClub === club ? 'selected' : '')}>{club}</button>
             ))}
             <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); setShotStarted(false); }}
@@ -190,7 +191,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               /* GPS mode: START button to capture position, then show live distance */
               <>
                 {!shotStarted ? (
-                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); }}
+                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(gps.gpsShotDistance != null ? String(convertDistance(gps.gpsShotDistance)) : ''); }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl py-5 font-display text-2xl tracking-wider text-white shadow-lg shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition">
                     📍 START
                   </button>
@@ -200,8 +201,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                     <div className="text-center mb-2">
                       <input
                         type="text" inputMode="numeric"
-                        value={round.manualDistance || (gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance) : '')}
-                        onChange={(e) => round.setManualDistance(e.target.value)}
+                        value={displayDistance !== '' ? displayDistance : (gps.gpsShotDistance != null ? String(convertDistance(gps.gpsShotDistance)) : '')}
+                        onChange={(e) => { setDisplayDistance(e.target.value); round.setManualDistance(e.target.value); }}
                         onFocus={(e) => e.target.select()}
                         placeholder={gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance).toString() : '...'}
                         className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-center inline-block"
