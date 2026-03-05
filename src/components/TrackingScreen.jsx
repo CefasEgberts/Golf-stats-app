@@ -376,21 +376,24 @@ INSTRUCTIES VOOR JE ADVIES:
                       inputMode="numeric"
                       placeholder="bijv. 190"
                       onFocus={(e) => e.target.select()}
+                      onChange={(e) => round.setManualDistance(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          const val = parseInt(e.target.value);
-                          if (!isNaN(val) && val > 0) { gps.simulateShot(val); round.setManualDistance(String(val)); }
+                          const val = parseInt(round.manualDistance);
+                          if (!isNaN(val) && val > 0) gps.simulateShot(val);
                         }
                       }}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (!isNaN(val) && val > 0) { gps.simulateShot(val); round.setManualDistance(String(val)); }
-                      }}
+                      value={round.manualDistance}
                       className="w-36 bg-white/10 border border-yellow-400/30 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition text-center inline-block"
                     />
                     <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
                   </div>
-                  <div className="font-body text-xs text-yellow-200/40 text-center">Typ de geslagen afstand en druk Enter</div>
+                  <button
+                    onClick={() => { const val = parseInt(round.manualDistance); if (!isNaN(val) && val > 0) gps.simulateShot(val); }}
+                    disabled={!round.manualDistance || isNaN(parseInt(round.manualDistance))}
+                    className="w-full bg-yellow-500/30 border border-yellow-400/40 rounded-xl py-3 font-display text-lg text-yellow-200 hover:bg-yellow-500/40 transition disabled:opacity-30">
+                    📍 Simuleer {round.manualDistance ? `${round.manualDistance}m` : ''}
+                  </button>
                 </div>
                 {gps.gpsShotDistance != null && (
                   <div className="glass-card rounded-xl p-4 bg-yellow-500/10 border-yellow-400/30">
