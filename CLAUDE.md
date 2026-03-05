@@ -168,6 +168,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 
 ### Hoge prioriteit
 - [ ] Spaarnwoude SQL uitvoeren (5 stappen in samenvatting-bestand)
+- [ ] Fix hole_strategy en hazards data in golf_holes voor Cruquius (bijv. hole 3: bunkers staan als rechts, moet links zijn). AI Caddy advies hangt af van correcte data.
 - [x] GPS live tracking feature bouwen (rode knipperende dot, afstand tot green) ✅ v1.44
 - [x] 5-point green GPS distances (front/back/left/right/center) ✅ v1.48
 
