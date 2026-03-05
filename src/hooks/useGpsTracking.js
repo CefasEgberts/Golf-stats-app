@@ -13,8 +13,28 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   const [gpsShotDistance, setGpsShotDistance] = useState(null);
 
   const watchIdRef = useRef(null);
+  const stillTimerRef = useRef(null);
+  const lastMovedPosRef = useRef(null);
+  const vibrationCountRef = useRef(0);
+  const reminderArmedRef = useRef(false);
 
-  // Recalculate distances when position changes
+  const [expectedClubDistance, setExpectedClubDistance] = useState(null);
+
+  const armShotReminder = useCallback((clubDistance) => {
+    setExpectedClubDistance(clubDistance || null);
+    vibrationCountRef.current = 0;
+    lastMovedPosRef.current = null;
+    if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
+  }, []);
+
+  const disarmShotReminder = useCallback(() => {
+    setExpectedClubDistance(null);
+    vibrationCountRef.current = 0;
+    lastMovedPosRef.current = null;
+    if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
+  }, []);
+
+
   useEffect(() => {
     if (!gpsPosition) return;
 
@@ -52,6 +72,37 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       setGpsShotDistance(Math.round(shotDist));
     }
   }, [gpsPosition, greenLat, greenLng, greenPoints, lastShotPosition, teePosition]);
+
+  // Vibration reminder: tril als speler stilstaat terwijl GPS-afstand ≈ clubafstand (±10%)
+  useEffect(() => {
+    if (!expectedClubDistance || !gpsPosition || !gpsShotDistance) return;
+    if (vibrationCountRef.current >= 3) return;
+
+    const min = expectedClubDistance * 0.90;
+    const max = expectedClubDistance * 1.10;
+    const withinRange = gpsShotDistance >= min && gpsShotDistance <= max;
+    if (!withinRange) return;
+
+    // Check of positie veranderd is t.o.v. vorige check
+    const prev = lastMovedPosRef.current;
+    const moved = prev ? haversineMeters(prev.lat, prev.lng, gpsPosition.lat, gpsPosition.lng) > 3 : true;
+
+    if (moved) {
+      // Speler beweegt nog — reset timer
+      lastMovedPosRef.current = { ...gpsPosition };
+      if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
+      return;
+    }
+
+    // Speler staat stil én is op clubafstand — start 30s timer als die nog niet loopt
+    if (!stillTimerRef.current) {
+      stillTimerRef.current = setTimeout(() => {
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]); // 2x kort
+        vibrationCountRef.current += 1;
+        stillTimerRef.current = null;
+      }, 30000);
+    }
+  }, [gpsPosition, gpsShotDistance, expectedClubDistance]);
 
   const startTracking = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -199,6 +250,7 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     gpsTracking, gpsPosition, teePosition, lastShotPosition,
     gpsError, gpsAccuracy, gpsDistanceToGreen, gpsGreenDistances, gpsShotDistance,
     startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition, captureStartPosition, captureShot, resetForNewHole,
+    armShotReminder, disarmShotReminder,
     simMode, startSimulation, simulateShot, stopSimulation
   };
 };

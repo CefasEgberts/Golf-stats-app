@@ -343,7 +343,7 @@ INSTRUCTIES VOOR JE ADVIES:
               /* GPS mode: START button to capture position, then show live distance */
               <>
                 {!shotStarted ? (
-                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(gps.gpsShotDistance != null ? String(convertDistance(gps.gpsShotDistance)) : ''); }}
+                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(gps.gpsShotDistance != null ? String(convertDistance(gps.gpsShotDistance)) : ''); const clubDist = settings.clubDistances?.[round.selectedClub]; if (gps.armShotReminder) gps.armShotReminder(clubDist || null); }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl py-5 font-display text-2xl tracking-wider text-white shadow-lg shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition">
                     📍 START
                   </button>
@@ -437,6 +437,7 @@ INSTRUCTIES VOOR JE ADVIES:
 
                 <button onClick={() => {
                   if (gps?.gpsTracking) gps.captureShot();
+                  if (gps?.disarmShotReminder) gps.disarmShotReminder();
                   // In GPS or sim mode, auto-set distance from GPS
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
