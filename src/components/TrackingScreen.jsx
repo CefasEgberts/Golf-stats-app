@@ -453,7 +453,7 @@ INSTRUCTIES VOOR JE ADVIES:
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
-                  round.addShot();
+                  round.addShot(gps?.gpsTracking || false);
                   setShotStarted(false);
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">

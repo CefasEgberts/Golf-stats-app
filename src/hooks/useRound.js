@@ -36,7 +36,7 @@ export const useRound = () => {
     setShowStrategy(false);
   };
 
-  const addShot = () => {
+  const addShot = (gpsActive = false) => {
     if (selectedClub === 'Putter') {
       const puttsCount = manualDistance ? parseInt(manualDistance) : 1;
       setCurrentHoleShots(prev => [...prev, {
@@ -51,7 +51,10 @@ export const useRound = () => {
         club: selectedClub, distanceToGreen: remainingDistance,
         distancePlayed, lie: selectedLie
       }]);
-      setRemainingDistance(prev => Math.max(0, prev - distancePlayed));
+      // In GPS/sim mode: remainingDistance wordt bijgehouden via GPS sync, niet handmatig aftrekken
+      if (!gpsActive) {
+        setRemainingDistance(prev => Math.max(0, prev - distancePlayed));
+      }
     }
     setSelectedClub(''); setSuggestedDistance(null); setManualDistance(''); setSelectedLie('');
   };
