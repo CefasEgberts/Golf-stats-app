@@ -10,11 +10,151 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showFinishHole, setShowFinishHole] = useState(false);
   const [shotStarted, setShotStarted] = useState(false);
   const [displayDistance, setDisplayDistance] = useState('');
+  const [showCaddy, setShowCaddy] = useState(false);
+  const [caddyAdvice, setCaddyAdvice] = useState('');
+  const [caddyLoading, setCaddyLoading] = useState(false);
   const finishHoleRef = useRef(null);
   const startButtonRef = useRef(null);
 
+  const buildCaddyPrompt = () => {
+    const hole = round.currentHoleInfo;
+    const clubDistances = settings.clubDistances || {};
+    const bagWithDistances = (settings.bag || [])
+      .filter(c => c !== 'Putter')
+      .map(c => clubDistances[c] ? `${c}: ${clubDistances[c]}m` : `${c}: onbekend`)
+      .join(', ');
+    const shotsPlayed = round.currentHoleShots.length > 0
+      ? round.currentHoleShots.map((s, i) => `Slag ${i+1}: ${s.club}${s.distancePlayed ? `, ${s.distancePlayed}m geslagen` : ''}${s.lie ? `, ligt op: ${s.lie}` : ''}`).join('\n')
+      : 'Nog geen slagen gespeeld — dit is de tee shot.';
+
+    const windInfo = wind && wind.beaufort >= 2
+      ? `Wind: Beaufort ${wind.beaufort}, ${wind.speed} km/h. Richting: ${wind.direction}°.`
+      : 'Wind: weinig tot geen wind (Beaufort < 2).';
+
+    return `Je bent een ervaren golfcaddy. Geef direct, persoonlijk advies in het Nederlands zoals een echte caddy dat zou zeggen tegen zijn speler. Spreek de speler aan als "je". Geen opsommingstekens, gewone zinnen. Max 5 zinnen.
+
+HOLE INFORMATIE:
+- Hole ${hole.number || round.currentHole}, Par ${hole.par}, totaal ${hole.totalDistance}m
+- Nog te gaan tot de green: ${round.remainingDistance}m
+- Hole strategie: ${hole.holeStrategy || 'geen info beschikbaar'}
+- Hindernissen: ${hole.hazards || 'geen specifieke info'}
+
+SPELER:
+- Handicap: ${settings.handicap || 'onbekend'}
+- Clubs met gemiddelde afstanden: ${bagWithDistances || 'onbekend'}
+
+HUIDIGE SITUATIE:
+${shotsPlayed}
+- ${windInfo}
+
+INSTRUCTIES VOOR JE ADVIES:
+1. Kies de beste club voor de resterende ${round.remainingDistance}m. Als de afstand groter is dan de langste club van de speler, deel de hole dan op in slimme stappen en geef aan welke club per stap.
+2. Pas de clubkeuze aan voor wind: tegenwind = 1 of 2 clubs zwaarder, meewind = 1 club lichter. Zeg dit expliciet.
+3. Combineer windrichting met hazards om een richting te adviseren. Bv: "wind van rechts + bunker links = speel rechts van het midden."
+4. Wees concreet: noem clubnaam, richting, en eventueel strategie voor de volgende slag.`;
+  };
+
+  const askCaddyText = async () => {
+    setShowCaddy(true);
+    setCaddyAdvice('');
+    setCaddyLoading(true);
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 400,
+          messages: [{ role: 'user', content: buildCaddyPrompt() }]
+        })
+      });
+      const data = await response.json();
+      setCaddyAdvice(data.content?.[0]?.text || 'Geen advies beschikbaar.');
+    } catch {
+      setCaddyAdvice('Kon de caddy niet bereiken. Controleer je internetverbinding.');
+    }
+    setCaddyLoading(false);
+  };
+
+  const askCaddySpeech = async () => {
+    setCaddyLoading(true);
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 400,
+          messages: [{ role: 'user', content: buildCaddyPrompt() }]
+        })
+      });
+      const data = await response.json();
+      const text = data.content?.[0]?.text || 'Geen advies beschikbaar.';
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'nl-NL';
+      utterance.rate = 0.95;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // silent fail for speech
+    }
+    setCaddyLoading(false);
+  };
+
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
+
+      {/* Caddy Advice Modal */}
+      {showCaddy && (
+        <div className="fixed inset-0 bg-black/95 z-50 flex flex-col p-6" onClick={() => setShowCaddy(false)}>
+          <div className="flex-shrink-0 text-center mb-4">
+            <span className="font-body text-xs text-white/40">tik om te sluiten</span>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-lg">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-4xl">🎓</span>
+                <div>
+                  <div className="font-display text-2xl text-yellow-300">AI CADDY</div>
+                  <div className="font-body text-xs text-yellow-200/60">Hole {round.currentHole} — {round.remainingDistance}m te gaan</div>
+                </div>
+              </div>
+              <div className="glass-card rounded-2xl p-6 border border-yellow-400/30 bg-yellow-500/5 min-h-32">
+                {caddyLoading ? (
+                  <div className="flex items-center justify-center gap-3 py-8">
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></div>
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></div>
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></div>
+                  </div>
+                ) : (
+                  <p className="font-body text-white text-lg leading-relaxed">{caddyAdvice}</p>
+                )}
+              </div>
+              {!caddyLoading && caddyAdvice && (
+                <button onClick={askCaddySpeech}
+                  className="w-full mt-4 glass-card rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-white/10 transition border border-yellow-400/20">
+                  <span>🔊</span>
+                  <span className="font-body text-sm text-yellow-300">Lees voor</span>
+                </button>
+              )}
+            </div>
+          </div>
+          <button onClick={() => setShowCaddy(false)}
+            className="w-full mt-4 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+            ← TERUG
+          </button>
+        </div>
+      )}
 
       {/* Hole Overview Modal */}
       {round.showHoleOverview && (
@@ -35,11 +175,23 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       <div className="p-6 bg-gradient-to-b from-black/20 to-transparent">
         <div className="flex items-center justify-between mb-4">
           <button onClick={onQuit}><ChevronLeft className="w-6 h-6" /></button>
-          <button onClick={() => { round.setShowHoleOverview(true); round.setPhotoExpanded(false); round.setShowStrategy(false); }}
-            className="glass-card px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-white/10 transition">
-            <MapPin className="w-4 h-4 text-emerald-400" />
-            <span className="font-body text-xs text-emerald-300 uppercase tracking-wider">Hole Info</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={askCaddyText}
+              className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
+              <span className="text-sm">🎓</span>
+              <span className="font-body text-xs text-yellow-300 uppercase tracking-wider">Caddy</span>
+            </button>
+            <button onClick={askCaddySpeech} disabled={caddyLoading}
+              className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition disabled:opacity-50">
+              <span className="text-sm">🔊</span>
+              <span className="font-body text-xs text-yellow-300 uppercase tracking-wider">{caddyLoading ? '...' : 'Caddy'}</span>
+            </button>
+            <button onClick={() => { round.setShowHoleOverview(true); round.setPhotoExpanded(false); round.setShowStrategy(false); }}
+              className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
+              <MapPin className="w-4 h-4 text-emerald-400" />
+              <span className="font-body text-xs text-emerald-300 uppercase tracking-wider">Info</span>
+            </button>
+          </div>
         </div>
         <div className="text-center mb-4">
           <div className="font-display text-5xl mb-2 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {round.currentHole}</div>
