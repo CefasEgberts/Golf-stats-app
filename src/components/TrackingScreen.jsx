@@ -10,6 +10,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showFinishHole, setShowFinishHole] = useState(false);
   const [shotStarted, setShotStarted] = useState(false);
   const finishHoleRef = useRef(null);
+  const startButtonRef = useRef(null);
 
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
@@ -128,7 +129,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('shot')} {round.currentHoleShots.length + 1}: {t('whichClub')}</label>
           <div className="grid grid-cols-4 gap-2">
             {clubs.map((club) => (
-              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); if (club === 'Putter') round.setSelectedLie('green'); }}
+              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); if (club === 'Putter') round.setSelectedLie('green'); setTimeout(() => startButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
                 className={'club-btn glass-card rounded-xl py-3 px-2 font-body text-sm font-medium ' + (round.selectedClub === club ? 'selected' : '')}>{club}</button>
             ))}
             <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); setShotStarted(false); }}
@@ -173,7 +174,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
         {/* Shot flow after club selection */}
         {round.selectedClub && (
-          <div className="space-y-4 animate-slide-up">
+          <div className="space-y-4 animate-slide-up" ref={startButtonRef}>
             {round.selectedClub === 'Putter' ? (
               /* Putter: just enter number of putts */
               <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
@@ -196,10 +197,16 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                   <div className="glass-card rounded-xl p-6 bg-blue-500/10 border-blue-400/30">
                     <div className="font-body text-xs text-blue-200/70 mb-2 uppercase tracking-wider text-center">Geslagen afstand</div>
                     <div className="text-center mb-2">
-                      <span className="font-display text-6xl text-white">{gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance) : '...'}</span>
+                      <input
+                        type="number"
+                        value={round.manualDistance || (gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance) : '')}
+                        onChange={(e) => round.setManualDistance(e.target.value)}
+                        placeholder={gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance).toString() : '...'}
+                        className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-center inline-block"
+                      />
                       <span className="font-display text-3xl text-emerald-300 ml-2">{getUnitLabel()}</span>
                     </div>
-                    <div className="font-body text-xs text-blue-200/50 text-center">Live GPS afstand vanaf startpositie</div>
+                    <div className="font-body text-xs text-blue-200/50 text-center">GPS afstand — pas aan indien nodig</div>
                   </div>
                 )}
               </>
