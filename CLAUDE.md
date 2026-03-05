@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v2.07
+- **Versie**: v2.17
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -125,7 +125,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v2.07)
+## Huidige Features (v2.17)
 1. Splash screen met weer + begroeting + versienummer
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
@@ -136,7 +136,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 8. Stableford scoring (baan HCP berekening, SI-gebaseerde punten)
 9. Score overzicht per hole + totaal
 10. Instellingen (naam, handicap, geslacht, eenheden, taal, bag, showScore)
-11. Club bag management (max 14 clubs)
+11. Club bag management (max 14 clubs + afstand per club)
 12. Default bag voor cefas@golfstats.nl
 13. Ronde historie (bekijken + verwijderen)
 14. Login + admin dashboard
@@ -146,7 +146,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 18. **Wind info** (Beaufort schaal, windrichting relatief t.o.v. green, speeladvies)
 19. **Collapsible finish hole** sectie
 20. **Running Stableford totaal** tijdens ronde
-21. **Auto-scroll** naar finish hole sectie
+21. **Auto-scroll** naar finish hole sectie + naar start knop na club selectie
 22. **Score zichtbaarheid toggle** (toon/verberg score per hole in instellingen)
 23. **Scorekaarten** knop op homescreen
 24. **GPS/Handmatig/Test modus** keuze bij start ronde
@@ -154,6 +154,12 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 26. **Tee-coördinaten** in database (Cruquius holes 1-9)
 27. **GPS START per slag** + automatische afstandsmeting
 28. **Hole overlay** toont "Terug naar invoer" als er al slagen zijn
+29. **Bewerkbare GPS afstand** (select-all on focus, voorkomt GPS overschrijving)
+30. **Hole overlay pijl** verborgen als GPS niet actief
+31. **AI Caddy** (clubadvies met tekst + spraak, wind- en hazard-aware)
+32. **Club afstanden** in bag (voor AI Caddy advies)
+33. **Settings persistence** (localStorage — alle instellingen blijven bewaard)
+34. **.gitignore** voor .env beveiliging
 
 ## TODO's
 
