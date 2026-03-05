@@ -39,18 +39,26 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showBagLimitWarning, setShowBagLimitWarning] = useState(false);
 
-  // Settings
+  // Settings — persist to localStorage
   const getDefaultBag = () => DEFAULT_BAGS[user?.email?.toLowerCase()] || [];
-  const [settings, setSettings] = useState({
-    name: profile?.username || profile?.name || 'Golfer',
-    units: 'meters',
-    language: 'nl',
-    handicap: 13.5,
-    showScore: false,
-    gender: 'man',
-    homeCity: 'Amsterdam',
-    bag: getDefaultBag()
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('golfstats_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { name: 'Golfer', units: 'meters', language: 'nl', handicap: 13.5, showScore: false, gender: 'man', homeCity: 'Amsterdam', bag: getDefaultBag(), ...parsed };
+      }
+    } catch (e) { /* ignore */ }
+    return {
+      name: profile?.username || profile?.name || 'Golfer',
+      units: 'meters', language: 'nl', handicap: 13.5, showScore: false,
+      gender: 'man', homeCity: 'Amsterdam', bag: getDefaultBag()
+    };
   });
+
+  React.useEffect(() => {
+    try { localStorage.setItem('golfstats_settings', JSON.stringify(settings)); } catch (e) { /* ignore */ }
+  }, [settings]);
 
   React.useEffect(() => {
     if (profile?.username || profile?.name) {
