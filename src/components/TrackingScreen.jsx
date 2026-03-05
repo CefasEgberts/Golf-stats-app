@@ -180,8 +180,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
                 <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider text-center">{t('putts')}</div>
                 <div className="text-center mb-4">
-                  <input type="number" value={round.manualDistance} onChange={(e) => round.setManualDistance(e.target.value)} placeholder="1"
-                    onFocus={(e) => { if (e.target.value === '0') round.setManualDistance(''); }}
+                  <input type="text" inputMode="numeric" value={round.manualDistance} onChange={(e) => round.setManualDistance(e.target.value)} placeholder="1"
+                    onFocus={(e) => e.target.select()}
                     className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center inline-block" />
                   <span className="font-display text-2xl text-emerald-300 ml-2">{round.manualDistance == 1 ? 'putt' : 'putts'}</span>
                 </div>
@@ -199,10 +199,10 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
                     <div className="font-body text-xs text-blue-200/70 mb-2 uppercase tracking-wider text-center">Geslagen afstand</div>
                     <div className="text-center mb-2">
                       <input
-                        type="number"
+                        type="text" inputMode="numeric"
                         value={round.manualDistance || (gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance) : '')}
                         onChange={(e) => round.setManualDistance(e.target.value)}
-                        onFocus={(e) => { if (e.target.value === '0') round.setManualDistance(''); }}
+                        onFocus={(e) => e.target.select()}
                         placeholder={gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance).toString() : '...'}
                         className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-center inline-block"
                       />
@@ -247,8 +247,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               <div className="glass-card rounded-xl p-6 bg-emerald-500/10 border-emerald-400/30">
                 <div className="font-body text-xs text-emerald-200/70 mb-2 uppercase tracking-wider text-center">{t('distancePlayed')}</div>
                 <div className="text-center mb-4">
-                  <input type="number" value={round.manualDistance} onChange={(e) => round.setManualDistance(e.target.value)}
-                    onFocus={(e) => { if (e.target.value === '0') round.setManualDistance(''); }}
+                  <input type="text" inputMode="numeric" value={round.manualDistance} onChange={(e) => round.setManualDistance(e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     placeholder={round.suggestedDistance?.toString()}
                     className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition text-center inline-block" />
                   <span className="font-display text-2xl text-emerald-300 ml-2">{getUnitLabel()}</span>
