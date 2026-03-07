@@ -22,7 +22,7 @@ export const useCourseData = () => {
 
   const fetchAvailableTees = async (courseName, loopName) => {
     try {
-      const loopId = loopName.toLowerCase();
+      const loopId = loopName.toLowerCase().split(' ')[0].replace(/[^a-z0-9-]/g, '');
       const firstWord = getCourseKey(courseName);
       const { data } = await supabase
         .from('golf_holes')
@@ -46,7 +46,7 @@ export const useCourseData = () => {
 
   const fetchCourseRating = async (courseName, loopName, gender, teeColor, isCombo, comboId) => {
     try {
-      const loopId = loopName.toLowerCase();
+      const loopId = loopName.toLowerCase().split(' ')[0].replace(/[^a-z0-9-]/g, '');
       const firstWord = getCourseKey(courseName);
       let data, error;
       if (isCombo && comboId) {
@@ -103,7 +103,7 @@ export const useCourseData = () => {
           setAllHolesData([]);
         }
       } else {
-        const loopId = loopName.toLowerCase();
+        const loopId = loopName.toLowerCase().split(' ')[0].replace(/[^a-z0-9-]/g, '');
         const firstWord = getCourseKey(courseName);
         const { data } = await supabase
           .from('golf_holes')
@@ -123,7 +123,7 @@ export const useCourseData = () => {
     setLoadingHoleData(true);
     setDbHoleData(null);
     try {
-      const loopId = loopName.toLowerCase();
+      const loopId = loopName.toLowerCase().split(' ')[0].replace(/[^a-z0-9-]/g, '');
       const courseId = courseName.toLowerCase().replace(/\s+/g, '-') + '-' + loopId;
       let { data, error } = await supabase
         .from('golf_holes').select('*')
