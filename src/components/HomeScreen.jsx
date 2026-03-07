@@ -120,7 +120,7 @@ export default function HomeScreen({
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   {round.roundData.course.loops.filter(l => !l.isFull).map((loop) => (
                     <button key={loop.id} onClick={async () => {
-                      const tees = await courseData.fetchAvailableTees(round.roundData.course.name, loop.name);
+                      const tees = await courseData.fetchAvailableTees(round.roundData.course.name, loop.id);
                       round.setRoundData({ ...round.roundData, loop, availableTees: tees || round.roundData.course.teeColors });
                     }} className="glass-card rounded-xl p-4 text-center hover:bg-white/15 transition group overflow-hidden">
                       <div className="font-display text-2xl text-emerald-300 group-hover:text-emerald-200 transition mb-1 truncate uppercase">{loop.name}</div>

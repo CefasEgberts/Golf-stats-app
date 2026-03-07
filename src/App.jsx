@@ -253,10 +253,10 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     round.setSelectedClub(''); round.setSuggestedDistance(null);
     round.setPhotoExpanded(false); round.setShowStrategy(false);
 
-    await courseData.fetchCourseRating(course.name, loop.name, settings.gender, teeColor, isCombo, comboId);
-    await courseData.fetchAllHolesForLoop(course.name, loop.name, isCombo, comboId);
-    const firstLoopName = isCombo ? loop.name.split(/[+&]/)[0].trim() : loop.name;
-    await courseData.fetchHoleFromDatabase(course.name, firstLoopName, firstHole);
+    const loopId = isCombo ? loop.id.split('-')[0] : loop.id;
+    await courseData.fetchCourseRating(course.name, loopId, settings.gender, teeColor, isCombo, comboId);
+    await courseData.fetchAllHolesForLoop(course.name, loopId, isCombo, comboId);
+    await courseData.fetchHoleFromDatabase(course.name, loopId, firstHole);
 
     // Start GPS based on chosen mode
     if (gpsMode === 'gps') {
@@ -283,10 +283,10 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     if (currentIndex < loop.holes.length - 1) {
       const nextHole = loop.holes[currentIndex + 1];
       const isCombo = loop.isFull || false;
-      let fetchLoopName = loop.name;
+      let fetchLoopId = loop.id;
       if (isCombo) {
         const comboHole = courseData.allHolesData.find(h => h.hole_number === nextHole);
-        fetchLoopName = comboHole?.source_loop || (nextHole <= 9 ? loop.name.split(/[+&]/)[0].trim() : (loop.name.split(/[+&]/)[1] || loop.name.split(/[+&]/)[0]).trim());
+        fetchLoopId = comboHole?.source_loop || loop.id.split('-')[0];
       }
       const dbHoleNumber = isCombo && nextHole > 9 ? nextHole - 9 : nextHole;
 
@@ -297,7 +297,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       round.setPhotoExpanded(false); round.setShowStrategy(false);
       round.setCurrentHole(nextHole);
 
-      await courseData.fetchHoleFromDatabase(course.name, fetchLoopName, dbHoleNumber);
+      await courseData.fetchHoleFromDatabase(course.name, fetchLoopId, dbHoleNumber);
       round.setShowHoleOverview(true);
     } else {
       gps.stopTracking();
