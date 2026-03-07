@@ -6,8 +6,8 @@ function CourseInfoModal({ course, onBack, onPlay }) {
   const hasFullData = course.loops && course.loops.length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-lg bg-gradient-to-b from-slate-800 to-slate-900 rounded-t-3xl p-6 pb-10 animate-slide-up max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+      <div className="w-full max-w-lg bg-gradient-to-b from-slate-800 to-slate-900 rounded-3xl p-6 pb-8 animate-slide-up max-h-[85vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 pr-4">
