@@ -1,6 +1,118 @@
-import React from 'react';
-import { Plus, TrendingUp, BarChart3, Calendar, MapPin, Settings, Home } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, TrendingUp, BarChart3, Calendar, MapPin, Settings, Home, X, Phone, Globe, Info } from 'lucide-react';
 
+// ─── Course Info Modal ────────────────────────────────────────────────────────
+function CourseInfoModal({ course, onBack, onPlay }) {
+  const hasFullData = course.loops && course.loops.length > 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+      <div className="w-full max-w-lg bg-gradient-to-b from-slate-800 to-slate-900 rounded-t-3xl p-6 pb-10 animate-slide-up max-h-[85vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1 pr-4">
+            <h2 className="font-display text-2xl text-white leading-tight">{course.name}</h2>
+            {course.city && (
+              <div className="flex items-center gap-1 mt-1">
+                <MapPin className="w-3 h-3 text-emerald-400" />
+                <span className="font-body text-sm text-emerald-200/70">{course.city}</span>
+                {course.distance && course.distance !== '--' && (
+                  <span className="font-body text-sm text-emerald-200/50"> · {course.distance} km</span>
+                )}
+              </div>
+            )}
+          </div>
+          {hasFullData && (
+            <div className="flex-shrink-0">
+              <span className="px-2 py-1 rounded-lg text-xs font-body font-semibold bg-yellow-400/20 text-yellow-300 border border-yellow-400/40">
+                ⛳ Volledig
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-white/10 mb-4" />
+
+        {/* Description */}
+        {course.description ? (
+          <p className="font-body text-sm text-emerald-100/80 leading-relaxed mb-5">
+            {course.description}
+          </p>
+        ) : (
+          <p className="font-body text-sm text-emerald-200/40 italic mb-5">
+            Geen beschrijving beschikbaar.
+          </p>
+        )}
+
+        {/* Contact info */}
+        {(course.website || course.phone || course.address) && (
+          <div className="glass-card rounded-xl p-4 mb-5 space-y-2">
+            {course.address && (
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="font-body text-sm text-emerald-100/80">{course.address}</span>
+              </div>
+            )}
+            {course.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <a href={`tel:${course.phone}`} className="font-body text-sm text-emerald-300 hover:text-emerald-200">
+                  {course.phone}
+                </a>
+              </div>
+            )}
+            {course.website && (
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <a href={course.website.startsWith('http') ? course.website : `https://${course.website}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="font-body text-sm text-emerald-300 hover:text-emerald-200 truncate">
+                  {course.website.replace(/^https?:\/\//, '')}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loops info */}
+        {hasFullData && (
+          <div className="mb-5">
+            <div className="font-body text-xs text-emerald-200/50 uppercase tracking-wider mb-2">Beschikbare lussen</div>
+            <div className="flex flex-wrap gap-2">
+              {course.loops.filter(l => !l.isFull).map(loop => (
+                <span key={loop.id} className="px-3 py-1 rounded-lg text-xs font-body bg-emerald-500/20 text-emerald-300 border border-emerald-400/20">
+                  {loop.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <button onClick={onBack}
+            className="btn-secondary rounded-xl py-4 font-body font-medium text-base">
+            ← Terug
+          </button>
+          {hasFullData ? (
+            <button onClick={onPlay}
+              className="btn-primary rounded-xl py-4 font-display text-base tracking-wider">
+              ⛳ SPELEN
+            </button>
+          ) : (
+            <button disabled
+              className="rounded-xl py-4 font-body text-sm text-emerald-200/30 bg-white/5 border border-white/10 cursor-not-allowed">
+              Geen baandata
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── HomeScreen ───────────────────────────────────────────────────────────────
 export default function HomeScreen({
   settings, round, courseData, weather, userLocation, setUserLocation,
   showSearch, setShowSearch, searchQuery, setSearchQuery, filteredCourses,
@@ -8,8 +120,35 @@ export default function HomeScreen({
   user, gps,
   onSettings, onAllStats, onClubs, onRoundHistory, onLogout, onAdmin
 }) {
+  const [selectedCourseForInfo, setSelectedCourseForInfo] = useState(null);
+
+  const handleCourseClick = (course) => {
+    setSelectedCourseForInfo(course);
+  };
+
+  const handlePlayCourse = () => {
+    if (!selectedCourseForInfo) return;
+    round.setRoundData({ ...round.roundData, course: selectedCourseForInfo });
+    setShowSearch(false);
+    setSearchQuery('');
+    setSelectedCourseForInfo(null);
+  };
+
+  const handleBackFromModal = () => {
+    setSelectedCourseForInfo(null);
+  };
+
   return (
     <div className="animate-slide-up">
+      {/* Course Info Modal */}
+      {selectedCourseForInfo && (
+        <CourseInfoModal
+          course={selectedCourseForInfo}
+          onBack={handleBackFromModal}
+          onPlay={handlePlayCourse}
+        />
+      )}
+
       <div className="p-6 pt-12">
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -91,18 +230,27 @@ export default function HomeScreen({
                 {filteredCourses.length === 0 && showSearch && (
                   <div className="glass-card rounded-xl p-6 text-center"><div className="font-body text-emerald-200/60">Geen banen gevonden voor "{searchQuery}"</div></div>
                 )}
-                {filteredCourses.map((course) => (
-                  <button key={course.id} onClick={() => { round.setRoundData({ ...round.roundData, course }); setShowSearch(false); setSearchQuery(''); }}
-                    className="w-full glass-card rounded-xl p-4 text-left hover:bg-white/15 transition group">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-body font-semibold text-white group-hover:text-emerald-300 transition">{course.name}</div>
-                        <div className="font-body text-xs text-emerald-200/60 mt-1">{course.city}</div>
+                {filteredCourses.map((course) => {
+                  const hasFullData = course.loops && course.loops.length > 0;
+                  return (
+                    <button key={course.id} onClick={() => handleCourseClick(course)}
+                      className={`w-full glass-card rounded-xl p-4 text-left hover:bg-white/15 transition group ${hasFullData ? 'border border-yellow-400/50' : ''}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className={`font-body font-semibold transition ${hasFullData ? 'text-yellow-200 group-hover:text-yellow-100' : 'text-white group-hover:text-emerald-300'}`}>
+                            {course.name}
+                            {hasFullData && <span className="ml-2 text-yellow-400 text-xs">⛳</span>}
+                          </div>
+                          <div className="font-body text-xs text-emerald-200/60 mt-1">{course.city}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!showSearch && <div className="font-display text-xl text-emerald-400">{course.distance}km</div>}
+                          <Info className="w-4 h-4 text-emerald-400/50 group-hover:text-emerald-400 transition" />
+                        </div>
                       </div>
-                      {!showSearch && <div className="font-display text-xl text-emerald-400">{course.distance}km</div>}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
