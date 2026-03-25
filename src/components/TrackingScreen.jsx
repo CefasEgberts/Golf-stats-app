@@ -21,6 +21,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [voiceStatus, setVoiceStatus] = useState('');
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceStep, setVoiceStep] = useState('idle');
+  const [showVoiceInfo, setShowVoiceInfo] = useState(false);
   const recognitionRef = useRef(null);
   const wakeLockRef = useRef(null);
   const voiceStepRef = useRef('idle');
@@ -83,13 +84,22 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   }, [clubs]);
 
   const matchLie = useCallback((transcript) => {
-    const lower = transcript.toLowerCase();
-    if (lower.includes('fairway')) return 'fairway';
-    if (lower.includes('rough') || lower.includes('ruw') || lower.includes('hoog gras')) return 'rough';
-    if (lower.includes('bunker') || lower.includes('zand')) return 'bunker';
-    if (lower.includes('green')) return 'green';
-    if (lower.includes('tee') || lower.includes('afslagplaats')) return 'tee';
-    if (lower.includes('bos') || lower.includes('bomen') || lower.includes('boom')) return 'rough';
+    const lower = transcript.toLowerCase()
+      .replace(/[.,!?]/g, '')
+      .trim();
+    // Fairway - ook "fair" of "fairwei" etc
+    if (lower.includes('fair') || lower.includes('middenpad') || lower.includes('midden')) return 'fairway';
+    // Rough
+    if (lower.includes('rough') || lower.includes('ruw') || lower.includes('hoog') || lower.includes('gras')) return 'rough';
+    // Bunker
+    if (lower.includes('bunker') || lower.includes('zand') || lower.includes('sand')) return 'bunker';
+    // Green
+    if (lower.includes('green') || lower.includes('grien') || lower.includes('putting')) return 'green';
+    // Tee - ook "tie", "thee" (verkeerd uitgesproken)
+    if (lower.includes('tee') || lower.includes('tie') || lower.includes('thee') || lower.includes('afslagplaats') || lower.includes('afslag')) return 'tee';
+    // Bos/rough
+    if (lower.includes('bos') || lower.includes('boom') || lower.includes('bomen') || lower.includes('struik')) return 'rough';
+    // Water
     if (lower.includes('water')) return 'water';
     return null;
   }, []);
@@ -101,18 +111,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
     setVoiceStep(step);
     voiceStepRef.current = step;
 
-    if (step === 'confirm_here') {
-      speak('Ben je bij je bal?', () => {
-        startListening((transcript) => {
-          if (isYes(transcript)) {
-            voiceFlow('ask_club');
-          } else {
-            speak('Oké, ik wacht even.', () => setTimeout(() => voiceFlow('confirm_here'), 4000));
-          }
-        });
-      });
-
-    } else if (step === 'ask_club') {
+    if (step === 'ask_club') {
       speak('Wat ga je slaan?', () => {
         startListening((transcript) => {
           if (transcript.includes('putter') || transcript.includes('putt')) {
@@ -128,9 +127,17 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             const clubDist = settings.clubDistances?.[club];
             if (gps?.armShotReminder) gps.armShotReminder(clubDist || null);
             const distMsg = clubDist ? `, gemiddeld ${clubDist} meter` : '';
-            speak(`${club}${distMsg}. Waar ligt je bal?`, () => voiceFlow('ask_lie'));
+            // Slag 1 = altijd tee, geen lie vragen
+            const isFirstShot = round.currentHoleShots.length === 0;
+            if (isFirstShot) {
+              round.setSelectedLie('tee');
+              if (gps?.gpsTracking && !gps?.simMode) { gps.captureStartPosition(); setShotStarted(true); }
+              speak(`${club}${distMsg}. Tee shot geregistreerd. Succes!`, () => voiceFlow('idle'));
+            } else {
+              speak(`${club}${distMsg}. Waar lig je?`, () => voiceFlow('ask_lie'));
+            }
           } else {
-            speak(`Ik verstond "${transcript}" niet. Welke club?`, () => voiceFlow('ask_club'));
+            speak(`Ik verstond dat niet. Welke club?`, () => voiceFlow('ask_club'));
           }
         });
       });
@@ -190,10 +197,10 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       });
 
     } else if (step === 'idle') {
-      setVoiceStatus('Zeg "slag" als je bij je bal bent');
+      setVoiceStatus('Zeg "slag" voor nieuwe slag • "hole klaar" • "caddy"');
       startListening((transcript) => {
         if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
-          voiceFlow('confirm_here');
+          voiceFlow('ask_club');
         } else if (transcript.includes('hole klaar') || transcript.includes('klaar') || transcript.includes('finish')) {
           speak('Hole afronden. Bevestig in de app.', () => voiceFlow('idle'));
           setShowFinishHole(true);
@@ -218,6 +225,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       setVoiceListening(false);
     } else {
       setVoiceMode(true);
+      setShowVoiceInfo(true); // toon info popup
       // Wake lock: scherm aan houden
       if ('wakeLock' in navigator) {
         try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {}
@@ -235,18 +243,29 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
   // iOS: handmatige tik om te luisteren
   const iosTapToListen = useCallback(() => {
-    speak('Ik luister.', () => {
+    // In iOS tik-modus: verwerk op basis van huidige stap
+    const currentStep = voiceStepRef.current;
+    if (currentStep !== 'idle') {
+      // We zitten al in een flow stap — gewoon luisteren en de lopende flow afhandelen
       startListening((transcript) => {
-        if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
-          voiceFlow('confirm_here');
-        } else if (transcript.includes('hole klaar') || transcript.includes('klaar')) {
-          speak('Hole afronden. Bevestig in de app.'); setShowFinishHole(true);
-        } else if (transcript.includes('caddy') || transcript.includes('advies')) {
-          askCaddySpeech();
-        } else {
-          speak(`Ik verstond: ${transcript}. Zeg slag, hole klaar, of caddy.`);
-        }
+        // Geef transcript door aan de juiste handler via opnieuw aanroepen van de stap
+        // De voiceFlow handlers wachten al op input — we simuleren dat hier
+        // door de flow opnieuw te starten voor die stap
+        voiceFlow(currentStep);
       });
+      return;
+    }
+    // Idle stap: luister op commando
+    startListening((transcript) => {
+      if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
+        voiceFlow('ask_club');
+      } else if (transcript.includes('hole klaar') || transcript.includes('klaar')) {
+        speak('Hole afronden. Bevestig in de app.'); setShowFinishHole(true);
+      } else if (transcript.includes('caddy') || transcript.includes('advies')) {
+        askCaddySpeech();
+      } else {
+        speak(`Ik verstond je niet. Zeg: slag, hole klaar, of caddy.`);
+      }
     });
   }, [speak, startListening, voiceFlow]);
 
@@ -355,6 +374,42 @@ INSTRUCTIES VOOR JE ADVIES:
 
   return (
     <div className="animate-slide-up min-h-screen flex flex-col bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900">
+
+      {/* Voice Caddy Info Popup */}
+      {showVoiceInfo && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center px-6">
+          <div className="glass-card rounded-3xl p-6 max-w-sm w-full border border-purple-400/30 bg-purple-500/5">
+            <div className="text-4xl text-center mb-3">🎙️</div>
+            <div className="font-display text-2xl text-purple-300 text-center mb-4">VOICE CADDY</div>
+            <div className="space-y-3 mb-6">
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-1">Nieuwe slag</div>
+                <div className="font-body text-sm text-white">Zeg <strong className="text-purple-200">"slag"</strong></div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-1">Club kiezen</div>
+                <div className="font-body text-sm text-white">Bijv. <strong className="text-purple-200">"driver"</strong>, <strong className="text-purple-200">"ijzer zeven"</strong>, <strong className="text-purple-200">"putter"</strong></div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-1">Lie (waar ligt je bal)</div>
+                <div className="font-body text-sm text-white"><strong className="text-purple-200">"fairway"</strong> · <strong className="text-purple-200">"rough"</strong> · <strong className="text-purple-200">"bunker"</strong> · <strong className="text-purple-200">"green"</strong></div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-1">Hole afronden</div>
+                <div className="font-body text-sm text-white">Zeg <strong className="text-purple-200">"hole klaar"</strong></div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-1">AI Caddy advies</div>
+                <div className="font-body text-sm text-white">Zeg <strong className="text-purple-200">"caddy"</strong></div>
+              </div>
+            </div>
+            <button onClick={() => setShowVoiceInfo(false)}
+              className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+              START 🎙️
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Caddy Advice Modal */}
       {showCaddy && (
@@ -529,46 +584,57 @@ INSTRUCTIES VOOR JE ADVIES:
 
       {/* Voice Caddy Status Banner */}
       {voiceMode && (
-        <div className="mx-6 mb-2">
-          {isIOS ? (
-            /* iOS: grote tik-knop */
-            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10">
-              <div className="font-body text-xs text-purple-300 uppercase tracking-wider text-center mb-3">
-                {voiceListening ? '🎤 Luisteren...' : voiceStatus}
+        <div className="mx-6 mb-2 glass-card rounded-2xl border border-purple-400/40 bg-purple-500/10 overflow-hidden">
+
+          {/* Opties per stap — altijd zichtbaar */}
+          {(() => {
+            const isFirst = round.currentHoleShots.length === 0;
+            const options = {
+              idle:        { label: '🎤 Zeg een commando:', items: ['"slag"', '"hole klaar"', '"caddy"'] },
+              ask_club:    { label: '🏌️ Welke club?', items: [...clubs.slice(0,5), '...putter'] },
+              ask_lie:     { label: '🌿 Waar lig je?', items: ['"fairway"', '"rough"', '"bunker"', '"green"', '"water"'] },
+              ask_distance:{ label: '📏 Hoeveel meter geslagen?', items: ['zeg een getal', 'bijv. "honderd vijftig"'] },
+              ask_putts:   { label: '⛳ Hoeveel putts?', items: ['"één"', '"twee"', '"drie"', '"vier"'] },
+            };
+            const opt = options[voiceStep];
+            return opt ? (
+              <div className="p-3 border-b border-purple-400/20">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-2">{opt.label}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {opt.items.map(item => (
+                    <span key={item} className="bg-purple-500/30 border border-purple-400/40 rounded-lg px-2 py-1 font-body text-xs text-white">{item}</span>
+                  ))}
+                </div>
               </div>
-              {!voiceListening && voiceStep === 'idle' && (
-                <button onClick={iosTapToListen}
-                  className="w-full bg-purple-500/30 border border-purple-400/50 rounded-xl py-4 flex items-center justify-center gap-3 active:scale-95 transition">
-                  <Mic className="w-6 h-6 text-purple-300" />
-                  <span className="font-display text-xl text-purple-200 tracking-wider">TIK OM TE PRATEN</span>
-                </button>
-              )}
-              {voiceListening && (
-                <div className="flex items-center justify-center gap-2 py-3">
+            ) : null;
+          })()}
+
+          {/* Microfoon status */}
+          {isIOS ? (
+            /* iOS: tik-knop — werkt in alle stappen */
+            <div className="p-3">
+              {voiceListening ? (
+                <div className="flex items-center justify-center gap-2 py-2">
                   <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></div>
                   <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></div>
                   <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></div>
+                  <span className="font-body text-sm text-purple-200 ml-2">Luisteren...</span>
                 </div>
+              ) : (
+                <button onClick={iosTapToListen}
+                  className="w-full bg-purple-500/30 border border-purple-400/50 rounded-xl py-3 flex items-center justify-center gap-3 active:scale-95 transition">
+                  <Mic className="w-5 h-5 text-purple-300" />
+                  <span className="font-display text-lg text-purple-200 tracking-wider">TIK OM TE PRATEN</span>
+                </button>
               )}
             </div>
           ) : (
-            /* Android/Desktop: automatisch luisteren */
-            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10 flex items-center gap-3">
+            /* Android/Desktop: automatisch */
+            <div className="p-3 flex items-center gap-3">
               <div className={"w-3 h-3 rounded-full flex-shrink-0 " + (voiceListening ? "bg-purple-400 animate-pulse" : "bg-purple-600")}></div>
-              <div className="flex-1 min-w-0">
-                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-0.5">
-                  {voiceListening ? '🎤 Luisteren...' : '🔇 Wachten op "slag"'}
-                </div>
-                <div className="font-body text-sm text-white truncate">{voiceStatus}</div>
-              </div>
-              <div className="font-body text-xs text-purple-400/60 flex-shrink-0">
-                {voiceStep === 'confirm_here' && '📍'}
-                {voiceStep === 'ask_club' && '🏌️'}
-                {voiceStep === 'ask_lie' && '🌿'}
-                {voiceStep === 'ask_distance' && '📏'}
-                {voiceStep === 'ask_putts' && '⛳'}
-                {voiceStep === 'idle' && '💤'}
-              </div>
+              <span className="font-body text-sm text-purple-200">
+                {voiceListening ? '🎤 Luisteren...' : '🔇 Luistert automatisch'}
+              </span>
             </div>
           )}
         </div>
