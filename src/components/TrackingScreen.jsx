@@ -561,45 +561,56 @@ INSTRUCTIES VOOR JE ADVIES:
 
       {/* Voice Caddy Status Banner */}
       {voiceMode && (
-        <div className="mx-6 mb-2">
-          {isIOS ? (
-            /* iOS: grote tik-knop */
-            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10">
-              <div className="font-body text-xs text-purple-300 uppercase tracking-wider text-center mb-3">
-                {voiceListening ? '🎤 Luisteren...' : voiceStatus}
+        <div className="mx-6 mb-2 space-y-2">
+
+          {/* Opties per stap — altijd zichtbaar */}
+          {(() => {
+            const options = {
+              idle:        { label: 'Zeg:', items: ['"slag"', '"hole klaar"', '"caddy"'] },
+              ask_club:    { label: 'Welke club?', items: (clubs || []).slice(0, 8) },
+              ask_lie:     { label: 'Waar ligt je bal?', items: ['"fairway"', '"rough"', '"bunker"', '"tee"', '"green"'] },
+              ask_distance:{ label: 'Hoeveel meter?', items: ['zeg een getal, bijv. "150"'] },
+              ask_putts:   { label: 'Hoeveel putts?', items: ['"één"', '"twee"', '"drie"', '"vier"'] },
+            };
+            const opt = options[voiceStep];
+            return opt ? (
+              <div className="glass-card rounded-2xl p-3 border border-purple-400/40 bg-purple-500/10">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-2">{opt.label}</div>
+                <div className="flex flex-wrap gap-2">
+                  {opt.items.map(item => (
+                    <span key={item} className="bg-purple-500/20 border border-purple-400/30 rounded-lg px-2 py-1 font-body text-xs text-white">{item}</span>
+                  ))}
+                </div>
               </div>
-              {!voiceListening && voiceStep === 'idle' && (
+            ) : null;
+          })()}
+
+          {isIOS ? (
+            /* iOS: tik-knop of luisteren indicator */
+            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10">
+              {voiceListening ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></div>
+                  <span className="font-body text-xs text-purple-300 uppercase tracking-wider ml-1">Luisteren...</span>
+                </div>
+              ) : voiceStep === 'idle' ? (
                 <button onClick={iosTapToListen}
                   className="w-full bg-purple-500/30 border border-purple-400/50 rounded-xl py-4 flex items-center justify-center gap-3 active:scale-95 transition">
                   <Mic className="w-6 h-6 text-purple-300" />
                   <span className="font-display text-xl text-purple-200 tracking-wider">TIK OM TE PRATEN</span>
                 </button>
-              )}
-              {voiceListening && (
-                <div className="flex items-center justify-center gap-2 py-3">
-                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></div>
-                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></div>
-                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></div>
-                </div>
+              ) : (
+                <div className="text-center font-body text-sm text-purple-200">{voiceStatus}</div>
               )}
             </div>
           ) : (
             /* Android/Desktop: automatisch luisteren */
-            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10 flex items-center gap-3">
+            <div className="glass-card rounded-2xl p-3 border border-purple-400/40 bg-purple-500/10 flex items-center gap-3">
               <div className={"w-3 h-3 rounded-full flex-shrink-0 " + (voiceListening ? "bg-purple-400 animate-pulse" : "bg-purple-600")}></div>
-              <div className="flex-1 min-w-0">
-                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-0.5">
-                  {voiceListening ? '🎤 Luisteren...' : '🔇 Wachten op "slag"'}
-                </div>
-                <div className="font-body text-sm text-white truncate">{voiceStatus}</div>
-              </div>
-              <div className="font-body text-xs text-purple-400/60 flex-shrink-0">
-                {voiceStep === 'confirm_here' && '📍'}
-                {voiceStep === 'ask_club' && '🏌️'}
-                {voiceStep === 'ask_lie' && '🌿'}
-                {voiceStep === 'ask_distance' && '📏'}
-                {voiceStep === 'ask_putts' && '⛳'}
-                {voiceStep === 'idle' && '💤'}
+              <div className="font-body text-sm text-purple-200">
+                {voiceListening ? '🎤 Luisteren...' : '🔇 ' + voiceStatus}
               </div>
             </div>
           )}
