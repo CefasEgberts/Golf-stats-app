@@ -36,7 +36,7 @@ src/
 ├── components/
 │   ├── SplashScreen.jsx       # Splash screen (60 regels)
 │   ├── HomeScreen.jsx         # Baan zoeken, lus/tee selectie, start ronde (254 regels)
-│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status, Voice Caddy (885 regels)
+│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status, Voice Caddy (928 regels)
 │   ├── HoleOverlay.jsx        # Hole info modal met foto, GPS dot, strategie (102 regels)
 │   ├── AllStatsScreen.jsx     # Statistieken overzicht (45 regels)
 │   ├── ClubAnalysis.jsx       # Club analyse placeholder (20 regels)
@@ -166,9 +166,10 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 38. **Slimme course key lookup** (`getCourseKey()` filtert generieke woorden als "Golf", "Club", "Country" etc. voor correcte database lookups bij banen als Golf & Countryclub Liemeer)
 39. **Loop ID fix** (pass `loop.id` i.p.v. `loop.name` naar database queries, voorkomt mismatch bij namen als "Nieuwveenlus (9 holes)")
 40. **Baanboekje icoon** (📖 bij banen met hole-data, via `has_hole_data` veld)
-41. **Voice Caddy** (spraakgestuurde caddy: club selectie, lie, afstand via spraakherkenning + TTS)
+41. **Voice Caddy** (spraakgestuurde caddy: club selectie, lie, afstand via spraakherkenning + TTS, exacte clubnaam matching, opties zichtbaar per stap, geen confirm_here stap, slag1=tee automatisch)
 42. **Platform detectie** (iOS/Android, wake lock handling per platform)
 43. **iOS schermbeveiliging tip** (eerste keer tip + post-ronde reminder om auto-lock terug aan te zetten)
+44. **Voice caddy afstand** alleen in test/sim modus (GPS modus bepaalt afstand automatisch)
 
 ## TODO's
 
