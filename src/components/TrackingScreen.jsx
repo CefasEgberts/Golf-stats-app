@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { ChevronLeft, MapPin } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { ChevronLeft, MapPin, Mic, MicOff } from 'lucide-react';
 import { calculateStablefordForHole, calculatePlayingHandicap, getStrokeIndex } from '../lib/stableford';
 import HoleOverlay from './HoleOverlay';
 
@@ -15,6 +15,223 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [caddyLoading, setCaddyLoading] = useState(false);
   const finishHoleRef = useRef(null);
   const startButtonRef = useRef(null);
+
+  // ── Voice Caddy ──────────────────────────────────────────────────
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState('');
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceStep, setVoiceStep] = useState('idle');
+  const recognitionRef = useRef(null);
+  const wakeLockRef = useRef(null);
+  const voiceStepRef = useRef('idle');
+
+  useEffect(() => { voiceStepRef.current = voiceStep; }, [voiceStep]);
+
+  const speak = useCallback((text, onEnd) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'nl-NL';
+    utterance.rate = 1.0;
+    utterance.volume = 1.0;
+    if (onEnd) utterance.onend = onEnd;
+    window.speechSynthesis.speak(utterance);
+    setVoiceStatus(text);
+  }, []);
+
+  const startListening = useCallback((onResult) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { speak('Spraakherkenning niet beschikbaar op dit apparaat.'); return; }
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'nl-NL';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceListening(true);
+    recognition.onend = () => setVoiceListening(false);
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript.toLowerCase().trim();
+      onResult(transcript);
+    };
+    recognition.onerror = (err) => {
+      setVoiceListening(false);
+      if (err.error !== 'aborted') {
+        speak('Ik verstond je niet, probeer opnieuw.', () => setTimeout(() => startListening(onResult), 500));
+      }
+    };
+    recognitionRef.current = recognition;
+    try { recognition.start(); } catch {}
+  }, [speak]);
+
+  const matchClub = useCallback((transcript) => {
+    const lower = transcript.toLowerCase();
+    for (const club of clubs) {
+      if (lower.includes(club.toLowerCase())) return club;
+    }
+    const nummers = {'een':1,'twee':2,'drie':3,'vier':4,'vijf':5,'zes':6,'zeven':7,'acht':8,'negen':9,'tien':10};
+    for (const [woord, num] of Object.entries(nummers)) {
+      if (lower.includes(woord)) {
+        const match = clubs.find(c => c.includes(String(num)));
+        if (match) return match;
+      }
+    }
+    if (lower.includes('driver')) return clubs.find(c => c === 'Driver') || null;
+    if (lower.includes('putter') || lower.includes('putt')) return 'Putter';
+    if (lower.includes('wedge') || lower.includes('pitch')) return clubs.find(c => c.toLowerCase().includes('wedge') || c.toLowerCase().includes('pw')) || null;
+    if (lower.includes('sand') || lower.includes('zand')) return clubs.find(c => c.toLowerCase().includes('sw') || c.toLowerCase().includes('sand')) || null;
+    if (lower.includes('hout') || lower.includes('fairway hout')) return clubs.find(c => c.toLowerCase().includes('hout') || c.toLowerCase().includes('wood')) || null;
+    return null;
+  }, [clubs]);
+
+  const matchLie = useCallback((transcript) => {
+    const lower = transcript.toLowerCase();
+    if (lower.includes('fairway')) return 'fairway';
+    if (lower.includes('rough') || lower.includes('ruw') || lower.includes('hoog gras')) return 'rough';
+    if (lower.includes('bunker') || lower.includes('zand')) return 'bunker';
+    if (lower.includes('green')) return 'green';
+    if (lower.includes('tee') || lower.includes('afslagplaats')) return 'tee';
+    if (lower.includes('bos') || lower.includes('bomen') || lower.includes('boom')) return 'rough';
+    if (lower.includes('water')) return 'water';
+    return null;
+  }, []);
+
+  const isYes = (t) => /^(ja|yes|yep|ok|oke|okay|klopt|correct|goed|doe maar|prima|jep|jeej)/.test(t);
+  const isNo = (t) => /^(nee|nein|no|niet|stop|annuleer|wacht)/.test(t);
+
+  const voiceFlow = useCallback((step) => {
+    setVoiceStep(step);
+    voiceStepRef.current = step;
+
+    if (step === 'confirm_here') {
+      speak('Ben je bij je bal?', () => {
+        startListening((transcript) => {
+          if (isYes(transcript)) {
+            voiceFlow('ask_club');
+          } else {
+            speak('Oké, ik wacht even.', () => setTimeout(() => voiceFlow('confirm_here'), 4000));
+          }
+        });
+      });
+
+    } else if (step === 'ask_club') {
+      speak('Wat ga je slaan?', () => {
+        startListening((transcript) => {
+          if (transcript.includes('putter') || transcript.includes('putt')) {
+            voiceFlow('ask_putts');
+            return;
+          }
+          const club = matchClub(transcript);
+          if (club) {
+            round.setSelectedClub(club);
+            setShotStarted(false);
+            setDisplayDistance('');
+            if (club === 'Putter') { round.setSelectedLie('green'); voiceFlow('ask_putts'); return; }
+            const clubDist = settings.clubDistances?.[club];
+            if (gps?.armShotReminder) gps.armShotReminder(clubDist || null);
+            const distMsg = clubDist ? `, gemiddeld ${clubDist} meter` : '';
+            speak(`${club}${distMsg}. Waar ligt je bal?`, () => voiceFlow('ask_lie'));
+          } else {
+            speak(`Ik verstond "${transcript}" niet. Welke club?`, () => voiceFlow('ask_club'));
+          }
+        });
+      });
+
+    } else if (step === 'ask_putts') {
+      round.setSelectedClub('Putter');
+      round.setSelectedLie('green');
+      speak('Hoeveel putts?', () => {
+        startListening((transcript) => {
+          const nummers = {'een':1,'één':1,'twee':2,'drie':3,'vier':4,'vijf':5};
+          let putts = null;
+          for (const [w, n] of Object.entries(nummers)) {
+            if (transcript.includes(w)) { putts = n; break; }
+          }
+          if (!putts) putts = parseInt(transcript.match(/\d+/)?.[0]);
+          if (putts && putts > 0 && putts < 10) {
+            round.setManualDistance(String(putts));
+            speak(`${putts} putt${putts > 1 ? 's' : ''} geregistreerd. Zeg slag voor de volgende.`, () => voiceFlow('idle'));
+          } else {
+            speak('Hoeveel putts? Zeg een getal.', () => voiceFlow('ask_putts'));
+          }
+        });
+      });
+
+    } else if (step === 'ask_lie') {
+      startListening((transcript) => {
+        const lie = matchLie(transcript);
+        if (lie) {
+          round.setSelectedLie(lie);
+          if (gps?.gpsTracking && !gps?.simMode) {
+            // Echte GPS modus: positie automatisch, geen afstand vragen
+            gps.captureStartPosition();
+            setShotStarted(true);
+            const dist = round.remainingDistance;
+            speak(`${lie}. Nog ${dist} meter. Succes!`, () => voiceFlow('idle'));
+          } else {
+            // Test of sim modus: vraag geslagen afstand
+            if (gps?.gpsTracking && gps?.simMode) { gps.captureStartPosition(); setShotStarted(true); }
+            speak(`${lie}. Hoeveel meter heb je geslagen?`, () => voiceFlow('ask_distance'));
+          }
+        } else {
+          speak('Fairway, rough, bunker of tee? Waar lig je?', () => voiceFlow('ask_lie'));
+        }
+      });
+
+    } else if (step === 'ask_distance') {
+      startListening((transcript) => {
+        const num = parseInt(transcript.match(/\d+/)?.[0]);
+        if (num && num > 0 && num < 400) {
+          round.setManualDistance(String(num));
+          if (gps?.simMode && gps?.simulateShot) gps.simulateShot(num);
+          const remaining = Math.max(0, round.remainingDistance - num);
+          speak(`${num} meter geregistreerd. Nog ${remaining} meter. Succes!`, () => voiceFlow('idle'));
+        } else {
+          speak('Hoeveel meter? Zeg een getal.', () => voiceFlow('ask_distance'));
+        }
+      });
+
+    } else if (step === 'idle') {
+      setVoiceStatus('Zeg "slag" als je bij je bal bent');
+      startListening((transcript) => {
+        if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
+          voiceFlow('confirm_here');
+        } else if (transcript.includes('hole klaar') || transcript.includes('klaar') || transcript.includes('finish')) {
+          speak('Hole afronden. Bevestig in de app.', () => voiceFlow('idle'));
+          setShowFinishHole(true);
+        } else if (transcript.includes('caddy') || transcript.includes('advies')) {
+          askCaddySpeech();
+          setTimeout(() => voiceFlow('idle'), 8000);
+        } else {
+          setTimeout(() => { if (voiceStepRef.current === 'idle') voiceFlow('idle'); }, 300);
+        }
+      });
+    }
+  }, [speak, startListening, matchClub, matchLie, round, gps, settings]);
+
+  const toggleVoiceMode = useCallback(async () => {
+    if (voiceMode) {
+      window.speechSynthesis.cancel();
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+      if (wakeLockRef.current) { try { await wakeLockRef.current.release(); } catch {} wakeLockRef.current = null; }
+      setVoiceMode(false);
+      setVoiceStep('idle');
+      setVoiceStatus('');
+      setVoiceListening(false);
+    } else {
+      setVoiceMode(true);
+      if ('wakeLock' in navigator) {
+        try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {}
+      }
+      speak('Voice caddy actief. Zeg slag als je bij je bal bent.', () => voiceFlow('idle'));
+    }
+  }, [voiceMode, speak, voiceFlow]);
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+      if (wakeLockRef.current) { try { wakeLockRef.current.release(); } catch {} }
+    };
+  }, []);
 
   const buildCaddyPrompt = () => {
     const hole = round.currentHoleInfo;
@@ -176,6 +393,16 @@ INSTRUCTIES VOOR JE ADVIES:
         <div className="flex items-center justify-between mb-4">
           <button onClick={onQuit}><ChevronLeft className="w-6 h-6" /></button>
           <div className="flex items-center gap-2">
+            {/* Voice Caddy knop */}
+            <button onClick={toggleVoiceMode}
+              className={"glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition " + (voiceMode ? "bg-purple-500/30 border border-purple-400/50" : "")}>
+              {voiceMode
+                ? <MicOff className="w-4 h-4 text-purple-300" />
+                : <Mic className="w-4 h-4 text-purple-300" />}
+              <span className={"font-body text-xs uppercase tracking-wider " + (voiceMode ? "text-purple-200" : "text-purple-300")}>
+                {voiceMode ? 'Stop' : 'Stem'}
+              </span>
+            </button>
             <button onClick={askCaddyText}
               className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
               <span className="text-sm">🎓</span>
@@ -274,6 +501,27 @@ INSTRUCTIES VOOR JE ADVIES:
           </div>
         )}
       </div>
+
+      {/* Voice Caddy Status Banner */}
+      {voiceMode && (
+        <div className="mx-6 mb-2 glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10 flex items-center gap-3">
+          <div className={"w-3 h-3 rounded-full flex-shrink-0 " + (voiceListening ? "bg-purple-400 animate-pulse" : "bg-purple-600")}></div>
+          <div className="flex-1 min-w-0">
+            <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-0.5">
+              {voiceListening ? '🎤 Luisteren...' : '🔇 Wachten'}
+            </div>
+            <div className="font-body text-sm text-white truncate">{voiceStatus}</div>
+          </div>
+          <div className="font-body text-xs text-purple-400/60 flex-shrink-0">
+            {voiceStep === 'confirm_here' && '📍'}
+            {voiceStep === 'ask_club' && '🏌️'}
+            {voiceStep === 'ask_lie' && '🌿'}
+            {voiceStep === 'ask_distance' && '📏'}
+            {voiceStep === 'ask_putts' && '⛳'}
+            {voiceStep === 'idle' && '💤'}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 px-6 overflow-y-auto pb-6">
