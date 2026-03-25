@@ -20,18 +20,33 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
 
   const [expectedClubDistance, setExpectedClubDistance] = useState(null);
 
+  const shotReminderFiredRef = useRef(false);
+  const backupTimerRef = useRef(null);
+  const shotStartPosRef = useRef(null);
+
   const armShotReminder = useCallback((clubDistance) => {
     setExpectedClubDistance(clubDistance || null);
     vibrationCountRef.current = 0;
+    shotReminderFiredRef.current = false;
     lastMovedPosRef.current = null;
+    shotStartPosRef.current = null;
     if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
+    // Backup timer: harde trilling na 5 minuten als GPS-trigger nog niet afging
+    if (backupTimerRef.current) { clearTimeout(backupTimerRef.current); }
+    backupTimerRef.current = setTimeout(() => {
+      if (shotReminderFiredRef.current) return; // al getriggerd via GPS
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+    }, 5 * 60 * 1000);
   }, []);
 
   const disarmShotReminder = useCallback(() => {
     setExpectedClubDistance(null);
     vibrationCountRef.current = 0;
+    shotReminderFiredRef.current = true; // markeer als afgehandeld, stop backup
     lastMovedPosRef.current = null;
+    shotStartPosRef.current = null;
     if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
+    if (backupTimerRef.current) { clearTimeout(backupTimerRef.current); backupTimerRef.current = null; }
   }, []);
 
 
@@ -73,34 +88,18 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     }
   }, [gpsPosition, greenLat, greenLng, greenPoints, lastShotPosition, teePosition]);
 
-  // Vibration reminder: tril als speler stilstaat terwijl GPS-afstand ≈ clubafstand (±10%)
+  // Vibration reminder: tril als speler 90% van clubafstand heeft afgelegd
   useEffect(() => {
     if (!expectedClubDistance || !gpsPosition || !gpsShotDistance) return;
-    if (vibrationCountRef.current >= 3) return;
+    if (shotReminderFiredRef.current) return; // al getriggerd
 
-    const min = expectedClubDistance * 0.90;
-    const max = expectedClubDistance * 1.10;
-    const withinRange = gpsShotDistance >= min && gpsShotDistance <= max;
-    if (!withinRange) return;
-
-    // Check of positie veranderd is t.o.v. vorige check
-    const prev = lastMovedPosRef.current;
-    const moved = prev ? haversineMeters(prev.lat, prev.lng, gpsPosition.lat, gpsPosition.lng) > 3 : true;
-
-    if (moved) {
-      // Speler beweegt nog — reset timer
-      lastMovedPosRef.current = { ...gpsPosition };
-      if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
-      return;
-    }
-
-    // Speler staat stil én is op clubafstand — start 30s timer als die nog niet loopt
-    if (!stillTimerRef.current) {
-      stillTimerRef.current = setTimeout(() => {
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]); // 2x kort
-        vibrationCountRef.current += 1;
-        stillTimerRef.current = null;
-      }, 30000);
+    // Tril als je op 90% of meer van clubafstand bent
+    const threshold = expectedClubDistance * 0.90;
+    if (gpsShotDistance >= threshold) {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]); // zachte dubbele trilling
+      shotReminderFiredRef.current = true;
+      // Backup timer mag nu ook stoppen — GPS heeft getriggerd
+      if (backupTimerRef.current) { clearTimeout(backupTimerRef.current); backupTimerRef.current = null; }
     }
   }, [gpsPosition, gpsShotDistance, expectedClubDistance]);
 
@@ -243,6 +242,8 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       if (watchIdRef.current != null) {
         clearGpsWatch(watchIdRef.current);
       }
+      if (backupTimerRef.current) clearTimeout(backupTimerRef.current);
+      if (stillTimerRef.current) clearTimeout(stillTimerRef.current);
     };
   }, []);
 
