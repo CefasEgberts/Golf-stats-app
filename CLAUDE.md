@@ -18,7 +18,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 ## Projectstructuur
 ```
 src/
-├── App.jsx                    # 453 regels — state, hooks, effects, routing
+├── App.jsx                    # 606 regels — state, hooks, effects, routing, iOS wake lock
 ├── main.jsx                   # Entry point (115 regels)
 ├── LoginScreen.jsx            # Login (166 regels)
 ├── AdminDashboard.jsx         # Admin dashboard (338 regels)
@@ -30,13 +30,13 @@ src/
 │   └── stableford.js          # Handicap + Stableford berekeningen (50 regels)
 ├── hooks/
 │   ├── useWeather.js          # Weer ophalen (57 regels)
-│   ├── useGpsTracking.js       # GPS live tracking hook + 5-point green distances (157 regels)
-│   ├── useCourseData.js       # Database queries (169 regels)
+│   ├── useGpsTracking.js       # GPS live tracking hook + 5-point green distances + vibration reminder (257 regels)
+│   ├── useCourseData.js       # Database queries + has_hole_data (170 regels)
 │   └── useRound.js            # Ronde state management (110 regels)
 ├── components/
 │   ├── SplashScreen.jsx       # Splash screen (60 regels)
-│   ├── HomeScreen.jsx         # Baan zoeken, lus/tee selectie, start ronde (259 regels)
-│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status (258 regels)
+│   ├── HomeScreen.jsx         # Baan zoeken, lus/tee selectie, start ronde (254 regels)
+│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status, Voice Caddy (885 regels)
 │   ├── HoleOverlay.jsx        # Hole info modal met foto, GPS dot, strategie (102 regels)
 │   ├── AllStatsScreen.jsx     # Statistieken overzicht (45 regels)
 │   ├── ClubAnalysis.jsx       # Club analyse placeholder (20 regels)
