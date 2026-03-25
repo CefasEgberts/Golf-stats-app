@@ -160,12 +160,15 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 32. **Club afstanden** per club in BagScreen (`settings.clubDistances`)
 33. **Settings persistence** (localStorage — alle instellingen blijven bewaard)
 34. **.gitignore** voor .env beveiliging
-35. **Vibration reminder** bij stilstaan op clubafstand (±10%, 30s)
+35. **Vibration reminder** bij 90% clubafstand (eenmalige trilling + backup na 5 min)
 36. **Sim mode vrij invoerveld** met simulate knop (vervangt vaste knoppen)
 37. **Fix dubbele afstandsaftrek** in GPS/sim mode (`addShot` gpsActive param)
 38. **Slimme course key lookup** (`getCourseKey()` filtert generieke woorden als "Golf", "Club", "Country" etc. voor correcte database lookups bij banen als Golf & Countryclub Liemeer)
 39. **Loop ID fix** (pass `loop.id` i.p.v. `loop.name` naar database queries, voorkomt mismatch bij namen als "Nieuwveenlus (9 holes)")
-40. **Course info popup** (baan details modal met gele border voor banen met data in database)
+40. **Baanboekje icoon** (📖 bij banen met hole-data, via `has_hole_data` veld)
+41. **Voice Caddy** (spraakgestuurde caddy: club selectie, lie, afstand via spraakherkenning + TTS)
+42. **Platform detectie** (iOS/Android, wake lock handling per platform)
+43. **iOS schermbeveiliging tip** (eerste keer tip + post-ronde reminder om auto-lock terug aan te zetten)
 
 ## TODO's
 
