@@ -178,13 +178,9 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     courseData.setNearbyCoursesLoading(true);
     const processCourses = (courses, lat, lng, accuracy) => {
       const withDist = courses.map(c => ({
-        id: c.id, name: c.name, city: c.city, loops: c.loops,
+        id: c.id, name: c.name, city: c.city, loops: c.loops, has_hole_data: c.has_hole_data || false,
         teeColors: c.tee_colors, lat: parseFloat(c.latitude), lng: parseFloat(c.longitude),
-        distance: calculateDistance(lat, lng, c.latitude, c.longitude).toFixed(1),
-        description: c.description || null,
-        website: c.website || null,
-        phone: c.phone || null,
-        address: c.address || null
+        distance: calculateDistance(lat, lng, c.latitude, c.longitude).toFixed(1)
       })).sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
       courseData.setGoogleCourses(withDist.slice(0, 20));
       courseData.setNearbyCoursesLoading(false);

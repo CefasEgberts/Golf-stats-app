@@ -98,7 +98,7 @@ export default function HomeScreen({
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <div className="font-body font-semibold text-white group-hover:text-emerald-300 transition">{course.name}</div>
-                          {course.loops?.length > 0 && (
+                          {course.has_hole_data && (
                             <span title="Hole-informatie beschikbaar" className="text-base">📖</span>
                           )}
                         </div>

@@ -152,11 +152,8 @@ export const useCourseData = () => {
         setGoogleCourses(courses.map(c => ({
           id: c.id, name: c.name, city: c.city,
           loops: c.loops, teeColors: c.tee_colors,
-          lat: parseFloat(c.latitude), lng: parseFloat(c.longitude), distance: '--',
-          description: c.description || null,
-          website: c.website || null,
-          phone: c.phone || null,
-          address: c.address || null
+          has_hole_data: c.has_hole_data || false,
+          lat: parseFloat(c.latitude), lng: parseFloat(c.longitude), distance: '--'
         })));
       }
     } catch (error) {
