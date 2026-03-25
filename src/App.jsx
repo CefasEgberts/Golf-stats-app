@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Lib
 import { TEE_COLOR_CLASSES, CITY_COORDINATES, DEFAULT_BAGS, ALL_CLUBS, FALLBACK_PARS } from './lib/constants';
