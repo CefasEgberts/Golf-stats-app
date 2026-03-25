@@ -65,50 +65,57 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const matchClub = useCallback((transcript) => {
     const lower = transcript.toLowerCase().replace(/[.,!?]/g, '').trim();
 
-    // 1. Directe match met clubnaam uit de bag
+    // Directe match
     for (const club of clubs) {
       if (lower.includes(club.toLowerCase())) return club;
     }
 
-    // 2. Driver varianten
-    if (lower.includes('driver') || lower === 'drijver' || lower.includes('één hout') || lower.includes('1 hout') || lower.includes('een hout')) {
-      return clubs.find(c => c.toLowerCase() === 'driver' || c === '1H' || c === '1 Hout') || clubs[0];
+    // Driver
+    if (lower.includes('driver') || lower.includes('drijver') ||
+        lower.includes('één hout') || lower.includes('een hout') || lower.includes('1 hout')) {
+      return clubs.find(c => c === 'Driver') || null;
     }
 
-    // 3. Houten clubs: "houten drie", "drie hout", "drie", "3 hout"
-    const nummers = {'één':1,'een':1,'twee':2,'drie':3,'vier':4,'vijf':5,'zes':6,'zeven':7,'acht':8,'negen':9,'tien':10};
-    for (const [woord, num] of Object.entries(nummers)) {
-      if (lower.includes(woord)) {
-        // Zoek club met dat nummer
-        const ijzer = clubs.find(c => {
-          const cn = c.toLowerCase();
-          return cn.includes(`i${num}`) || cn.includes(`ijzer ${num}`) || cn === `${num}` || cn.endsWith(` ${num}`);
-        });
-        if (ijzer) return ijzer;
-        // Hout
-        if (lower.includes('hout') || lower.includes('wood') || lower.includes('houten')) {
-          const hout = clubs.find(c => c.toLowerCase().includes(`${num}h`) || c.toLowerCase().includes(`${num} h`) || c.toLowerCase() === `${num} hout`);
-          if (hout) return hout;
-        }
-        // Gewoon het getal — waarschijnlijk ijzer
-        const byNum = clubs.find(c => c.includes(String(num)));
-        if (byNum) return byNum;
+    // Houten clubs: "houten drie", "drie hout", "hout drie"
+    const houtenNummers = {'drie':3,'3':3,'vijf':5,'5':5,'zeven':7,'7':7};
+    for (const [w, n] of Object.entries(houtenNummers)) {
+      if (lower.includes(w) && (lower.includes('hout') || lower.includes('wood') || lower.includes('fairway'))) {
+        return clubs.find(c => c === `Houten ${n}`) || null;
       }
     }
-    // Cijfer in transcript
-    const digitMatch = lower.match(/\b(\d+)\b/);
-    if (digitMatch) {
-      const num = parseInt(digitMatch[1]);
-      const byNum = clubs.find(c => c.includes(String(num)));
-      if (byNum) return byNum;
+
+    // Hybride: "hybride drie", "hybrid vier"
+    const hybrideNummers = {'drie':3,'3':3,'vier':4,'4':4};
+    for (const [w, n] of Object.entries(hybrideNummers)) {
+      if (lower.includes(w) && (lower.includes('hybrid') || lower.includes('rescue') || lower.includes('hybride'))) {
+        return clubs.find(c => c === `Hybride ${n}`) || null;
+      }
     }
 
-    // 4. Overige clubs
+    // Ijzers: "ijzer zeven", "zeven", "7"
+    const ijzerNummers = {
+      'één':1,'een':1,'1':1,'twee':2,'2':2,'drie':3,'3':3,
+      'vier':4,'4':4,'vijf':5,'5':5,'zes':6,'6':6,
+      'zeven':7,'7':7,'acht':8,'8':8,'negen':9,'9':9
+    };
+    for (const [w, n] of Object.entries(ijzerNummers)) {
+      if (lower === w || lower === `ijzer ${w}` || lower.includes(`ijzer ${w}`) ||
+          (lower.includes(w) && !lower.includes('hout') && !lower.includes('hybride') && !lower.includes('hybrid'))) {
+        const found = clubs.find(c => c === `Ijzer ${n}`);
+        if (found) return found;
+      }
+    }
+
+    // Wedges
+    if (lower.includes('pw') || lower.includes('pitching') || lower === 'pitch') return clubs.find(c => c === 'PW') || null;
+    if (lower.includes('gw') || lower.includes('gap')) return clubs.find(c => c === 'GW') || null;
+    if (lower.includes('sw') || lower.includes('sand') || lower.includes('zand')) return clubs.find(c => c === 'SW') || null;
+    if (lower.includes('aw') || lower.includes('approach')) return clubs.find(c => c === 'AW') || null;
+    if (lower.includes('lw') || lower.includes('lob')) return clubs.find(c => c === 'LW') || null;
+    if (lower.includes('wedge') || lower.includes('wedj')) return clubs.find(c => c === 'PW' || c === 'SW') || null;
+
+    // Putter
     if (lower.includes('putter') || lower.includes('putt')) return 'Putter';
-    if (lower.includes('wedge') || lower.includes('pitch') || lower.includes('pw')) return clubs.find(c => c.toLowerCase().includes('pw') || c.toLowerCase().includes('wedge')) || null;
-    if (lower.includes('sand') || lower.includes('zand') || lower.includes('sw')) return clubs.find(c => c.toLowerCase().includes('sw') || c.toLowerCase().includes('sand')) || null;
-    if (lower.includes('hout') || lower.includes('wood')) return clubs.find(c => c.toLowerCase().includes('h') && !c.toLowerCase().includes('ijzer')) || null;
-    if (lower.includes('hybrid') || lower.includes('rescue')) return clubs.find(c => c.toLowerCase().includes('hybrid') || c.toLowerCase().includes('rescue')) || null;
 
     return null;
   }, [clubs]);
