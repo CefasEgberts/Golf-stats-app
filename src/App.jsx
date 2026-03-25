@@ -34,6 +34,12 @@ const getTeeColorClass = (color) =>
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [currentScreen, setCurrentScreen] = useState('splash');
+  const [showWakeLockTip, setShowWakeLockTip] = useState(false);
+  const [showWakeLockReminder, setShowWakeLockReminder] = useState(false);
+
+  // Platform detectie
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
   const [userLocation, setUserLocation] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,6 +93,15 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const clubs = settings.bag.length > 0 ? settings.bag : ALL_CLUBS;
 
   // ── Effects ─────────────────────────────────────────────────────────────
+
+  // Toon schermbeveiliging tip bij eerste keer starten op iOS
+  useEffect(() => {
+    if (!isIOS) return;
+    const hasSeenTip = localStorage.getItem('golfstats_wakelock_tip');
+    if (!hasSeenTip) {
+      setTimeout(() => setShowWakeLockTip(true), 2500);
+    }
+  }, []);
 
   // Splash: fetch weather + auto-navigate
   React.useEffect(() => {
@@ -302,6 +317,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     } else {
       gps.stopTracking();
       round.finishRound(updatedRound);
+      if (isIOS) setShowWakeLockReminder(true);
       setCurrentScreen('stats');
     }
   };
@@ -316,6 +332,48 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-900 text-white font-sans">
+
+      {/* iOS: Schermbeveiliging tip — eerste keer */}
+      {showWakeLockTip && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-6">
+          <div className="glass-card rounded-3xl p-6 max-w-sm w-full border border-yellow-400/30 bg-yellow-500/5">
+            <div className="text-4xl text-center mb-4">📱</div>
+            <div className="font-display text-2xl text-yellow-300 text-center mb-3">SCHERM AAN HOUDEN</div>
+            <p className="font-body text-sm text-emerald-200/80 text-center mb-5 leading-relaxed">
+              Voor de beste ervaring op de baan: zet je schermbeveiliging op <strong className="text-white">Nooit</strong> zodat de app actief blijft tijdens het golfen.
+            </p>
+            <button onClick={() => { window.location.href = 'App-prefs:DISPLAY&path=AUTO_LOCK'; }}
+              className="w-full bg-yellow-500/20 border border-yellow-400/30 rounded-xl py-3 font-body text-sm text-yellow-300 hover:bg-yellow-500/30 transition mb-3">
+              ⚙️ Open Instellingen → Automatisch vergrendelen
+            </button>
+            <button onClick={() => { localStorage.setItem('golfstats_wakelock_tip', '1'); setShowWakeLockTip(false); }}
+              className="w-full glass-card rounded-xl py-3 font-body text-sm text-emerald-300 hover:bg-white/10 transition">
+              Begrepen, niet meer tonen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* iOS: Schermbeveiliging reminder — na ronde */}
+      {showWakeLockReminder && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-6">
+          <div className="glass-card rounded-3xl p-6 max-w-sm w-full border border-emerald-400/30">
+            <div className="text-4xl text-center mb-4">🔒</div>
+            <div className="font-display text-2xl text-emerald-300 text-center mb-3">VERGEET HET NIET!</div>
+            <p className="font-body text-sm text-emerald-200/80 text-center mb-5 leading-relaxed">
+              Zet je schermbeveiliging terug aan zodat je batterij niet leegloopt.
+            </p>
+            <button onClick={() => { window.location.href = 'App-prefs:DISPLAY&path=AUTO_LOCK'; }}
+              className="w-full bg-emerald-500/20 border border-emerald-400/30 rounded-xl py-3 font-body text-sm text-emerald-300 hover:bg-emerald-500/30 transition mb-3">
+              ⚙️ Open Instellingen → Automatisch vergrendelen
+            </button>
+            <button onClick={() => setShowWakeLockReminder(false)}
+              className="w-full glass-card rounded-xl py-3 font-body text-sm text-white/60 hover:bg-white/10 transition">
+              Sluiten
+            </button>
+          </div>
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
         .font-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
@@ -421,6 +479,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           gps={gps}
           wind={weather.courseWind}
           user={user}
+          isIOS={isIOS}
+          isAndroid={isAndroid}
           onQuit={() => {
             const msg = settings.language === 'nl' ? 'Weet je het zeker? De ronde wordt niet opgeslagen.' : 'Are you sure? The round will not be saved.';
             if (window.confirm(msg)) {

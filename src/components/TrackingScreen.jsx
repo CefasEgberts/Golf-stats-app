@@ -3,7 +3,7 @@ import { ChevronLeft, MapPin, Mic, MicOff } from 'lucide-react';
 import { calculateStablefordForHole, calculatePlayingHandicap, getStrokeIndex } from '../lib/stableford';
 import HoleOverlay from './HoleOverlay';
 
-export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps, wind, user }) {
+export default function TrackingScreen({ round, courseData, settings, clubs, convertDistance, getUnitLabel, Dist, t, finishHole, onQuit, gps, wind, user, isIOS = false, isAndroid = false }) {
   const si = getStrokeIndex(courseData.allHolesData, round.currentHole, settings.gender);
   const [showGreenDistances, setShowGreenDistances] = useState(false);
   const [showPenalty, setShowPenalty] = useState(false);
@@ -218,12 +218,37 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       setVoiceListening(false);
     } else {
       setVoiceMode(true);
+      // Wake lock: scherm aan houden
       if ('wakeLock' in navigator) {
         try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch {}
       }
-      speak('Voice caddy actief. Zeg slag als je bij je bal bent.', () => voiceFlow('idle'));
+      if (isIOS) {
+        // iOS: kan niet automatisch luisteren — tik-knop modus
+        setVoiceStatus('Tik op de microfoon knop als je bij je bal bent');
+        speak('Voice caddy actief. Tik op de microfoon knop als je bij je bal bent.');
+      } else {
+        // Android + Desktop: volledig automatisch
+        speak('Voice caddy actief. Zeg slag als je bij je bal bent.', () => voiceFlow('idle'));
+      }
     }
-  }, [voiceMode, speak, voiceFlow]);
+  }, [voiceMode, speak, voiceFlow, isIOS]);
+
+  // iOS: handmatige tik om te luisteren
+  const iosTapToListen = useCallback(() => {
+    speak('Ik luister.', () => {
+      startListening((transcript) => {
+        if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
+          voiceFlow('confirm_here');
+        } else if (transcript.includes('hole klaar') || transcript.includes('klaar')) {
+          speak('Hole afronden. Bevestig in de app.'); setShowFinishHole(true);
+        } else if (transcript.includes('caddy') || transcript.includes('advies')) {
+          askCaddySpeech();
+        } else {
+          speak(`Ik verstond: ${transcript}. Zeg slag, hole klaar, of caddy.`);
+        }
+      });
+    });
+  }, [speak, startListening, voiceFlow]);
 
   useEffect(() => {
     return () => {
@@ -504,22 +529,48 @@ INSTRUCTIES VOOR JE ADVIES:
 
       {/* Voice Caddy Status Banner */}
       {voiceMode && (
-        <div className="mx-6 mb-2 glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10 flex items-center gap-3">
-          <div className={"w-3 h-3 rounded-full flex-shrink-0 " + (voiceListening ? "bg-purple-400 animate-pulse" : "bg-purple-600")}></div>
-          <div className="flex-1 min-w-0">
-            <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-0.5">
-              {voiceListening ? '🎤 Luisteren...' : '🔇 Wachten'}
+        <div className="mx-6 mb-2">
+          {isIOS ? (
+            /* iOS: grote tik-knop */
+            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10">
+              <div className="font-body text-xs text-purple-300 uppercase tracking-wider text-center mb-3">
+                {voiceListening ? '🎤 Luisteren...' : voiceStatus}
+              </div>
+              {!voiceListening && voiceStep === 'idle' && (
+                <button onClick={iosTapToListen}
+                  className="w-full bg-purple-500/30 border border-purple-400/50 rounded-xl py-4 flex items-center justify-center gap-3 active:scale-95 transition">
+                  <Mic className="w-6 h-6 text-purple-300" />
+                  <span className="font-display text-xl text-purple-200 tracking-wider">TIK OM TE PRATEN</span>
+                </button>
+              )}
+              {voiceListening && (
+                <div className="flex items-center justify-center gap-2 py-3">
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></div>
+                </div>
+              )}
             </div>
-            <div className="font-body text-sm text-white truncate">{voiceStatus}</div>
-          </div>
-          <div className="font-body text-xs text-purple-400/60 flex-shrink-0">
-            {voiceStep === 'confirm_here' && '📍'}
-            {voiceStep === 'ask_club' && '🏌️'}
-            {voiceStep === 'ask_lie' && '🌿'}
-            {voiceStep === 'ask_distance' && '📏'}
-            {voiceStep === 'ask_putts' && '⛳'}
-            {voiceStep === 'idle' && '💤'}
-          </div>
+          ) : (
+            /* Android/Desktop: automatisch luisteren */
+            <div className="glass-card rounded-2xl p-4 border border-purple-400/40 bg-purple-500/10 flex items-center gap-3">
+              <div className={"w-3 h-3 rounded-full flex-shrink-0 " + (voiceListening ? "bg-purple-400 animate-pulse" : "bg-purple-600")}></div>
+              <div className="flex-1 min-w-0">
+                <div className="font-body text-xs text-purple-300 uppercase tracking-wider mb-0.5">
+                  {voiceListening ? '🎤 Luisteren...' : '🔇 Wachten op "slag"'}
+                </div>
+                <div className="font-body text-sm text-white truncate">{voiceStatus}</div>
+              </div>
+              <div className="font-body text-xs text-purple-400/60 flex-shrink-0">
+                {voiceStep === 'confirm_here' && '📍'}
+                {voiceStep === 'ask_club' && '🏌️'}
+                {voiceStep === 'ask_lie' && '🌿'}
+                {voiceStep === 'ask_distance' && '📏'}
+                {voiceStep === 'ask_putts' && '⛳'}
+                {voiceStep === 'idle' && '💤'}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
