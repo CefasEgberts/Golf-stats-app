@@ -25,8 +25,10 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const wakeLockRef = useRef(null);
   const voiceStepRef = useRef('idle');
   const voiceHandleSlagRef = useRef(null);
+  const shotStartedRef = useRef(false);
 
   useEffect(() => { voiceStepRef.current = voiceStep; }, [voiceStep]);
+  useEffect(() => { shotStartedRef.current = shotStarted; }, [shotStarted]);
 
   const speak = useCallback((text, onEnd) => {
     window.speechSynthesis.cancel();
@@ -42,25 +44,37 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const startListening = useCallback((onResult) => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { speak('Spraakherkenning niet beschikbaar op dit apparaat.'); return; }
-    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'nl-NL';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.onstart = () => setVoiceListening(true);
-    recognition.onend = () => setVoiceListening(false);
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript.toLowerCase().trim();
-      onResult(transcript);
+    // Wacht tot speech synthesis klaar is voor we luisteren
+    const doListen = () => {
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'nl-NL';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.onstart = () => setVoiceListening(true);
+      recognition.onend = () => setVoiceListening(false);
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript.toLowerCase().trim();
+        onResult(transcript);
+      };
+      recognition.onerror = (err) => {
+        setVoiceListening(false);
+        if (err.error !== 'aborted' && err.error !== 'no-speech') {
+          setTimeout(() => doListen(), 500);
+        } else if (err.error === 'no-speech') {
+          // Geen spraak gedetecteerd - stil opnieuw proberen
+          setTimeout(() => doListen(), 300);
+        }
+      };
+      recognitionRef.current = recognition;
+      try { recognition.start(); } catch(e) { setTimeout(() => doListen(), 200); }
     };
-    recognition.onerror = (err) => {
-      setVoiceListening(false);
-      if (err.error !== 'aborted') {
-        speak('Ik verstond je niet, probeer opnieuw.', () => setTimeout(() => startListening(onResult), 500));
-      }
-    };
-    recognitionRef.current = recognition;
-    try { recognition.start(); } catch {}
+    // Kleine delay zodat speech synthesis zeker klaar is
+    if (window.speechSynthesis.speaking) {
+      setTimeout(doListen, 300);
+    } else {
+      doListen();
+    }
   }, [speak]);
 
   const matchClub = useCallback((transcript) => {
@@ -145,6 +159,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             // GPS START automatisch — altijd shotStarted true zetten zodat volgende slag lie vraagt
             if (gps?.gpsTracking) gps.captureStartPosition();
             setShotStarted(true);
+            shotStartedRef.current = true;
             speak(`${club}${distMsg}. Succes!`, () => voiceFlow('idle'));
           } else {
             speak(`Ik verstond je niet. Welke club?`, () => voiceFlow('ask_club'));
@@ -194,7 +209,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
     // ── Idle: wacht op "slag" ────────────────────────────────────────
     } else if (step === 'idle') {
-      const isFirstShot = round.currentHoleShots.length === 0 && !shotStarted;
+      // Gebruik ref voor actuele waarde (voorkomt closure probleem)
+      const isFirstShot = round.currentHoleShots.length === 0 && !shotStartedRef.current;
       const hint = isFirstShot
         ? 'Zeg "slag" om te beginnen • "caddy"'
         : 'Zeg "slag" als je bij je bal bent • "hole klaar" • "caddy"';
@@ -215,6 +231,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           setTimeout(() => {
             round.addShot(gps?.gpsTracking || false);
             setShotStarted(false);
+            shotStartedRef.current = false;
             round.setManualDistance('');
             voiceFlow('ask_lie');
           }, 50);
@@ -239,7 +256,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       // iOS: sla handleSlag op in ref zodat iosTapToListen het kan aanroepen
       voiceHandleSlagRef.current = handleSlag;
     }
-  }, [speak, startListening, matchClub, matchLie, round, gps, settings, isIOS, shotStarted]);
+  }, [speak, startListening, matchClub, matchLie, round, gps, settings, isIOS]);
 
   const toggleVoiceMode = useCallback(async () => {
     if (voiceMode) {
