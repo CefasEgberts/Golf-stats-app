@@ -145,11 +145,47 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       speak('Waar ligt je bal?', () => {
         startListening((transcript) => {
           const lie = matchLie(transcript);
-          if (lie) {
+          if (lie === 'green') {
+            round.setSelectedLie('green');
+            round.setSelectedClub('Putter');
+            voiceFlow('ask_putt_distance');
+          } else if (lie) {
             round.setSelectedLie(lie);
             speak(`${lie}. Wat ga je slaan?`, () => voiceFlow('ask_club'));
           } else {
-            speak('Fairway, rough, bunker of tee? Waar lig je?', () => voiceFlow('ask_lie'));
+            speak('Fairway, rough, bunker, tee of green? Waar lig je?', () => voiceFlow('ask_lie'));
+          }
+        });
+      });
+
+    } else if (step === 'ask_putt_distance') {
+      const puttNum = round.currentHoleShots.filter(s => s.club === 'Putter').length + 1;
+      speak(`Putt ${puttNum}, hoeveel meter?`, () => {
+        startListening((transcript) => {
+          const num = parseInt(transcript.match(/\d+/)?.[0]);
+          const nummers = {'een':1,'één':1,'twee':2,'drie':3,'vier':4,'vijf':5,'zes':6,'zeven':7,'acht':8,'negen':9,'tien':10};
+          let meter = num;
+          if (!meter) {
+            for (const [w, n] of Object.entries(nummers)) {
+              if (transcript.includes(w)) { meter = n; break; }
+            }
+          }
+          if (meter && meter > 0 && meter < 100) {
+            round.setManualDistance(String(meter));
+            speak('Erin?', () => {
+              startListening((answer) => {
+                if (isYes(answer)) {
+                  speak('Top! Hole klaar.', () => {
+                    setShowFinishHole(true);
+                    voiceFlow('idle');
+                  });
+                } else {
+                  voiceFlow('ask_putt_distance');
+                }
+              });
+            });
+          } else {
+            speak('Hoeveel meter? Zeg een getal.', () => voiceFlow('ask_putt_distance'));
           }
         });
       });
@@ -222,8 +258,12 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       });
 
     } else if (step === 'idle') {
-      setVoiceStatus('Zeg "slag" voor nieuwe slag • "hole klaar" • "caddy"');
-      const nextStep = round.currentHoleShots.length === 0 ? 'ask_club' : 'ask_lie';
+      const isFirstShot = round.currentHoleShots.length === 0;
+      const nextStep = isFirstShot ? 'ask_club' : 'ask_lie';
+      const hintText = isFirstShot
+        ? '"slag" → club kiezen • "caddy"'
+        : '"slag" → waar ligt je bal? • "hole klaar" • "caddy"';
+      setVoiceStatus(hintText);
       if (!isIOS) {
         startListening((transcript) => {
           if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
@@ -239,9 +279,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           }
         });
       }
-      // iOS: wacht op tik — iosTapToListen handelt dit af
     }
-  }, [speak, startListening, matchClub, matchLie, round, gps, settings]);
+  }, [speak, startListening, matchClub, matchLie, round, gps, settings, isIOS, finishHole]);
 
   const toggleVoiceMode = useCallback(async () => {
     if (voiceMode) {
@@ -569,11 +608,12 @@ INSTRUCTIES VOOR JE ADVIES:
           {/* Opties per stap — altijd zichtbaar */}
           {(() => {
             const options = {
-              idle:        { label: 'Zeg:', items: round.currentHoleShots.length === 0 ? ['"slag" → club kiezen', '"caddy"'] : ['"slag" → waar ligt je bal?', '"hole klaar"', '"caddy"'] },
-              ask_club:    { label: 'Welke club?', items: (clubs || []).slice(0, 8) },
-              ask_lie:     { label: 'Waar ligt je bal?', items: ['"fairway"', '"rough"', '"bunker"', '"tee"', '"green"'] },
-              ask_distance:{ label: 'Hoeveel meter?', items: ['zeg een getal, bijv. "150"'] },
-              ask_putts:   { label: 'Hoeveel putts?', items: ['"één"', '"twee"', '"drie"', '"vier"'] },
+              idle:             { label: 'Zeg:', items: round.currentHoleShots.length === 0 ? ['"slag" → club kiezen', '"caddy"'] : ['"slag" → waar ligt je bal?', '"hole klaar"', '"caddy"'] },
+              ask_club:         { label: 'Welke club?', items: (clubs || []).slice(0, 8) },
+              ask_lie:          { label: 'Waar ligt je bal?', items: ['"fairway"', '"rough"', '"bunker"', '"tee"', '"green"'] },
+              ask_distance:     { label: 'Hoeveel meter?', items: ['zeg een getal, bijv. "150"'] },
+              ask_putts:        { label: 'Hoeveel putts?', items: ['"één"', '"twee"', '"drie"', '"vier"'] },
+              ask_putt_distance:{ label: 'Hoeveel meter (putt)?', items: ['zeg een getal, bijv. "5"'] },
             };
             const opt = options[voiceStep];
             return opt ? (
