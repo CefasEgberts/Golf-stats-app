@@ -1,12 +1,7 @@
 name: Auto Increment Version
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'version.txt'
-      - '.github/workflows/**'
+  workflow_dispatch: # alleen handmatig triggeren, niet meer automatisch
 
 jobs:
   increment-version:
