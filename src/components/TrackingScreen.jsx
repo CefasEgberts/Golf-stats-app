@@ -25,10 +25,9 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const wakeLockRef = useRef(null);
   const voiceStepRef = useRef('idle');
   const voiceHandleSlagRef = useRef(null);
-  const shotStartedRef = useRef(false);
+  const iosNextListenRef = useRef(null); // iOS: callback voor tik-knop
 
   useEffect(() => { voiceStepRef.current = voiceStep; }, [voiceStep]);
-  useEffect(() => { shotStartedRef.current = shotStarted; }, [shotStarted]);
 
   const speak = useCallback((text, onEnd) => {
     window.speechSynthesis.cancel();
@@ -44,37 +43,25 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const startListening = useCallback((onResult) => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { speak('Spraakherkenning niet beschikbaar op dit apparaat.'); return; }
-    // Wacht tot speech synthesis klaar is voor we luisteren
-    const doListen = () => {
-      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'nl-NL';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.onstart = () => setVoiceListening(true);
-      recognition.onend = () => setVoiceListening(false);
-      recognition.onresult = (e) => {
-        const transcript = e.results[0][0].transcript.toLowerCase().trim();
-        onResult(transcript);
-      };
-      recognition.onerror = (err) => {
-        setVoiceListening(false);
-        if (err.error !== 'aborted' && err.error !== 'no-speech') {
-          setTimeout(() => doListen(), 500);
-        } else if (err.error === 'no-speech') {
-          // Geen spraak gedetecteerd - stil opnieuw proberen
-          setTimeout(() => doListen(), 300);
-        }
-      };
-      recognitionRef.current = recognition;
-      try { recognition.start(); } catch(e) { setTimeout(() => doListen(), 200); }
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'nl-NL';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setVoiceListening(true);
+    recognition.onend = () => setVoiceListening(false);
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript.toLowerCase().trim();
+      onResult(transcript);
     };
-    // Kleine delay zodat speech synthesis zeker klaar is
-    if (window.speechSynthesis.speaking) {
-      setTimeout(doListen, 300);
-    } else {
-      doListen();
-    }
+    recognition.onerror = (err) => {
+      setVoiceListening(false);
+      if (err.error !== 'aborted') {
+        speak('Ik verstond je niet, probeer opnieuw.', () => setTimeout(() => startListening(onResult), 500));
+      }
+    };
+    recognitionRef.current = recognition;
+    try { recognition.start(); } catch {}
   }, [speak]);
 
   const matchClub = useCallback((transcript) => {
@@ -116,30 +103,44 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
     setVoiceStep(step);
     voiceStepRef.current = step;
 
+    // Helper: spreek + luister (automatisch op Android, via tik op iOS)
+    const listenFor = (onResult) => {
+      if (isIOS) {
+        iosNextListenRef.current = onResult;
+      } else {
+        startListening(onResult);
+      }
+    };
+
     // ── Stap 1: Lie van huidige positie vragen (slag 2+) ─────────────
-    // Wordt aangeroepen NA automatisch opslaan van vorige slag
     if (step === 'ask_lie') {
-      speak('Waar ligt je bal?', () => {
-        startListening((transcript) => {
+      speak('Waar ligt je bal?');
+      listenFor((transcript) => {
           const lie = matchLie(transcript);
           if (lie === 'green') {
-            // Green: putter flow
             round.setSelectedLie('green');
             round.setSelectedClub('Putter');
+            speak('Green, putter.');
             voiceFlow('ask_putt_distance');
           } else if (lie) {
             round.setSelectedLie(lie);
-            speak(`${lie}.`, () => voiceFlow('ask_club'));
+            speak(`${lie}.`);
+            voiceFlow('ask_club');
           } else {
-            speak('Fairway, rough, bunker, tee of green? Waar lig je?', () => voiceFlow('ask_lie'));
+            speak('Fairway, rough, bunker, tee of green?');
+            listenFor((t2) => {
+              const lie2 = matchLie(t2);
+              if (lie2 === 'green') { round.setSelectedLie('green'); round.setSelectedClub('Putter'); voiceFlow('ask_putt_distance'); }
+              else if (lie2) { round.setSelectedLie(lie2); speak(`${lie2}.`); voiceFlow('ask_club'); }
+              else voiceFlow('ask_lie');
+            });
           }
-        });
       });
 
     // ── Stap 2: Club kiezen ──────────────────────────────────────────
     } else if (step === 'ask_club') {
-      speak('Wat ga je slaan?', () => {
-        startListening((transcript) => {
+      speak('Wat ga je slaan?');
+      listenFor((transcript) => {
           if (transcript.includes('putter') || transcript.includes('putt')) {
             round.setSelectedClub('Putter');
             round.setSelectedLie('green');
@@ -154,15 +155,14 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             const clubDist = settings.clubDistances?.[club];
             if (gps?.armShotReminder) gps.armShotReminder(clubDist || null);
             const distMsg = clubDist ? `, gemiddeld ${clubDist} meter` : '';
+            // GPS START automatisch
+            if (gps?.gpsTracking) { gps.captureStartPosition(); setShotStarted(true); }
             // Slag 1: tee automatisch instellen
             if (round.currentHoleShots.length === 0) round.setSelectedLie('tee');
-            // GPS START automatisch — altijd shotStarted true zetten zodat volgende slag lie vraagt
-            if (gps?.gpsTracking) gps.captureStartPosition();
-            setShotStarted(true);
-            shotStartedRef.current = true;
-            speak(`${club}${distMsg}. Succes!`, () => voiceFlow('idle'));
+            speak(`${club}${distMsg}. GPS gestart, succes!`, () => voiceFlow('idle'));
           } else {
-            speak(`Ik verstond je niet. Welke club?`, () => voiceFlow('ask_club'));
+            speak('Ik verstond je niet.');
+            voiceFlow('ask_club');
           }
         });
       });
@@ -170,8 +170,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
     // ── Putter flow op de green ──────────────────────────────────────
     } else if (step === 'ask_putt_distance') {
       const puttNum = round.currentHoleShots.filter(s => s.club === 'Putter').length + 1;
-      speak(`Putt ${puttNum}, hoeveel meter?`, () => {
-        startListening((transcript) => {
+      speak(`Putt ${puttNum}, hoeveel meter?`);
+      listenFor((transcript) => {
           const nummers = {'een':1,'één':1,'twee':2,'drie':3,'vier':4,'vijf':5,'zes':6,'zeven':7,'acht':8,'negen':9,'tien':10};
           let meter = parseInt(transcript.match(/\d+/)?.[0]);
           if (!meter) {
@@ -181,8 +181,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
           }
           if (meter && meter > 0 && meter < 100) {
             round.setManualDistance(String(meter));
-            speak('Erin?', () => {
-              startListening((answer) => {
+            speak('Erin?');
+            listenFor((answer) => {
                 if (isYes(answer)) {
                   // Sla putt op en rond hole af
                   round.addShot(false);
@@ -202,15 +202,14 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
               });
             });
           } else {
-            speak('Hoeveel meter? Zeg een getal.', () => voiceFlow('ask_putt_distance'));
+            speak('Hoeveel meter? Zeg een getal.');
+            voiceFlow('ask_putt_distance');
           }
-        });
       });
 
     // ── Idle: wacht op "slag" ────────────────────────────────────────
     } else if (step === 'idle') {
-      // Gebruik ref voor actuele waarde (voorkomt closure probleem)
-      const isFirstShot = round.currentHoleShots.length === 0 && !shotStartedRef.current;
+      const isFirstShot = round.currentHoleShots.length === 0 && !shotStarted;
       const hint = isFirstShot
         ? 'Zeg "slag" om te beginnen • "caddy"'
         : 'Zeg "slag" als je bij je bal bent • "hole klaar" • "caddy"';
@@ -218,23 +217,18 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
       const handleSlag = () => {
         if (isFirstShot) {
+          // Slag 1: direct club vragen
           voiceFlow('ask_club');
         } else {
-          // GPS afstand ophalen en opslaan
-          const gpsAfstand = gps?.gpsTracking && gps.gpsShotDistance != null ? gps.gpsShotDistance.toString() : null;
-          if (gpsAfstand && !round.manualDistance) {
-            round.setManualDistance(gpsAfstand);
+          // Slag 2+: eerst vorige slag opslaan, dan lie vragen
+          if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
+            round.setManualDistance(gps.gpsShotDistance.toString());
           }
           if (gps?.captureShot) gps.captureShot();
           if (gps?.disarmShotReminder) gps.disarmShotReminder();
-          // Kleine delay zodat setManualDistance React state update verwerkt voor addShot
-          setTimeout(() => {
-            round.addShot(gps?.gpsTracking || false);
-            setShotStarted(false);
-            shotStartedRef.current = false;
-            round.setManualDistance('');
-            voiceFlow('ask_lie');
-          }, 50);
+          round.addShot(gps?.gpsTracking || false);
+          setShotStarted(false);
+          voiceFlow('ask_lie');
         }
       };
 
@@ -256,7 +250,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       // iOS: sla handleSlag op in ref zodat iosTapToListen het kan aanroepen
       voiceHandleSlagRef.current = handleSlag;
     }
-  }, [speak, startListening, matchClub, matchLie, round, gps, settings, isIOS]);
+  }, [speak, startListening, matchClub, matchLie, round, gps, settings, isIOS, shotStarted]);
 
   const toggleVoiceMode = useCallback(async () => {
     if (voiceMode) {
@@ -286,6 +280,14 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
   // iOS: handmatige tik om te luisteren
   const iosTapToListen = useCallback(() => {
+    // Als er een specifieke luister-callback klaarstaat (ask_lie, ask_club etc.) gebruik die
+    if (iosNextListenRef.current && voiceStepRef.current !== 'idle') {
+      const cb = iosNextListenRef.current;
+      iosNextListenRef.current = null;
+      startListening(cb);
+      return;
+    }
+    // Anders: idle flow — luister op "slag", "hole klaar", "caddy"
     startListening((transcript) => {
       if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
         if (voiceHandleSlagRef.current) voiceHandleSlagRef.current();
@@ -587,7 +589,7 @@ INSTRUCTIES VOOR JE ADVIES:
             const opts = {
               idle:             { label: 'Zeg:', items: isFirst ? ['"slag" → club kiezen', '"caddy"'] : ['"slag" → vorige slag opslaan + lie', '"hole klaar"', '"caddy"'] },
               ask_lie:          { label: 'Waar ligt je bal?', items: ['"fairway"', '"rough"', '"bunker"', '"tee"', '"green"'] },
-              ask_club:         { label: 'Welke club?', items: (clubs || []).filter(c => c !== 'Putter').slice(0, 6).concat(['Putter']) },
+              ask_club:         { label: 'Welke club? Zeg de naam:', items: (clubs || []) },
               ask_putt_distance:{ label: 'Hoeveel meter (putt)?', items: ['zeg een getal, bijv. "5"'] },
             };
             const opt = opts[voiceStep];
@@ -612,14 +614,12 @@ INSTRUCTIES VOOR JE ADVIES:
                   <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></div>
                   <span className="font-body text-xs text-purple-300 uppercase tracking-wider ml-1">Luisteren...</span>
                 </div>
-              ) : voiceStep === 'idle' ? (
+              ) : (
                 <button onClick={iosTapToListen}
                   className="w-full bg-purple-500/30 border border-purple-400/50 rounded-xl py-4 flex items-center justify-center gap-3 active:scale-95 transition">
                   <Mic className="w-6 h-6 text-purple-300" />
                   <span className="font-display text-xl text-purple-200 tracking-wider">TIK OM TE PRATEN</span>
                 </button>
-              ) : (
-                <div className="text-center font-body text-sm text-purple-200">{voiceStatus}</div>
               )}
             </div>
           ) : (
