@@ -140,11 +140,12 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             const clubDist = settings.clubDistances?.[club];
             if (gps?.armShotReminder) gps.armShotReminder(clubDist || null);
             const distMsg = clubDist ? `, gemiddeld ${clubDist} meter` : '';
-            // GPS START automatisch
-            if (gps?.gpsTracking) { gps.captureStartPosition(); setShotStarted(true); }
             // Slag 1: tee automatisch instellen
             if (round.currentHoleShots.length === 0) round.setSelectedLie('tee');
-            speak(`${club}${distMsg}. GPS gestart, succes!`, () => voiceFlow('idle'));
+            // GPS START automatisch — altijd shotStarted true zetten zodat volgende slag lie vraagt
+            if (gps?.gpsTracking) gps.captureStartPosition();
+            setShotStarted(true);
+            speak(`${club}${distMsg}. Succes!`, () => voiceFlow('idle'));
           } else {
             speak(`Ik verstond je niet. Welke club?`, () => voiceFlow('ask_club'));
           }
@@ -201,18 +202,22 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
       const handleSlag = () => {
         if (isFirstShot) {
-          // Slag 1: direct club vragen
           voiceFlow('ask_club');
         } else {
-          // Slag 2+: eerst vorige slag opslaan, dan lie vragen
-          if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
-            round.setManualDistance(gps.gpsShotDistance.toString());
+          // GPS afstand ophalen en opslaan
+          const gpsAfstand = gps?.gpsTracking && gps.gpsShotDistance != null ? gps.gpsShotDistance.toString() : null;
+          if (gpsAfstand && !round.manualDistance) {
+            round.setManualDistance(gpsAfstand);
           }
           if (gps?.captureShot) gps.captureShot();
           if (gps?.disarmShotReminder) gps.disarmShotReminder();
-          round.addShot(gps?.gpsTracking || false);
-          setShotStarted(false);
-          voiceFlow('ask_lie');
+          // Kleine delay zodat setManualDistance React state update verwerkt voor addShot
+          setTimeout(() => {
+            round.addShot(gps?.gpsTracking || false);
+            setShotStarted(false);
+            round.setManualDistance('');
+            voiceFlow('ask_lie');
+          }, 50);
         }
       };
 
