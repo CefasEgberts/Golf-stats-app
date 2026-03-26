@@ -141,7 +141,20 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
     setVoiceStep(step);
     voiceStepRef.current = step;
 
-    if (step === 'ask_club') {
+    if (step === 'ask_lie') {
+      speak('Waar ligt je bal?', () => {
+        startListening((transcript) => {
+          const lie = matchLie(transcript);
+          if (lie) {
+            round.setSelectedLie(lie);
+            speak(`${lie}. Wat ga je slaan?`, () => voiceFlow('ask_club'));
+          } else {
+            speak('Fairway, rough, bunker of tee? Waar lig je?', () => voiceFlow('ask_lie'));
+          }
+        });
+      });
+
+    } else if (step === 'ask_club') {
       speak('Wat ga je slaan?', () => {
         startListening((transcript) => {
           if (transcript.includes('putter') || transcript.includes('putt')) {
@@ -157,9 +170,20 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             const clubDist = settings.clubDistances?.[club];
             if (gps?.armShotReminder) gps.armShotReminder(clubDist || null);
             const distMsg = clubDist ? `, gemiddeld ${clubDist} meter` : '';
-            speak(`${club}${distMsg}. Waar ligt je bal?`, () => voiceFlow('ask_lie'));
+            const isFirstShot = round.currentHoleShots.length === 0;
+            if (isFirstShot) {
+              // Slag 1: tee, automatisch GPS START
+              round.setSelectedLie('tee');
+              if (gps?.gpsTracking) { gps.captureStartPosition(); setShotStarted(true); }
+              speak(`${club}${distMsg}. Tee shot, GPS gestart. Succes!`, () => voiceFlow('idle'));
+            } else {
+              // Slag 2+: lie is al gevraagd, nu GPS START
+              if (gps?.gpsTracking) { gps.captureStartPosition(); setShotStarted(true); }
+              const dist = round.remainingDistance;
+              speak(`${club}${distMsg}. Nog ${dist} meter. GPS gestart. Succes!`, () => voiceFlow('idle'));
+            }
           } else {
-            speak(`Ik verstond "${transcript}" niet. Welke club?`, () => voiceFlow('ask_club'));
+            speak(`Ik verstond je niet. Welke club?`, () => voiceFlow('ask_club'));
           }
         });
       });
@@ -184,27 +208,6 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
         });
       });
 
-    } else if (step === 'ask_lie') {
-      speak('Waar ligt je bal?', () => {
-        startListening((transcript) => {
-          const lie = matchLie(transcript);
-          if (lie) {
-            round.setSelectedLie(lie);
-            if (gps?.gpsTracking && !gps?.simMode) {
-              gps.captureStartPosition();
-              setShotStarted(true);
-              const dist = round.remainingDistance;
-              speak(`${lie}. Nog ${dist} meter. Succes!`, () => voiceFlow('idle'));
-            } else {
-              if (gps?.gpsTracking && gps?.simMode) { gps.captureStartPosition(); setShotStarted(true); }
-              speak(`${lie}. Hoeveel meter heb je geslagen?`, () => voiceFlow('ask_distance'));
-            }
-          } else {
-            speak('Fairway, rough, bunker of tee? Waar lig je?', () => voiceFlow('ask_lie'));
-          }
-        });
-      });
-
     } else if (step === 'ask_distance') {
       startListening((transcript) => {
         const num = parseInt(transcript.match(/\d+/)?.[0]);
@@ -220,11 +223,11 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
     } else if (step === 'idle') {
       setVoiceStatus('Zeg "slag" voor nieuwe slag • "hole klaar" • "caddy"');
+      const nextStep = round.currentHoleShots.length === 0 ? 'ask_club' : 'ask_lie';
       if (!isIOS) {
-        // Android/Desktop: automatisch luisteren
         startListening((transcript) => {
           if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
-            voiceFlow('ask_club');
+            voiceFlow(nextStep);
           } else if (transcript.includes('hole klaar') || transcript.includes('klaar') || transcript.includes('finish')) {
             speak('Hole afronden. Bevestig in de app.', () => voiceFlow('idle'));
             setShowFinishHole(true);
@@ -268,10 +271,10 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
   // iOS: handmatige tik om te luisteren
   const iosTapToListen = useCallback(() => {
+    const nextStep = round.currentHoleShots.length === 0 ? 'ask_club' : 'ask_lie';
     startListening((transcript) => {
       if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
-        // Direct doorluisteren naar club — geen extra tik nodig
-        voiceFlow('ask_club');
+        voiceFlow(nextStep);
       } else if (transcript.includes('hole klaar') || transcript.includes('klaar')) {
         speak('Hole afronden. Bevestig in de app.'); setShowFinishHole(true);
       } else if (transcript.includes('caddy') || transcript.includes('advies')) {
@@ -280,7 +283,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
         speak(`Ik verstond: ${transcript}. Zeg slag, hole klaar of caddy.`);
       }
     });
-  }, [speak, startListening, voiceFlow]);
+  }, [speak, startListening, voiceFlow, round]);
 
   useEffect(() => {
     return () => {
@@ -566,7 +569,7 @@ INSTRUCTIES VOOR JE ADVIES:
           {/* Opties per stap — altijd zichtbaar */}
           {(() => {
             const options = {
-              idle:        { label: 'Zeg:', items: ['"slag"', '"hole klaar"', '"caddy"'] },
+              idle:        { label: 'Zeg:', items: round.currentHoleShots.length === 0 ? ['"slag" → club kiezen', '"caddy"'] : ['"slag" → waar ligt je bal?', '"hole klaar"', '"caddy"'] },
               ask_club:    { label: 'Welke club?', items: (clubs || []).slice(0, 8) },
               ask_lie:     { label: 'Waar ligt je bal?', items: ['"fairway"', '"rough"', '"bunker"', '"tee"', '"green"'] },
               ask_distance:{ label: 'Hoeveel meter?', items: ['zeg een getal, bijv. "150"'] },
