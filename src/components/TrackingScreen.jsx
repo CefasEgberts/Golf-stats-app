@@ -129,7 +129,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             voiceFlow('ask_putt_distance');
           } else if (lie) {
             round.setSelectedLie(lie);
-            speak(`${lie}. Wat ga je slaan?`, () => voiceFlow('ask_club'));
+            speak(`${lie}.`, () => voiceFlow('ask_club'));
           } else {
             speak('Fairway, rough, bunker, tee of green? Waar lig je?', () => voiceFlow('ask_lie'));
           }
