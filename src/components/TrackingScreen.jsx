@@ -258,7 +258,9 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
       });
 
     } else if (step === 'idle') {
-      const isFirstShot = round.currentHoleShots.length === 0;
+      // Tel ook de huidige slag mee als die al gestart is (club gekozen + shotStarted)
+      const shotsCount = round.currentHoleShots.length + (shotStarted ? 1 : 0);
+      const isFirstShot = shotsCount === 0;
       const nextStep = isFirstShot ? 'ask_club' : 'ask_lie';
       const hintText = isFirstShot
         ? '"slag" → club kiezen • "caddy"'
@@ -310,7 +312,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
 
   // iOS: handmatige tik om te luisteren
   const iosTapToListen = useCallback(() => {
-    const nextStep = round.currentHoleShots.length === 0 ? 'ask_club' : 'ask_lie';
+    const shotsCount = round.currentHoleShots.length + (shotStarted ? 1 : 0);
+    const nextStep = shotsCount === 0 ? 'ask_club' : 'ask_lie';
     startListening((transcript) => {
       if (transcript.includes('slag') || transcript.includes('volgende') || transcript.includes('nieuw')) {
         voiceFlow(nextStep);
@@ -322,7 +325,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
         speak(`Ik verstond: ${transcript}. Zeg slag, hole klaar of caddy.`);
       }
     });
-  }, [speak, startListening, voiceFlow, round]);
+  }, [speak, startListening, voiceFlow, round, shotStarted]);
 
   useEffect(() => {
     return () => {
@@ -608,7 +611,7 @@ INSTRUCTIES VOOR JE ADVIES:
           {/* Opties per stap — altijd zichtbaar */}
           {(() => {
             const options = {
-              idle:             { label: 'Zeg:', items: round.currentHoleShots.length === 0 ? ['"slag" → club kiezen', '"caddy"'] : ['"slag" → waar ligt je bal?', '"hole klaar"', '"caddy"'] },
+              idle:             { label: 'Zeg:', items: (round.currentHoleShots.length + (shotStarted ? 1 : 0)) === 0 ? ['"slag" → club kiezen', '"caddy"'] : ['"slag" → waar ligt je bal?', '"hole klaar"', '"caddy"'] },
               ask_club:         { label: 'Welke club?', items: (clubs || []).slice(0, 8) },
               ask_lie:          { label: 'Waar ligt je bal?', items: ['"fairway"', '"rough"', '"bunker"', '"tee"', '"green"'] },
               ask_distance:     { label: 'Hoeveel meter?', items: ['zeg een getal, bijv. "150"'] },
