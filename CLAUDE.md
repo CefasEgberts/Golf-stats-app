@@ -191,8 +191,19 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 
 ## Conventies
 - Commit messages in het Engels
-- Auto-bump versie via GitHub Actions (.github/workflows/auto-version.yml)
 - Nederlandse UI (met en/nl vertaling support)
 - Tailwind via CDN, geen build stap voor CSS
 - `golf_holes.latitude`/`longitude` = altijd **midden van de green**, nooit de tee
 - Supabase anon key mag in frontend; nooit server-side secrets in frontend code
+
+## Versie & Deploy Workflow (BELANGRIJK)
+- **GitHub Actions auto-bump is UITGESCHAKELD** (sinds v2.45)
+- **Bij ELKE commit**: versie +1 ophogen in DRIE bestanden:
+  1. `src/App.jsx` → `const appVersion = \`\${commitHash} vX.XX\`;`
+  2. `version.txt` → `X.XX`
+  3. `CLAUDE.md` → versienummer in Tech Stack + Features header
+- **Versienummering**: bij .99 → volgende hele nummer + .01 (2.99 → 3.01)
+- **Altijd automatisch committen en pushen** — nooit vragen, gewoon doen
+- **Na elke push**: deploy checken via WebFetch naar live URL
+- **Na deploy check**: versienummer tonen zodat gebruiker kan vergelijken
+- **Doel**: lokaal = GitHub = Vercel = app ALTIJD gelijk
