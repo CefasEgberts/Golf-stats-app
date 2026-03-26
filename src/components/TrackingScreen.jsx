@@ -156,15 +156,15 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             if (gps?.armShotReminder) gps.armShotReminder(clubDist || null);
             const distMsg = clubDist ? `, gemiddeld ${clubDist} meter` : '';
             // GPS START automatisch
-            if (gps?.gpsTracking) { gps.captureStartPosition(); setShotStarted(true); }
-            // Slag 1: tee automatisch instellen
+            if (gps?.gpsTracking) { gps.captureStartPosition(); setShotStarted(true); shotStartedRef.current = true; }
+            else { setShotStarted(true); shotStartedRef.current = true; }
             if (round.currentHoleShots.length === 0) round.setSelectedLie('tee');
-            speak(`${club}${distMsg}. GPS gestart, succes!`, () => voiceFlow('idle'));
+            speak(`${club}${distMsg}. Succes!`);
+            voiceFlow('idle');
           } else {
             speak('Ik verstond je niet.');
             voiceFlow('ask_club');
           }
-        });
       });
 
     // ── Putter flow op de green ──────────────────────────────────────
@@ -183,23 +183,19 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
             round.setManualDistance(String(meter));
             speak('Erin?');
             listenFor((answer) => {
-                if (isYes(answer)) {
-                  // Sla putt op en rond hole af
-                  round.addShot(false);
-                  setShotStarted(false);
-                  speak('Top, hole klaar!', () => {
-                    setShowFinishHole(true);
-                    voiceFlow('idle');
-                  });
-                } else {
-                  // Sla putt op en vraag volgende putt
-                  round.addShot(false);
-                  setShotStarted(false);
-                  round.setSelectedClub('Putter');
-                  round.setSelectedLie('green');
-                  voiceFlow('ask_putt_distance');
-                }
-              });
+              if (isYes(answer)) {
+                round.addShot(false);
+                setShotStarted(false); shotStartedRef.current = false;
+                speak('Top, hole klaar!');
+                setShowFinishHole(true);
+                voiceFlow('idle');
+              } else {
+                round.addShot(false);
+                setShotStarted(false); shotStartedRef.current = false;
+                round.setSelectedClub('Putter');
+                round.setSelectedLie('green');
+                voiceFlow('ask_putt_distance');
+              }
             });
           } else {
             speak('Hoeveel meter? Zeg een getal.');
