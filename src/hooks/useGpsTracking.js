@@ -155,7 +155,8 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
         setTeePosition({ ...gpsPosition });
       }
       setLastShotPosition({ ...gpsPosition });
-      setGpsShotDistance(null);
+      // Reset naar 0 (niet null) zodat display meteen 0 toont en oploopt als je loopt
+      setGpsShotDistance(0);
     }
   }, [gpsPosition, teePosition]);
 
