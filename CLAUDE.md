@@ -189,6 +189,14 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - [ ] Spaarnwoude omgekeerde combi CR/Slope checken
 - [ ] Testen 18-hole ronde met Stableford end-to-end
 
+### TRAINING (nieuwe features)
+- [ ] Zwakste Meter analyse (op welke afstanden verlies je de meeste slagen)
+- [ ] Club Vertrouwensmeter (score per club op basis van laatste 10 slagen)
+- [ ] Mental Score per hole (emotie-tracking + correlatie met prestatie)
+- [ ] Schaduw-Ronde (speel tegen je eigen beste ronde op dezelfde baan)
+- [ ] GPS-trail (looplijn per hole met slagpunten na de ronde)
+- [ ] TRAINING scherm met AI-analyse + driving range oefeningen
+
 ## Conventies
 - Commit messages in het Engels
 - Nederlandse UI (met en/nl vertaling support)
