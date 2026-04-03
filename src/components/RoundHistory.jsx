@@ -57,6 +57,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [editingHole, setEditingHole] = useState(null);
   const [holes, setHoles] = useState(roundData.holes || []);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const totalScore = holes.reduce((s, h) => s + (h.score || 0), 0);
   const totalPutts = holes.reduce((s, h) => s + (h.putts || 0), 0);
@@ -64,15 +65,27 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const handicap = holes.find(h => h.handicapSnapshot)?.handicapSnapshot || roundData.handicapSnapshot || null;
 
   const handleSaveHole = (updatedHole) => {
+    // Herbereken stableford voor deze hole als we par en handicap weten
+    const par = updatedHole.par;
+    const si = updatedHole.stroke_index_men || updatedHole.si || null;
+    const hcp = updatedHole.handicapSnapshot || roundData.holes?.find(h => h.handicapSnapshot)?.handicapSnapshot || null;
+    if (par && si && hcp) {
+      const playingHcp = Math.round(hcp / 2);
+      const extra = si <= playingHcp ? 1 : 0;
+      const net = updatedHole.score - par - extra;
+      updatedHole.stablefordPts = Math.max(0, 2 - net);
+    }
     const newHoles = holes.map(h => h.hole === updatedHole.hole ? updatedHole : h);
     setHoles(newHoles);
     setHasChanges(true);
     setEditingHole(null);
   };
 
-  const handleSaveRound = () => {
-    if (onSaveRound) onSaveRound({ ...roundData, holes });
+  const handleSaveRound = async () => {
+    if (onSaveRound) await onSaveRound({ ...roundData, holes });
     setHasChanges(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
   };
 
   return (
@@ -88,7 +101,11 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       <div className="p-6 flex items-center justify-between">
         <button onClick={onBack} className="p-2"><ChevronLeft className="w-6 h-6" /></button>
         <h1 className="font-display text-2xl">{roundData.course?.name}</h1>
-        {hasChanges ? (
+        {saveSuccess ? (
+          <div className="bg-emerald-600 rounded-xl px-3 py-2 font-body text-xs text-white flex items-center gap-1">
+            <Check className="w-3 h-3" /> Opgeslagen!
+          </div>
+        ) : hasChanges ? (
           <button onClick={handleSaveRound}
             className="bg-emerald-500 rounded-xl px-3 py-2 font-body text-xs text-white flex items-center gap-1">
             <Check className="w-3 h-3" /> Opslaan
@@ -101,7 +118,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         <div className="glass-card rounded-2xl p-5 bg-emerald-500/10 border border-emerald-400/20">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="font-display text-4xl text-white">{totalScore}</div>
+              <div className="font-display text-4xl text-white">{totalScore} <span className="text-2xl text-emerald-300/60">sl</span></div>
               <div className="font-body text-xs text-emerald-200/60">Totaal slagen</div>
             </div>
             {totalStableford > 0 && (
@@ -143,7 +160,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         {/* Totalen */}
         <div className="grid grid-cols-3 gap-3">
           <div className="glass-card rounded-xl p-3 text-center">
-            <div className="font-display text-2xl text-white">{totalScore}</div>
+            <div className="font-display text-2xl text-white">{totalScore} <span className="text-base text-emerald-300/60">sl</span></div>
             <div className="font-body text-xs text-emerald-200/50">Slagen</div>
           </div>
           <div className="glass-card rounded-xl p-3 text-center">
