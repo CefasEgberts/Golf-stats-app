@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v2.70
+- **Versie**: v2.71
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -125,7 +125,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v2.70)
+## Huidige Features (v2.71)
 1. Splash screen met weer + begroeting + versienummer
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
@@ -178,6 +178,8 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 50. **SOS knop** met clubtelefoon in tracking header
 51. **Info knop** vervangt Plus knop bij baanselectie
 52. **Google Maps routeplanner** via adres-link in info modal
+53. **Statistieken menu** (6 items: overzicht, zwakste meter, club vertrouwen, mental score, schaduw-ronde, GPS-trail)
+54. **Zwakste Meter AI analyse** (Claude API analyseert slagdata per afstandsrange)
 
 ## TODO's
 
