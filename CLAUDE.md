@@ -30,13 +30,13 @@ src/
 │   └── stableford.js          # Handicap + Stableford berekeningen (50 regels)
 ├── hooks/
 │   ├── useWeather.js          # Weer ophalen (57 regels)
-│   ├── useGpsTracking.js       # GPS live tracking hook + 5-point green distances + vibration reminder (257 regels)
+│   ├── useGpsTracking.js       # GPS live tracking hook + 5-point green distances + vibration reminder (198 regels)
 │   ├── useCourseData.js       # Database queries + has_hole_data (170 regels)
 │   └── useRound.js            # Ronde state management (110 regels)
 ├── components/
 │   ├── SplashScreen.jsx       # Splash screen (60 regels)
 │   ├── HomeScreen.jsx         # Baan zoeken, lus/tee selectie, start ronde (254 regels)
-│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status, Voice Caddy (928 regels)
+│   ├── TrackingScreen.jsx     # Shot tracking, club selectie, hole afronden, GPS status, Voice Caddy (942 regels)
 │   ├── HoleOverlay.jsx        # Hole info modal met foto, GPS dot, strategie (102 regels)
 │   ├── AllStatsScreen.jsx     # Statistieken overzicht (45 regels)
 │   ├── ClubAnalysis.jsx       # Club analyse placeholder (20 regels)
@@ -170,6 +170,9 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 42. **Platform detectie** (iOS/Android, wake lock handling per platform)
 43. **iOS schermbeveiliging tip** (eerste keer tip + post-ronde reminder om auto-lock terug aan te zetten)
 44. **Voice caddy afstand** alleen in test/sim modus (GPS modus bepaalt afstand automatisch)
+45. **GPS herschreven** (v2.62) — shotStartRef bij START, reset bij akkoord, volledig via refs zonder state dependency
+46. **iOS voice caddy** tik-knop i.p.v. automatisch luisteren (Safari beperking)
+47. **Scroll naar lie** sectie na START knop
 
 ## TODO's
 
