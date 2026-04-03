@@ -118,7 +118,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         <div className="glass-card rounded-2xl p-5 bg-emerald-500/10 border border-emerald-400/20">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="font-display text-4xl text-white">{totalScore} <span className="text-2xl text-emerald-300/60">sl</span></div>
+              <div className="font-display text-4xl text-white">{totalScore}</div>
               <div className="font-body text-xs text-emerald-200/60">Totaal slagen</div>
             </div>
             {totalStableford > 0 && (
@@ -160,7 +160,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         {/* Totalen */}
         <div className="grid grid-cols-3 gap-3">
           <div className="glass-card rounded-xl p-3 text-center">
-            <div className="font-display text-2xl text-white">{totalScore} <span className="text-base text-emerald-300/60">sl</span></div>
+            <div className="font-display text-2xl text-white">{totalScore}</div>
             <div className="font-body text-xs text-emerald-200/50">Slagen</div>
           </div>
           <div className="glass-card rounded-xl p-3 text-center">

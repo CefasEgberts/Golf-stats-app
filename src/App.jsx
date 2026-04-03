@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.75`;
+const appVersion = `${commitHash} v2.76`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -563,7 +563,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
                       <div className="font-body text-xs text-emerald-200/50 mt-1">{dataNL}{r.startTime ? ` · ${r.startTime}` : ''}{r.temperature ? ` · ${r.temperature}°C` : ''}</div>
                     </div>
                     <div className="text-right mr-4">
-                      <div className="font-display text-2xl text-emerald-300">{r.holes?.reduce((s, h) => s + (h.score || 0), 0)}</div>
+                      <div className="font-display text-2xl text-emerald-300">{r.holes?.reduce((s, h) => s + (h.score || 0), 0)} <span className="font-body text-sm text-emerald-300/60">sl</span></div>
                       {totalStableford > 0 && <div className="font-display text-sm text-yellow-300">{totalStableford}pt</div>}
                       <div className="font-body text-xs text-emerald-200/60">{r.holes?.length} holes</div>
                     </div>
