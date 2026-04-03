@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Edit2, Check, X, Thermometer, Clock, Flag } from 'lucide-react';
 
 function formatDate(dateStr) {
@@ -75,8 +75,8 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       const net = updatedHole.score - par - extra;
       updatedHole.stablefordPts = Math.max(0, 2 - net);
     }
-    const newHoles = holes.map(h => h.hole === updatedHole.hole ? updatedHole : h);
-    setHoles(newHoles);
+    const newHoles = holes.map(h => h.hole === updatedHole.hole ? { ...updatedHole } : { ...h });
+    setHoles([...newHoles]);
     setHasChanges(true);
     setEditingHole(null);
   };
@@ -178,7 +178,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           {holes.map((hole) => {
             const scoreToPar = hole.score && hole.par ? hole.score - hole.par : null;
             return (
-              <div key={hole.hole} className="glass-card rounded-xl p-4">
+              <div key={`${hole.hole}-${hole.score}-${hole.putts}`} className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="font-display text-xl text-emerald-300 w-16">Hole {hole.hole}</div>
