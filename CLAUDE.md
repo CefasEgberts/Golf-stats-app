@@ -173,6 +173,11 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 45. **GPS herschreven** (v2.62) — shotStartRef bij START, reset bij akkoord, volledig via refs zonder state dependency
 46. **iOS voice caddy** tik-knop i.p.v. automatisch luisteren (Safari beperking)
 47. **Scroll naar lie** sectie na START knop
+48. **Club info modal** (adres, telefoon, email, website, beschrijving uit database)
+49. **Voice caddy alleen Android** (iOS krijgt geen Stem-knop meer)
+50. **SOS knop** met clubtelefoon in tracking header
+51. **Info knop** vervangt Plus knop bij baanselectie
+52. **Google Maps routeplanner** via adres-link in info modal
 
 ## TODO's
 
