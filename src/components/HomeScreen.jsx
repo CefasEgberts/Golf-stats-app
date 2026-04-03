@@ -30,10 +30,13 @@ export default function HomeScreen({
             {(course.address || course.postal_code || course.city) && (
               <div className="flex gap-3">
                 <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                <div className="font-body text-sm text-white">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent([course.address, course.postal_code, course.city].filter(Boolean).join(', '))}`}
+                  target="_blank" rel="noreferrer"
+                  className="font-body text-sm text-emerald-300 underline underline-offset-2">
                   {course.address && <div>{course.address}</div>}
                   {(course.postal_code || course.city) && <div>{[course.postal_code, course.city].filter(Boolean).join(' ')}</div>}
-                </div>
+                </a>
               </div>
             )}
             {course.phone && (
