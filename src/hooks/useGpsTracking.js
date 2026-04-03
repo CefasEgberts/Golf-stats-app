@@ -161,8 +161,13 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       }
       const newPos = { ...gpsPosition };
       lastShotPositionRef.current = newPos;
-      setLastShotPosition(newPos);
+      // Zet null eerst zodat useEffect zeker opnieuw triggert bij zelfde coordinaten
+      setLastShotPosition(null);
       setGpsShotDistance(0);
+      setTimeout(() => {
+        lastShotPositionRef.current = newPos;
+        setLastShotPosition({ ...newPos });
+      }, 50);
     }
   }, [gpsPosition, teePosition]);
 
