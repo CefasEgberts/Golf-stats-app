@@ -91,7 +91,7 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       const shotDist = haversineMeters(teePosition.lat, teePosition.lng, gpsPosition.lat, gpsPosition.lng);
       setGpsShotDistance(Math.round(shotDist));
     }
-  }, [gpsPosition, greenLat, greenLng, greenPoints, teePosition]);
+  }, [gpsPosition, greenLat, greenLng, greenPoints, lastShotPosition, teePosition]);
 
   // Vibration reminder: tril als speler 90% van clubafstand heeft afgelegd
   useEffect(() => {
