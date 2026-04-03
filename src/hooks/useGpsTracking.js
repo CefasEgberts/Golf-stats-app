@@ -54,6 +54,10 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   }, []);
 
 
+  // Aparte ref voor teePosition ook, voor gebruik in GPS callback
+  const teePositionRef = useRef(null);
+  useEffect(() => { teePositionRef.current = teePosition; }, [teePosition]);
+
   useEffect(() => {
     if (!gpsPosition) return;
 
@@ -83,15 +87,13 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       setGpsGreenDistances(Object.keys(distances).length > 0 ? distances : null);
     }
 
-    const refPos = lastShotPositionRef.current;
-    if (refPos) {
-      const shotDist = haversineMeters(refPos.lat, refPos.lng, gpsPosition.lat, gpsPosition.lng);
-      setGpsShotDistance(Math.round(shotDist));
-    } else if (teePosition) {
-      const shotDist = haversineMeters(teePosition.lat, teePosition.lng, gpsPosition.lat, gpsPosition.lng);
+    // Gebruik altijd refs — nooit state — voor shot distance berekening
+    const startPos = lastShotPositionRef.current || teePositionRef.current;
+    if (startPos) {
+      const shotDist = haversineMeters(startPos.lat, startPos.lng, gpsPosition.lat, gpsPosition.lng);
       setGpsShotDistance(Math.round(shotDist));
     }
-  }, [gpsPosition, greenLat, greenLng, greenPoints, lastShotPosition, teePosition]);
+  }, [gpsPosition, greenLat, greenLng, greenPoints]);
 
   // Vibration reminder: tril als speler 90% van clubafstand heeft afgelegd
   useEffect(() => {
@@ -139,6 +141,8 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
     setGpsTracking(true);
     setTeePosition(null);
     setLastShotPosition(null);
+    lastShotPositionRef.current = null;
+    teePositionRef.current = null;
 
     watchIdRef.current = watchGpsPosition(
       (pos) => {
@@ -156,20 +160,16 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   // User presses START: capture current GPS as shot start position
   const captureStartPosition = useCallback(() => {
     if (gpsPosition) {
-      if (!teePosition) {
+      if (!teePositionRef.current) {
+        teePositionRef.current = { ...gpsPosition };
         setTeePosition({ ...gpsPosition });
       }
-      const newPos = { ...gpsPosition };
-      lastShotPositionRef.current = newPos;
-      // Zet null eerst zodat useEffect zeker opnieuw triggert bij zelfde coordinaten
-      setLastShotPosition(null);
+      // Update ref direct — useEffect pikt dit op bij volgende GPS positie update
+      lastShotPositionRef.current = { ...gpsPosition };
+      setLastShotPosition({ ...gpsPosition });
       setGpsShotDistance(0);
-      setTimeout(() => {
-        lastShotPositionRef.current = newPos;
-        setLastShotPosition({ ...newPos });
-      }, 50);
     }
-  }, [gpsPosition, teePosition]);
+  }, [gpsPosition]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current != null) {
@@ -196,14 +196,15 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
 
   const captureShot = useCallback(() => {
     if (gpsPosition) {
-      const newPos = { ...gpsPosition };
-      lastShotPositionRef.current = newPos;
-      setLastShotPosition(newPos);
+      lastShotPositionRef.current = { ...gpsPosition };
+      setLastShotPosition({ ...gpsPosition });
       setGpsShotDistance(0);
     }
   }, [gpsPosition]);
 
   const resetForNewHole = useCallback(() => {
+    lastShotPositionRef.current = null;
+    teePositionRef.current = null;
     setTeePosition(null);
     setLastShotPosition(null);
     setGpsDistanceToGreen(null);
