@@ -107,7 +107,13 @@ export default function HomeScreen({
               {(round.roundData.course || userLocation || showSearch) && (
                 <button onClick={resetToHome} className="p-3 rounded-xl hover:bg-white/10 transition"><Home className="w-6 h-6 text-emerald-400" /></button>
               )}
-              <Plus className="w-12 h-12 text-emerald-400" />
+              {round.roundData.course && (
+                <button onClick={() => setShowCourseInfo(true)}
+                  className="glass-card px-4 py-3 rounded-xl flex items-center gap-2 hover:bg-white/10 transition border border-emerald-400/30">
+                  <Info className="w-5 h-5 text-emerald-400" />
+                  <span className="font-body text-sm text-emerald-300 uppercase tracking-wider">Info</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -177,7 +183,7 @@ export default function HomeScreen({
                     <div className="font-body font-semibold text-emerald-300 text-lg">{round.roundData.course.name}</div>
                     <div className="font-body text-xs text-emerald-200/60">{round.roundData.course.city}</div>
                   </div>
-                  <button onClick={() => setShowCourseInfo(true)} className="font-body text-xs text-emerald-300 hover:text-emerald-200 flex items-center gap-1"><Info className="w-3 h-3" /> Info</button>
+
                 </div>
                 <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Welke lus speel je?</label>
                 <div className="grid grid-cols-3 gap-2 mb-4">
