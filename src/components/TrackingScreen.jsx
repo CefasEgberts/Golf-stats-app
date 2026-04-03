@@ -709,10 +709,10 @@ INSTRUCTIES VOOR JE ADVIES:
                     <div className="text-center mb-2">
                       <input
                         type="text" inputMode="numeric"
-                        value={displayDistance !== '' ? displayDistance : (gps.gpsShotDistance != null ? String(convertDistance(gps.gpsShotDistance)) : '')}
+                        value={displayDistance}
                         onChange={(e) => { setDisplayDistance(e.target.value); round.setManualDistance(e.target.value); }}
                         onFocus={(e) => e.target.select()}
-                        placeholder={gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance).toString() : '...'}
+                        placeholder={gps.gpsShotDistance != null ? convertDistance(gps.gpsShotDistance).toString() : '0'}
                         className="w-32 bg-white/10 border border-white/20 rounded-xl px-4 py-3 font-display text-4xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-center inline-block"
                       />
                       <span className="font-display text-3xl text-emerald-300 ml-2">{getUnitLabel()}</span>
