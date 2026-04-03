@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.72`;
+const appVersion = `${commitHash} v2.73`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -121,6 +121,11 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       );
     }
   }, [round.roundData.course]);
+
+  // Laad rondes van Supabase bij startup
+  React.useEffect(() => {
+    if (user?.id) round.loadRounds(user.id);
+  }, [user?.id]);
 
   // Suggest distance after club is selected (prefer GPS shot distance)
   React.useEffect(() => {
@@ -319,7 +324,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       round.setShowHoleOverview(true);
     } else {
       gps.stopTracking();
-      round.finishRound(updatedRound);
+      await round.finishRound(updatedRound, user?.id);
       if (isIOS) setShowWakeLockReminder(true);
       setCurrentScreen('stats');
     }
