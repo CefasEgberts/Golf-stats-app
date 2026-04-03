@@ -13,6 +13,7 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   const [gpsShotDistance, setGpsShotDistance] = useState(null);
 
   const watchIdRef = useRef(null);
+  const lastShotPositionRef = useRef(null);
   const stillTimerRef = useRef(null);
   const lastMovedPosRef = useRef(null);
   const vibrationCountRef = useRef(0);
@@ -21,6 +22,9 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   const [expectedClubDistance, setExpectedClubDistance] = useState(null);
 
   const shotReminderFiredRef = useRef(false);
+
+  // Sync lastShotPositionRef voor gebruik in useEffect
+  useEffect(() => { lastShotPositionRef.current = lastShotPosition; }, [lastShotPosition]);
   const backupTimerRef = useRef(null);
   const shotStartPosRef = useRef(null);
 
@@ -79,14 +83,15 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       setGpsGreenDistances(Object.keys(distances).length > 0 ? distances : null);
     }
 
-    if (lastShotPosition) {
-      const shotDist = haversineMeters(lastShotPosition.lat, lastShotPosition.lng, gpsPosition.lat, gpsPosition.lng);
+    const refPos = lastShotPositionRef.current;
+    if (refPos) {
+      const shotDist = haversineMeters(refPos.lat, refPos.lng, gpsPosition.lat, gpsPosition.lng);
       setGpsShotDistance(Math.round(shotDist));
     } else if (teePosition) {
       const shotDist = haversineMeters(teePosition.lat, teePosition.lng, gpsPosition.lat, gpsPosition.lng);
       setGpsShotDistance(Math.round(shotDist));
     }
-  }, [gpsPosition, greenLat, greenLng, greenPoints, lastShotPosition, teePosition]);
+  }, [gpsPosition, greenLat, greenLng, greenPoints, teePosition]);
 
   // Vibration reminder: tril als speler 90% van clubafstand heeft afgelegd
   useEffect(() => {
@@ -154,8 +159,9 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
       if (!teePosition) {
         setTeePosition({ ...gpsPosition });
       }
-      setLastShotPosition({ ...gpsPosition });
-      // Reset naar 0 (niet null) zodat display meteen 0 toont en oploopt als je loopt
+      const newPos = { ...gpsPosition };
+      lastShotPositionRef.current = newPos;
+      setLastShotPosition(newPos);
       setGpsShotDistance(0);
     }
   }, [gpsPosition, teePosition]);
@@ -185,8 +191,10 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
 
   const captureShot = useCallback(() => {
     if (gpsPosition) {
-      setLastShotPosition({ ...gpsPosition });
-      setGpsShotDistance(null);
+      const newPos = { ...gpsPosition };
+      lastShotPositionRef.current = newPos;
+      setLastShotPosition(newPos);
+      setGpsShotDistance(0);
     }
   }, [gpsPosition]);
 
