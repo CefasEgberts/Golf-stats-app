@@ -923,7 +923,7 @@ INSTRUCTIES VOOR JE ADVIES:
                       </div>
                     </div>
                   )}
-                  <button onClick={() => { finishHole(totalPutts, autoScore); setShowFinishHole(false); }}
+                  <button onClick={() => { finishHole(totalPutts, autoScore, stablefordPts, settings.handicap); setShowFinishHole(false); }}
                     className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
                     ✓ {t('completeHole').toUpperCase()}
                   </button>

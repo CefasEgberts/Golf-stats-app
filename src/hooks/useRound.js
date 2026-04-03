@@ -115,10 +115,12 @@ export const useRound = () => {
     }
   };
 
-  const saveHole = (putts, score) => {
+  const saveHole = (putts, score, stablefordPts = null, handicapSnapshot = null) => {
     const holeData = {
       hole: currentHole, shots: currentHoleShots, putts, score,
-      totalShots: currentHoleShots.length + putts
+      totalShots: currentHoleShots.length + putts,
+      stablefordPts,
+      handicapSnapshot
     };
     const newHoles = [...roundData.holes, holeData];
     const updatedRound = { ...roundData, holes: newHoles };
