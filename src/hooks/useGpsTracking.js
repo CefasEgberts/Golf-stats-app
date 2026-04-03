@@ -13,250 +13,175 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   const [gpsShotDistance, setGpsShotDistance] = useState(null);
 
   const watchIdRef = useRef(null);
-  const lastShotPositionRef = useRef(null);
-  const stillTimerRef = useRef(null);
-  const lastMovedPosRef = useRef(null);
-  const vibrationCountRef = useRef(0);
-  const reminderArmedRef = useRef(false);
 
+  // ── Simpele aanpak: shotStartRef = GPS bij START knop ──────────────
+  // Afstand = haversine(shotStartRef, huidige GPS positie)
+  // Reset bij Afstand akkoord (captureShot)
+  const shotStartRef = useRef(null);
+
+  // Vibration reminder
   const [expectedClubDistance, setExpectedClubDistance] = useState(null);
-
   const shotReminderFiredRef = useRef(false);
-
-  // Sync lastShotPositionRef voor gebruik in useEffect
-  useEffect(() => { lastShotPositionRef.current = lastShotPosition; }, [lastShotPosition]);
   const backupTimerRef = useRef(null);
-  const shotStartPosRef = useRef(null);
+  const stillTimerRef = useRef(null);
 
   const armShotReminder = useCallback((clubDistance) => {
     setExpectedClubDistance(clubDistance || null);
-    vibrationCountRef.current = 0;
     shotReminderFiredRef.current = false;
-    lastMovedPosRef.current = null;
-    shotStartPosRef.current = null;
     if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
-    // Backup timer: harde trilling na 5 minuten als GPS-trigger nog niet afging
     if (backupTimerRef.current) { clearTimeout(backupTimerRef.current); }
     backupTimerRef.current = setTimeout(() => {
-      if (shotReminderFiredRef.current) return; // al getriggerd via GPS
+      if (shotReminderFiredRef.current) return;
       if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
     }, 5 * 60 * 1000);
   }, []);
 
   const disarmShotReminder = useCallback(() => {
     setExpectedClubDistance(null);
-    vibrationCountRef.current = 0;
-    shotReminderFiredRef.current = true; // markeer als afgehandeld, stop backup
-    lastMovedPosRef.current = null;
-    shotStartPosRef.current = null;
+    shotReminderFiredRef.current = true;
     if (stillTimerRef.current) { clearTimeout(stillTimerRef.current); stillTimerRef.current = null; }
     if (backupTimerRef.current) { clearTimeout(backupTimerRef.current); backupTimerRef.current = null; }
   }, []);
 
-
-  // Aparte ref voor teePosition ook, voor gebruik in GPS callback
-  const teePositionRef = useRef(null);
-  useEffect(() => { teePositionRef.current = teePosition; }, [teePosition]);
-
+  // ── Hoofd GPS effect: bereken afstanden bij elke positie update ────
   useEffect(() => {
     if (!gpsPosition) return;
 
+    // Afstand tot green
     if (greenLat != null && greenLng != null) {
       const dist = haversineMeters(gpsPosition.lat, gpsPosition.lng, greenLat, greenLng);
       setGpsDistanceToGreen(Math.round(dist));
     }
 
-    // Calculate distances to all 5 green points
+    // 5-point green distances
     if (greenPoints) {
       const distances = {};
-      if (greenLat != null && greenLng != null) {
+      if (greenLat != null && greenLng != null)
         distances.center = Math.round(haversineMeters(gpsPosition.lat, gpsPosition.lng, greenLat, greenLng));
-      }
-      if (greenPoints.frontLat != null && greenPoints.frontLng != null) {
+      if (greenPoints.frontLat != null && greenPoints.frontLng != null)
         distances.front = Math.round(haversineMeters(gpsPosition.lat, gpsPosition.lng, greenPoints.frontLat, greenPoints.frontLng));
-      }
-      if (greenPoints.backLat != null && greenPoints.backLng != null) {
+      if (greenPoints.backLat != null && greenPoints.backLng != null)
         distances.back = Math.round(haversineMeters(gpsPosition.lat, gpsPosition.lng, greenPoints.backLat, greenPoints.backLng));
-      }
-      if (greenPoints.leftLat != null && greenPoints.leftLng != null) {
+      if (greenPoints.leftLat != null && greenPoints.leftLng != null)
         distances.left = Math.round(haversineMeters(gpsPosition.lat, gpsPosition.lng, greenPoints.leftLat, greenPoints.leftLng));
-      }
-      if (greenPoints.rightLat != null && greenPoints.rightLng != null) {
+      if (greenPoints.rightLat != null && greenPoints.rightLng != null)
         distances.right = Math.round(haversineMeters(gpsPosition.lat, gpsPosition.lng, greenPoints.rightLat, greenPoints.rightLng));
-      }
       setGpsGreenDistances(Object.keys(distances).length > 0 ? distances : null);
     }
 
-    // Gebruik altijd refs — nooit state — voor shot distance berekening
-    const startPos = lastShotPositionRef.current || teePositionRef.current;
-    if (startPos) {
-      const shotDist = haversineMeters(startPos.lat, startPos.lng, gpsPosition.lat, gpsPosition.lng);
-      setGpsShotDistance(Math.round(shotDist));
+    // ── Geslagen afstand: van shotStartRef tot huidige positie ────────
+    if (shotStartRef.current) {
+      const d = haversineMeters(
+        shotStartRef.current.lat, shotStartRef.current.lng,
+        gpsPosition.lat, gpsPosition.lng
+      );
+      setGpsShotDistance(Math.round(d));
     }
   }, [gpsPosition, greenLat, greenLng, greenPoints]);
 
-  // Vibration reminder: tril als speler 90% van clubafstand heeft afgelegd
+  // Vibration bij 90% clubafstand
   useEffect(() => {
-    if (!expectedClubDistance || !gpsPosition || !gpsShotDistance) return;
-    if (shotReminderFiredRef.current) return; // al getriggerd
-
-    // Tril als je op 90% of meer van clubafstand bent
-    const threshold = expectedClubDistance * 0.90;
-    if (gpsShotDistance >= threshold) {
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]); // zachte dubbele trilling
+    if (!expectedClubDistance || !gpsPosition || gpsShotDistance == null) return;
+    if (shotReminderFiredRef.current) return;
+    if (gpsShotDistance >= expectedClubDistance * 0.90) {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       shotReminderFiredRef.current = true;
-      // Backup timer mag nu ook stoppen — GPS heeft getriggerd
       if (backupTimerRef.current) { clearTimeout(backupTimerRef.current); backupTimerRef.current = null; }
     }
   }, [gpsPosition, gpsShotDistance, expectedClubDistance]);
 
   const startTracking = useCallback(() => {
-    if (!('geolocation' in navigator)) {
-      setGpsError('GPS niet beschikbaar');
-      return;
-    }
+    if (!('geolocation' in navigator)) { setGpsError('GPS niet beschikbaar'); return; }
     setGpsError(null);
     setGpsTracking(true);
-
     watchIdRef.current = watchGpsPosition(
-      (pos) => {
-        setGpsPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGpsAccuracy(Math.round(pos.coords.accuracy));
-        setGpsError(null);
-      },
-      (err) => {
-        setGpsError(err.message);
-      }
+      (pos) => { setGpsPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsAccuracy(Math.round(pos.coords.accuracy)); setGpsError(null); },
+      (err) => { setGpsError(err.message); }
     );
   }, []);
 
-  // Start tracking and use database tee position ONLY for simulation
-  // For real GPS: tee position is captured when user presses START per shot
   const startTrackingWithTeeCapture = useCallback(() => {
-    if (!('geolocation' in navigator)) {
-      setGpsError('GPS niet beschikbaar');
-      return;
-    }
+    if (!('geolocation' in navigator)) { setGpsError('GPS niet beschikbaar'); return; }
     setGpsError(null);
     setGpsTracking(true);
     setTeePosition(null);
     setLastShotPosition(null);
-    lastShotPositionRef.current = null;
-    teePositionRef.current = null;
-
+    shotStartRef.current = null;
     watchIdRef.current = watchGpsPosition(
-      (pos) => {
-        const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setGpsPosition(newPos);
-        setGpsAccuracy(Math.round(pos.coords.accuracy));
-        setGpsError(null);
-      },
-      (err) => {
-        setGpsError(err.message);
-      }
+      (pos) => { setGpsPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGpsAccuracy(Math.round(pos.coords.accuracy)); setGpsError(null); },
+      (err) => { setGpsError(err.message); }
     );
   }, []);
 
-  // User presses START: capture current GPS as shot start position
+  // START knop: sla huidige GPS op als beginpunt van deze slag
   const captureStartPosition = useCallback(() => {
     if (gpsPosition) {
-      if (!teePositionRef.current) {
-        teePositionRef.current = { ...gpsPosition };
-        setTeePosition({ ...gpsPosition });
-      }
-      // Update ref direct — useEffect pikt dit op bij volgende GPS positie update
-      lastShotPositionRef.current = { ...gpsPosition };
+      if (!teePosition) setTeePosition({ ...gpsPosition });
+      shotStartRef.current = { ...gpsPosition };  // ← het enige dat telt
       setLastShotPosition({ ...gpsPosition });
       setGpsShotDistance(0);
     }
-  }, [gpsPosition]);
+  }, [gpsPosition, teePosition]);
 
   const stopTracking = useCallback(() => {
-    if (watchIdRef.current != null) {
-      clearGpsWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    setGpsTracking(false);
-    setGpsPosition(null);
-    setTeePosition(null);
-    setLastShotPosition(null);
-    setGpsError(null);
-    setGpsAccuracy(null);
-    setGpsDistanceToGreen(null);
-    setGpsGreenDistances(null);
-    setGpsShotDistance(null);
+    if (watchIdRef.current != null) { clearGpsWatch(watchIdRef.current); watchIdRef.current = null; }
+    shotStartRef.current = null;
+    setGpsTracking(false); setGpsPosition(null); setTeePosition(null);
+    setLastShotPosition(null); setGpsError(null); setGpsAccuracy(null);
+    setGpsDistanceToGreen(null); setGpsGreenDistances(null); setGpsShotDistance(null);
   }, []);
 
   const captureTeePosition = useCallback(() => {
-    if (gpsPosition) {
-      setTeePosition({ ...gpsPosition });
-      setLastShotPosition(null);
-    }
+    if (gpsPosition) { setTeePosition({ ...gpsPosition }); setLastShotPosition(null); }
   }, [gpsPosition]);
 
+  // Afstand akkoord: reset shotStartRef zodat teller stopt
   const captureShot = useCallback(() => {
     if (gpsPosition) {
-      lastShotPositionRef.current = { ...gpsPosition };
+      shotStartRef.current = null;  // ← stop de teller
       setLastShotPosition({ ...gpsPosition });
-      setGpsShotDistance(0);
+      setGpsShotDistance(null);
     }
   }, [gpsPosition]);
 
   const resetForNewHole = useCallback(() => {
-    lastShotPositionRef.current = null;
-    teePositionRef.current = null;
-    setTeePosition(null);
-    setLastShotPosition(null);
-    setGpsDistanceToGreen(null);
-    setGpsGreenDistances(null);
-    setGpsShotDistance(null);
+    shotStartRef.current = null;
+    setTeePosition(null); setLastShotPosition(null);
+    setGpsDistanceToGreen(null); setGpsGreenDistances(null); setGpsShotDistance(null);
   }, []);
 
   // ── Simulation mode ──────────────────────────────────────────────
   const [simMode, setSimMode] = useState(false);
 
   const startSimulation = useCallback((teeLat, teeLng) => {
-    setSimMode(true);
-    setGpsTracking(true);
-    setGpsError(null);
-    setGpsAccuracy(1);
+    setSimMode(true); setGpsTracking(true); setGpsError(null); setGpsAccuracy(1);
     const teePos = { lat: teeLat, lng: teeLng };
-    setGpsPosition(teePos);
-    setTeePosition({ ...teePos });
-    setLastShotPosition({ ...teePos });
+    setGpsPosition(teePos); setTeePosition({ ...teePos }); setLastShotPosition({ ...teePos });
+    shotStartRef.current = { ...teePos };
   }, []);
 
-  // Simulate moving towards green by a given distance in meters
   const simulateShot = useCallback((distanceMeters) => {
-    if (!gpsPosition || (greenLat == null || greenLng == null)) return;
+    if (!gpsPosition || greenLat == null || greenLng == null) return;
     const totalDist = haversineMeters(gpsPosition.lat, gpsPosition.lng, greenLat, greenLng);
     if (totalDist < 1) return;
     const fraction = Math.min(distanceMeters / totalDist, 1);
     const newLat = gpsPosition.lat + (greenLat - gpsPosition.lat) * fraction;
     const newLng = gpsPosition.lng + (greenLng - gpsPosition.lng) * fraction;
     setLastShotPosition({ ...gpsPosition });
+    shotStartRef.current = { ...gpsPosition };
     setGpsPosition({ lat: newLat, lng: newLng });
   }, [gpsPosition, greenLat, greenLng]);
 
   const stopSimulation = useCallback(() => {
-    setSimMode(false);
-    setGpsTracking(false);
-    setGpsPosition(null);
-    setTeePosition(null);
-    setLastShotPosition(null);
-    setGpsError(null);
-    setGpsAccuracy(null);
-    setGpsDistanceToGreen(null);
-    setGpsGreenDistances(null);
-    setGpsShotDistance(null);
+    setSimMode(false); setGpsTracking(false); setGpsPosition(null); setTeePosition(null);
+    setLastShotPosition(null); setGpsError(null); setGpsAccuracy(null);
+    setGpsDistanceToGreen(null); setGpsGreenDistances(null); setGpsShotDistance(null);
+    shotStartRef.current = null;
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (watchIdRef.current != null) {
-        clearGpsWatch(watchIdRef.current);
-      }
+      if (watchIdRef.current != null) clearGpsWatch(watchIdRef.current);
       if (backupTimerRef.current) clearTimeout(backupTimerRef.current);
       if (stillTimerRef.current) clearTimeout(stillTimerRef.current);
     };
@@ -265,7 +190,8 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   return {
     gpsTracking, gpsPosition, teePosition, lastShotPosition,
     gpsError, gpsAccuracy, gpsDistanceToGreen, gpsGreenDistances, gpsShotDistance,
-    startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition, captureStartPosition, captureShot, resetForNewHole,
+    startTracking, startTrackingWithTeeCapture, stopTracking, captureTeePosition,
+    captureStartPosition, captureShot, resetForNewHole,
     armShotReminder, disarmShotReminder,
     simMode, startSimulation, simulateShot, stopSimulation
   };
