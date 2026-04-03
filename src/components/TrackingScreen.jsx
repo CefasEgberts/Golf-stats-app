@@ -15,7 +15,6 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [caddyLoading, setCaddyLoading] = useState(false);
   const finishHoleRef = useRef(null);
   const startButtonRef = useRef(null);
-  const lieRef = useRef(null);
 
   // ── Voice Caddy ──────────────────────────────────────────────────
   const [voiceMode, setVoiceMode] = useState(false);
@@ -638,7 +637,7 @@ INSTRUCTIES VOOR JE ADVIES:
           <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('shot')} {round.currentHoleShots.length + 1}: {t('whichClub')}</label>
           <div className="grid grid-cols-4 gap-2">
             {clubs.map((club) => (
-              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); setDisplayDistance(''); if (club === 'Putter') round.setSelectedLie('green'); setTimeout(() => startButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100); }}
+              <button key={club} onClick={() => { round.setSelectedClub(club); setShowPenalty(false); setShotStarted(false); setDisplayDistance(''); if (club === 'Putter') round.setSelectedLie('green'); setTimeout(() => startButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
                 className={'club-btn glass-card rounded-xl py-3 px-2 font-body text-sm font-medium ' + (round.selectedClub === club ? 'selected' : '')}>{club}</button>
             ))}
             <button onClick={() => { setShowPenalty(!showPenalty); round.setSelectedClub(''); setShotStarted(false); }}
@@ -699,7 +698,7 @@ INSTRUCTIES VOOR JE ADVIES:
               /* GPS mode: START button to capture position, then show live distance */
               <>
                 {!shotStarted ? (
-                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(gps.gpsShotDistance != null ? String(convertDistance(gps.gpsShotDistance)) : ''); const clubDist = settings.clubDistances?.[round.selectedClub]; if (gps.armShotReminder) gps.armShotReminder(clubDist || null); setTimeout(() => lieRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); }}
+                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(''); const clubDist = settings.clubDistances?.[round.selectedClub]; if (gps.armShotReminder) gps.armShotReminder(clubDist || null); }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl py-5 font-display text-2xl tracking-wider text-white shadow-lg shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition">
                     📍 START
                   </button>
@@ -781,7 +780,7 @@ INSTRUCTIES VOOR JE ADVIES:
             {(round.selectedClub === 'Putter' || (!gps?.gpsTracking && !gps?.simMode) || shotStarted || (gps?.simMode && gps.gpsShotDistance != null)) && (
               <>
                 {round.selectedClub !== 'Putter' && (
-                  <div ref={lieRef}>
+                  <div>
                     <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('lie')}</label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
@@ -811,8 +810,6 @@ INSTRUCTIES VOOR JE ADVIES:
                   }
                   round.addShot(gps?.gpsTracking || false);
                   setShotStarted(false);
-                  setDisplayDistance('');
-                  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
                   {t('distanceOk').toUpperCase()}
