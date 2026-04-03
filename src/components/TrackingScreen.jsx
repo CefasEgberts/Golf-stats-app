@@ -467,25 +467,22 @@ INSTRUCTIES VOOR JE ADVIES:
         <div className="flex items-center justify-between mb-4">
           <button onClick={onQuit}><ChevronLeft className="w-6 h-6" /></button>
           <div className="flex items-center gap-2">
-            {/* Voice Caddy knop */}
-            <button onClick={toggleVoiceMode}
-              className={"glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition " + (voiceMode ? "bg-purple-500/30 border border-purple-400/50" : "")}>
-              {voiceMode
-                ? <MicOff className="w-4 h-4 text-purple-300" />
-                : <Mic className="w-4 h-4 text-purple-300" />}
-              <span className={"font-body text-xs uppercase tracking-wider " + (voiceMode ? "text-purple-200" : "text-purple-300")}>
-                {voiceMode ? 'Stop' : 'Stem'}
-              </span>
-            </button>
+            {/* Stem knop: alleen Android */}
+            {isAndroid && (
+              <button onClick={toggleVoiceMode}
+                className={"glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition " + (voiceMode ? "bg-purple-500/30 border border-purple-400/50" : "")}>
+                {voiceMode
+                  ? <MicOff className="w-4 h-4 text-purple-300" />
+                  : <Mic className="w-4 h-4 text-purple-300" />}
+                <span className={"font-body text-xs uppercase tracking-wider " + (voiceMode ? "text-purple-200" : "text-purple-300")}>
+                  {voiceMode ? 'Stop' : 'Stem'}
+                </span>
+              </button>
+            )}
             <button onClick={askCaddyText}
               className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
               <span className="text-sm">🎓</span>
               <span className="font-body text-xs text-yellow-300 uppercase tracking-wider">Caddy</span>
-            </button>
-            <button onClick={askCaddySpeech} disabled={caddyLoading}
-              className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition disabled:opacity-50">
-              <span className="text-sm">🔊</span>
-              <span className="font-body text-xs text-yellow-300 uppercase tracking-wider">{caddyLoading ? '...' : 'Caddy'}</span>
             </button>
             <button onClick={() => { round.setShowHoleOverview(true); round.setPhotoExpanded(false); round.setShowStrategy(false); }}
               className="glass-card px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
@@ -494,7 +491,14 @@ INSTRUCTIES VOOR JE ADVIES:
             </button>
           </div>
         </div>
-        <div className="text-center mb-4">
+        <div className="relative text-center mb-4">
+          {/* SOS knop */}
+          {round.roundData?.course?.phone && (
+            <a href={`tel:${round.roundData.course.phone}`}
+              className="absolute left-0 top-0 bg-red-600 hover:bg-red-500 active:bg-red-700 rounded-xl px-3 py-2 flex items-center gap-1 transition shadow-lg shadow-red-600/40">
+              <span className="font-display text-white text-sm tracking-wider">SOS</span>
+            </a>
+          )}
           <div className="font-display text-5xl mb-2 bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {round.currentHole}</div>
           <div className="flex items-center justify-center gap-4 text-sm">
             <span className="font-body text-emerald-200/70">Par {round.currentHoleInfo.par}</span>
