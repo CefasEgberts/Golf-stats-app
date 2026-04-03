@@ -15,6 +15,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [caddyLoading, setCaddyLoading] = useState(false);
   const finishHoleRef = useRef(null);
   const startButtonRef = useRef(null);
+  const lieRef = useRef(null);
 
   // ── Voice Caddy ──────────────────────────────────────────────────
   const [voiceMode, setVoiceMode] = useState(false);
@@ -780,7 +781,7 @@ INSTRUCTIES VOOR JE ADVIES:
             {(round.selectedClub === 'Putter' || (!gps?.gpsTracking && !gps?.simMode) || shotStarted || (gps?.simMode && gps.gpsShotDistance != null)) && (
               <>
                 {round.selectedClub !== 'Putter' && (
-                  <div>
+                  <div ref={lieRef}>
                     <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">{t('lie')}</label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
