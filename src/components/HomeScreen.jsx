@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, TrendingUp, BarChart3, Calendar, MapPin, Settings, Home } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, TrendingUp, BarChart3, Calendar, MapPin, Settings, Home, Info, X, Phone, Mail, Globe } from 'lucide-react';
 
 export default function HomeScreen({
   settings, round, courseData, weather, userLocation, setUserLocation,
@@ -8,7 +8,65 @@ export default function HomeScreen({
   user, gps,
   onSettings, onAllStats, onClubs, onRoundHistory, onLogout, onAdmin
 }) {
+  const [showCourseInfo, setShowCourseInfo] = useState(false);
+  const course = round.roundData.course;
+
   return (
+    <>
+    {/* Course Info Modal */}
+    {showCourseInfo && course && (
+      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-4" onClick={() => setShowCourseInfo(false)}>
+        <div className="glass-card rounded-3xl p-6 max-w-sm w-full border border-emerald-400/30 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="font-display text-2xl text-emerald-300">{course.name}</div>
+            <button onClick={() => setShowCourseInfo(false)} className="text-white/50 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {course.description && (
+            <p className="font-body text-sm text-emerald-200/80 mb-4 leading-relaxed">{course.description}</p>
+          )}
+          <div className="space-y-3">
+            {(course.address || course.postal_code || course.city) && (
+              <div className="flex gap-3">
+                <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div className="font-body text-sm text-white">
+                  {course.address && <div>{course.address}</div>}
+                  {(course.postal_code || course.city) && <div>{[course.postal_code, course.city].filter(Boolean).join(' ')}</div>}
+                </div>
+              </div>
+            )}
+            {course.phone && (
+              <div className="flex gap-3 items-center">
+                <Phone className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <a href={`tel:${course.phone}`} className="font-body text-sm text-emerald-300">{course.phone}</a>
+              </div>
+            )}
+            {course.email && (
+              <div className="flex gap-3 items-center">
+                <Mail className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <a href={`mailto:${course.email}`} className="font-body text-sm text-emerald-300 break-all">{course.email}</a>
+              </div>
+            )}
+            {course.website && (
+              <div className="flex gap-3 items-center">
+                <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <a href={`https://${course.website.replace('https://','').replace('http://','')}`} target="_blank" rel="noreferrer" className="font-body text-sm text-emerald-300">{course.website}</a>
+              </div>
+            )}
+            {course.extra_info && (
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="font-body text-xs text-emerald-200/60 leading-relaxed">{course.extra_info}</p>
+              </div>
+            )}
+          </div>
+          <button onClick={() => setShowCourseInfo(false)}
+            className="w-full mt-6 btn-primary rounded-xl py-3 font-display text-lg tracking-wider">
+            SLUITEN
+          </button>
+        </div>
+      </div>
+    )}
     <div className="animate-slide-up">
       <div className="p-6 pt-12">
         <div className="flex items-start justify-between">
@@ -119,7 +177,7 @@ export default function HomeScreen({
                     <div className="font-body font-semibold text-emerald-300 text-lg">{round.roundData.course.name}</div>
                     <div className="font-body text-xs text-emerald-200/60">{round.roundData.course.city}</div>
                   </div>
-                  <button onClick={() => round.setRoundData({ ...round.roundData, course: null })} className="font-body text-xs text-emerald-300 hover:text-emerald-200">Wijzigen</button>
+                  <button onClick={() => setShowCourseInfo(true)} className="font-body text-xs text-emerald-300 hover:text-emerald-200 flex items-center gap-1"><Info className="w-3 h-3" /> Info</button>
                 </div>
                 <label className="font-body text-xs text-emerald-200/70 mb-2 block uppercase tracking-wider">Welke lus speel je?</label>
                 <div className="grid grid-cols-3 gap-2 mb-4">
@@ -250,5 +308,6 @@ export default function HomeScreen({
         )}
       </div>
     </div>
+    </>
   );
 }

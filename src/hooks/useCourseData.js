@@ -153,6 +153,9 @@ export const useCourseData = () => {
           id: c.id, name: c.name, city: c.city,
           loops: c.loops, teeColors: c.tee_colors,
           has_hole_data: c.has_hole_data || false,
+          address: c.address || null, postal_code: c.postal_code || null, phone: c.phone || null,
+          email: c.email || null, website: c.website || null, description: c.description || null,
+          extra_info: c.extra_info || null,
           lat: parseFloat(c.latitude), lng: parseFloat(c.longitude), distance: '--'
         })));
       }

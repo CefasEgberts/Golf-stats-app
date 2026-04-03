@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.66`;
+const appVersion = `${commitHash} v2.67`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -194,6 +194,9 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     const processCourses = (courses, lat, lng, accuracy) => {
       const withDist = courses.map(c => ({
         id: c.id, name: c.name, city: c.city, loops: c.loops, has_hole_data: c.has_hole_data || false,
+        address: c.address || null, postal_code: c.postal_code || null, phone: c.phone || null,
+        email: c.email || null, website: c.website || null, description: c.description || null,
+        extra_info: c.extra_info || null,
         teeColors: c.tee_colors, lat: parseFloat(c.latitude), lng: parseFloat(c.longitude),
         distance: calculateDistance(lat, lng, c.latitude, c.longitude).toFixed(1)
       })).sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
