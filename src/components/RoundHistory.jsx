@@ -21,13 +21,15 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
     setEditPutts(hole.putts || 0);
   };
 
+  const holesRef = React.useRef(holes);
+  React.useEffect(() => { holesRef.current = holes; }, [holes]);
+
   const confirmEdit = () => {
-    setHoles(prev => prev.map(h => {
-      if (h.hole !== editingHole) return h;
-      // Herbereken stableford
+    const updated = holesRef.current.map(h => {
+      if (Number(h.hole) !== Number(editingHole)) return h;
       const par = h.par;
       const si = h.stroke_index_men || h.si || null;
-      const hcp = h.handicapSnapshot || prev.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
+      const hcp = h.handicapSnapshot || holesRef.current.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
       let stablefordPts = h.stablefordPts ?? null;
       if (par && si && hcp) {
         const playingHcp = Math.round(hcp / 2);
@@ -36,13 +38,15 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         stablefordPts = Math.max(0, 2 - net);
       }
       return { ...h, score: editScore, putts: editPutts, stablefordPts };
-    }));
+    });
+    holesRef.current = updated;
+    setHoles([...updated]);
     setEditingHole(null);
     setHasChanges(true);
   };
 
   const handleSaveRound = async () => {
-    if (onSaveRound) await onSaveRound({ ...roundData, holes });
+    if (onSaveRound) await onSaveRound({ ...roundData, holes: holesRef.current });
     setHasChanges(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
