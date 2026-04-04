@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.83`;
+const appVersion = `${commitHash} v2.84`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -33,6 +33,7 @@ const getTeeColorClass = (color) =>
 // ─── App ────────────────────────────────────────────────────────────────────
 
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
+  const [roundHistoryKey, setRoundHistoryKey] = React.useState(0);
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [showWakeLockTip, setShowWakeLockTip] = useState(false);
   const [showWakeLockReminder, setShowWakeLockReminder] = useState(false);
@@ -585,6 +586,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       {/* ==================== ROUND HISTORY ==================== */}
       {currentScreen === 'roundHistory' && round.roundData.holes && (
         <RoundHistory
+          key={roundHistoryKey}
           roundData={round.roundData}
           convertDistance={convertDistance}
           getUnitLabel={getUnitLabel}
