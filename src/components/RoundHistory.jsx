@@ -25,7 +25,6 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   React.useEffect(() => { holesRef.current = holes; }, [holes]);
 
   const confirmEdit = () => {
-    console.log('confirmEdit called, editingHole:', editingHole, 'score:', editScore, 'putts:', editPutts);
     const updated = holesRef.current.map(h => {
       if (Number(h.hole) !== Number(editingHole)) return h;
       const par = h.par;
@@ -41,17 +40,17 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       return { ...h, score: editScore, putts: editPutts, stablefordPts };
     });
     holesRef.current = updated;
-    console.log('updated holes:', updated);
     setHoles([...updated]);
     setEditingHole(null);
     setHasChanges(true);
   };
 
   const handleSaveRound = async () => {
-    if (onSaveRound) await onSaveRound({ ...roundData, holes: holesRef.current });
+    const updatedRound = { ...roundData, holes: holesRef.current };
+    if (onSaveRound) await onSaveRound(updatedRound);
+    // Forceer scherm refresh door kort terug te gaan en opnieuw te laden
     setHasChanges(false);
     setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
   };
 
   const totalScore = holes.reduce((s, h) => s + (h.score || 0), 0);
