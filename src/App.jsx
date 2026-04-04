@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.77`;
+const appVersion = `${commitHash} v2.78`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -590,10 +590,15 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           getUnitLabel={getUnitLabel}
           onBack={() => setCurrentScreen('home')}
           onSaveRound={async (updatedRoundData) => {
+            // Update roundData zodat heropenen nieuwe data toont
             round.setRoundData(updatedRoundData);
+            // Update savedRounds lijst
+            round.setSavedRounds(prev => prev.map(r => r.id === updatedRoundData.id ? { ...r, holes: updatedRoundData.holes } : r));
+            // Sla op in Supabase
             if (updatedRoundData.id) {
               const { supabase } = await import('./lib/supabase');
-              await supabase.from('rounds').update({ holes: updatedRoundData.holes }).eq('id', updatedRoundData.id);
+              const totalScore = updatedRoundData.holes.reduce((s, h) => s + (h.score || 0), 0);
+              await supabase.from('rounds').update({ holes: updatedRoundData.holes, total_score: totalScore }).eq('id', updatedRoundData.id);
             }
           }}
         />

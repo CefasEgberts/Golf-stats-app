@@ -59,6 +59,12 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Sync holes als roundData van buiten verandert (bijv. na heropenen)
+  useEffect(() => {
+    setHoles(roundData.holes || []);
+    setHasChanges(false);
+  }, [roundData]);
+
   const totalScore = holes.reduce((s, h) => s + (h.score || 0), 0);
   const totalPutts = holes.reduce((s, h) => s + (h.putts || 0), 0);
   const totalStableford = holes.reduce((s, h) => s + (h.stablefordPts || 0), 0);
@@ -82,14 +88,15 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   };
 
   const handleSaveRound = async () => {
-    if (onSaveRound) await onSaveRound({ ...roundData, holes });
+    const updatedRound = { ...roundData, holes };
+    if (onSaveRound) await onSaveRound(updatedRound);
     setHasChanges(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
   return (
-    <div className="animate-slide-up min-h-screen pb-6">
+    <div className="min-h-screen pb-6">
       {editingHole && (
         <HoleEditModal
           hole={editingHole}
