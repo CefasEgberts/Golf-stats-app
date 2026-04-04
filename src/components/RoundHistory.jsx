@@ -25,6 +25,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   React.useEffect(() => { holesRef.current = holes; }, [holes]);
 
   const confirmEdit = () => {
+    console.log('confirmEdit called, editingHole:', editingHole, 'score:', editScore, 'putts:', editPutts);
     const updated = holesRef.current.map(h => {
       if (Number(h.hole) !== Number(editingHole)) return h;
       const par = h.par;
@@ -40,6 +41,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       return { ...h, score: editScore, putts: editPutts, stablefordPts };
     });
     holesRef.current = updated;
+    console.log('updated holes:', updated);
     setHoles([...updated]);
     setEditingHole(null);
     setHasChanges(true);
@@ -179,7 +181,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           {holes.map((hole) => {
             const scoreToPar = hole.score && hole.par ? hole.score - hole.par : null;
             return (
-              <div key={hole.hole} className="glass-card rounded-xl p-4">
+              <div key={`${hole.hole}-${hole.score}-${hole.putts}`} className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="font-display text-xl text-emerald-300 w-16">Hole {hole.hole}</div>
