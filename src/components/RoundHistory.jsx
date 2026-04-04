@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChevronLeft, Edit2, Check, X, Thermometer, Clock, Flag } from 'lucide-react';
 
 function formatDate(dateStr) {
@@ -7,82 +7,38 @@ function formatDate(dateStr) {
   return `${d}-${m}-${y}`;
 }
 
-function HoleEditModal({ hole, holeInfo, onSave, onClose }) {
-  const [score, setScore] = useState(hole.score || 0);
-  const [putts, setPutts] = useState(hole.putts || 0);
-
-  return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-4" onClick={onClose}>
-      <div className="glass-card rounded-3xl p-6 max-w-sm w-full border border-emerald-400/30" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
-          <div className="font-display text-2xl text-emerald-300">Hole {hole.hole} aanpassen</div>
-          <button onClick={onClose}><X className="w-5 h-5 text-white/50" /></button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-2">Score (totaal slagen)</div>
-            <div className="flex items-center gap-4 justify-center">
-              <button onClick={() => setScore(s => Math.max(1, s - 1))}
-                className="w-12 h-12 rounded-xl bg-white/10 font-display text-2xl text-white hover:bg-white/20 transition">−</button>
-              <div className="font-display text-5xl text-white w-16 text-center">{score}</div>
-              <button onClick={() => setScore(s => s + 1)}
-                className="w-12 h-12 rounded-xl bg-white/10 font-display text-2xl text-white hover:bg-white/20 transition">+</button>
-            </div>
-            {holeInfo && <div className="text-center font-body text-xs text-emerald-200/50 mt-1">Par {holeInfo.par}</div>}
-          </div>
-
-          <div>
-            <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-2">Putts</div>
-            <div className="flex items-center gap-4 justify-center">
-              <button onClick={() => setPutts(p => Math.max(0, p - 1))}
-                className="w-12 h-12 rounded-xl bg-white/10 font-display text-2xl text-white hover:bg-white/20 transition">−</button>
-              <div className="font-display text-5xl text-white w-16 text-center">{putts}</div>
-              <button onClick={() => setPutts(p => p + 1)}
-                className="w-12 h-12 rounded-xl bg-white/10 font-display text-2xl text-white hover:bg-white/20 transition">+</button>
-            </div>
-          </div>
-        </div>
-
-        <button onClick={() => onSave(hole.hole, score, putts)}
-          className="w-full mt-6 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
-          <Check className="w-5 h-5" /> Opslaan
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function RoundHistory({ roundData, convertDistance, getUnitLabel, onBack, onSaveRound }) {
+  const [holes, setHoles] = useState(() => JSON.parse(JSON.stringify(roundData.holes || [])));
   const [editingHole, setEditingHole] = useState(null);
-  const [holes, setHoles] = useState(roundData.holes || []);
+  const [editScore, setEditScore] = useState(0);
+  const [editPutts, setEditPutts] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const totalScore = holes.reduce((s, h) => s + (h.score || 0), 0);
-  const totalPutts = holes.reduce((s, h) => s + (h.putts || 0), 0);
-  const totalStableford = holes.reduce((s, h) => s + (h.stablefordPts || 0), 0);
-  const handicap = holes.find(h => h.handicapSnapshot)?.handicapSnapshot || roundData.handicapSnapshot || null;
+  const openEdit = (hole) => {
+    setEditingHole(hole.hole);
+    setEditScore(hole.score || 0);
+    setEditPutts(hole.putts || 0);
+  };
 
-  const handleSaveHole = (holeNumber, newScore, newPutts) => {
-    const newHoles = holes.map(h => {
-      if (h.hole !== holeNumber) return h;
+  const confirmEdit = () => {
+    setHoles(prev => prev.map(h => {
+      if (h.hole !== editingHole) return h;
       // Herbereken stableford
       const par = h.par;
       const si = h.stroke_index_men || h.si || null;
-      const hcp = h.handicapSnapshot || holes.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
-      let stablefordPts = h.stablefordPts;
+      const hcp = h.handicapSnapshot || prev.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
+      let stablefordPts = h.stablefordPts ?? null;
       if (par && si && hcp) {
         const playingHcp = Math.round(hcp / 2);
         const extra = si <= playingHcp ? 1 : 0;
-        const net = newScore - par - extra;
+        const net = editScore - par - extra;
         stablefordPts = Math.max(0, 2 - net);
       }
-      return { ...h, score: newScore, putts: newPutts, stablefordPts };
-    });
-    setHoles([...newHoles]);
-    setHasChanges(true);
+      return { ...h, score: editScore, putts: editPutts, stablefordPts };
+    }));
     setEditingHole(null);
+    setHasChanges(true);
   };
 
   const handleSaveRound = async () => {
@@ -92,22 +48,53 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
-  // Sync holes als roundData van buiten verandert
-  useEffect(() => {
-    setHoles(roundData.holes || []);
-    setHasChanges(false);
-  }, [roundData]);
+  const totalScore = holes.reduce((s, h) => s + (h.score || 0), 0);
+  const totalPutts = holes.reduce((s, h) => s + (h.putts || 0), 0);
+  const totalStableford = holes.reduce((s, h) => s + (h.stablefordPts || 0), 0);
+  const handicap = holes.find(h => h.handicapSnapshot)?.handicapSnapshot ?? null;
 
   return (
     <div className="min-h-screen pb-6">
-      {editingHole && (
-        <HoleEditModal
-          hole={editingHole}
-          onSave={(holeNumber, score, putts) => handleSaveHole(holeNumber, score, putts)}
-          onClose={() => setEditingHole(null)}
-        />
+
+      {/* Edit Modal */}
+      {editingHole !== null && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-4">
+          <div className="glass-card rounded-3xl p-6 max-w-sm w-full border border-emerald-400/30">
+            <div className="flex items-center justify-between mb-6">
+              <div className="font-display text-2xl text-emerald-300">Hole {editingHole} aanpassen</div>
+              <button onClick={() => setEditingHole(null)}><X className="w-5 h-5 text-white/50" /></button>
+            </div>
+            <div className="space-y-6">
+              <div>
+                <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-3">Score (totaal slagen)</div>
+                <div className="flex items-center gap-4 justify-center">
+                  <button onClick={() => setEditScore(s => Math.max(1, s - 1))}
+                    className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">−</button>
+                  <div className="font-display text-6xl text-white w-20 text-center">{editScore}</div>
+                  <button onClick={() => setEditScore(s => s + 1)}
+                    className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">+</button>
+                </div>
+              </div>
+              <div>
+                <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-3">Putts</div>
+                <div className="flex items-center gap-4 justify-center">
+                  <button onClick={() => setEditPutts(p => Math.max(0, p - 1))}
+                    className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">−</button>
+                  <div className="font-display text-6xl text-white w-20 text-center">{editPutts}</div>
+                  <button onClick={() => setEditPutts(p => p + 1)}
+                    className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">+</button>
+                </div>
+              </div>
+            </div>
+            <button onClick={confirmEdit}
+              className="w-full mt-6 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
+              <Check className="w-5 h-5" /> Opslaan
+            </button>
+          </div>
+        </div>
       )}
 
+      {/* Header */}
       <div className="p-6 flex items-center justify-between">
         <button onClick={onBack} className="p-2"><ChevronLeft className="w-6 h-6" /></button>
         <h1 className="font-display text-2xl">{roundData.course?.name}</h1>
@@ -188,7 +175,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           {holes.map((hole) => {
             const scoreToPar = hole.score && hole.par ? hole.score - hole.par : null;
             return (
-              <div key={`${hole.hole}-${hole.score}-${hole.putts}`} className="glass-card rounded-xl p-4">
+              <div key={hole.hole} className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="font-display text-xl text-emerald-300 w-16">Hole {hole.hole}</div>
@@ -202,18 +189,16 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    {hole.stablefordPts !== null && hole.stablefordPts !== undefined && (
+                    {hole.stablefordPts != null && (
                       <div className="font-display text-lg text-yellow-300">{hole.stablefordPts}pt</div>
                     )}
-                    <button onClick={() => setEditingHole(hole)}
+                    <button onClick={() => openEdit(hole)}
                       className="p-2 rounded-lg hover:bg-white/10 transition flex items-center gap-1">
                       <span className="font-body text-xs text-emerald-200/50">{hole.putts}p</span>
                       <Edit2 className="w-4 h-4 text-emerald-400/60" />
                     </button>
                   </div>
                 </div>
-
-                {/* Slagen detail */}
                 {hole.shots && hole.shots.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {hole.shots.map((shot) => (
