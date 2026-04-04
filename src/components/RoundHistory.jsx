@@ -44,7 +44,7 @@ function HoleEditModal({ hole, holeInfo, onSave, onClose }) {
           </div>
         </div>
 
-        <button onClick={() => onSave({ ...hole, score, putts })}
+        <button onClick={() => onSave(hole.hole, score, putts)}
           className="w-full mt-6 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
           <Check className="w-5 h-5" /> Opslaan
         </button>
@@ -59,48 +59,45 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Sync holes als roundData van buiten verandert (bijv. na heropenen)
-  useEffect(() => {
-    setHoles(roundData.holes || []);
-    setHasChanges(false);
-  }, [roundData]);
-
   const totalScore = holes.reduce((s, h) => s + (h.score || 0), 0);
   const totalPutts = holes.reduce((s, h) => s + (h.putts || 0), 0);
   const totalStableford = holes.reduce((s, h) => s + (h.stablefordPts || 0), 0);
   const handicap = holes.find(h => h.handicapSnapshot)?.handicapSnapshot || roundData.handicapSnapshot || null;
 
-  const handleSaveHole = (updatedHole) => {
-    // Herbereken stableford voor deze hole als we par en handicap weten
-    const par = updatedHole.par;
-    const si = updatedHole.stroke_index_men || updatedHole.si || null;
-    const hcp = updatedHole.handicapSnapshot || roundData.holes?.find(h => h.handicapSnapshot)?.handicapSnapshot || null;
-    if (par && si && hcp) {
-      const playingHcp = Math.round(hcp / 2);
-      const extra = si <= playingHcp ? 1 : 0;
-      const net = updatedHole.score - par - extra;
-      updatedHole.stablefordPts = Math.max(0, 2 - net);
-    }
-    const newHoles = holes.map(h => h.hole === updatedHole.hole ? { ...updatedHole } : { ...h });
+  const handleSaveHole = (holeNumber, newScore, newPutts) => {
+    const newHoles = holes.map(h => {
+      if (h.hole !== holeNumber) return h;
+      // Herbereken stableford
+      const par = h.par;
+      const si = h.stroke_index_men || h.si || null;
+      const hcp = h.handicapSnapshot || holes.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
+      let stablefordPts = h.stablefordPts;
+      if (par && si && hcp) {
+        const playingHcp = Math.round(hcp / 2);
+        const extra = si <= playingHcp ? 1 : 0;
+        const net = newScore - par - extra;
+        stablefordPts = Math.max(0, 2 - net);
+      }
+      return { ...h, score: newScore, putts: newPutts, stablefordPts };
+    });
     setHoles([...newHoles]);
     setHasChanges(true);
     setEditingHole(null);
   };
 
   const handleSaveRound = async () => {
-    const updatedRound = { ...roundData, holes };
-    if (onSaveRound) await onSaveRound(updatedRound);
+    if (onSaveRound) await onSaveRound({ ...roundData, holes });
     setHasChanges(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
   return (
-    <div className="min-h-screen pb-6">
+    <div className="animate-slide-up min-h-screen pb-6">
       {editingHole && (
         <HoleEditModal
           hole={editingHole}
-          onSave={handleSaveHole}
+          onSave={(holeNumber, score, putts) => handleSaveHole(holeNumber, score, putts)}
           onClose={() => setEditingHole(null)}
         />
       )}
@@ -202,9 +199,9 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                     {hole.stablefordPts !== null && hole.stablefordPts !== undefined && (
                       <div className="font-display text-lg text-yellow-300">{hole.stablefordPts}pt</div>
                     )}
-                    <div className="font-body text-xs text-emerald-200/50">{hole.putts}p</div>
                     <button onClick={() => setEditingHole(hole)}
-                      className="p-2 rounded-lg hover:bg-white/10 transition">
+                      className="p-2 rounded-lg hover:bg-white/10 transition flex items-center gap-1">
+                      <span className="font-body text-xs text-emerald-200/50">{hole.putts}p</span>
                       <Edit2 className="w-4 h-4 text-emerald-400/60" />
                     </button>
                   </div>
