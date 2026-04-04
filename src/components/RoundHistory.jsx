@@ -92,8 +92,14 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
+  // Sync holes als roundData van buiten verandert
+  useEffect(() => {
+    setHoles(roundData.holes || []);
+    setHasChanges(false);
+  }, [roundData]);
+
   return (
-    <div className="animate-slide-up min-h-screen pb-6">
+    <div className="min-h-screen pb-6">
       {editingHole && (
         <HoleEditModal
           hole={editingHole}
