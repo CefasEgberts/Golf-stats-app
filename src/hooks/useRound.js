@@ -178,7 +178,7 @@ export const useRound = () => {
   }, []);
 
   return {
-    roundData, setRoundData, savedRounds,
+    roundData, setRoundData, savedRounds, setSavedRounds,
     currentHole, setCurrentHole,
     currentHoleInfo, setCurrentHoleInfo,
     currentHoleShots, setCurrentHoleShots,
