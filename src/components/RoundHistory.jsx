@@ -16,8 +16,8 @@ function HoleMap({ hole }) {
 
   React.useEffect(() => {
     // Haal tee/green GPS op als niet aanwezig
-    const teeLat = hole.teeLat || hole.tee_latitude || dbData.tee_latitude;
-    const greenLat = hole.greenLat || hole.latitude || dbData.latitude;
+    const teeLat = hole.teeLat || hole.tee_latitude;
+    const greenLat = hole.greenLat || hole.latitude;
     if (!teeLat || !greenLat) {
       // Zoek in Supabase
       const fetchHole = async () => {
@@ -112,13 +112,18 @@ function HoleMap({ hole }) {
     coords.push({ lat: greenLat, lng: greenLng, shot: { club: 'Green' }, real: false, isGreen: true });
   }
 
-  if (coords.length < 2) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center font-body text-sm text-white/40 px-8">
-        Geen GPS data. Voeg tee/green GPS coördinaten toe aan de database voor deze hole.
+  if (coords.length < 2) {
+    const hasDistanceData = shots.some(s => s.distancePlayed > 0);
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="text-center font-body text-sm text-white/40 px-8">
+          {hasDistanceData
+            ? 'GPS coördinaten voor tee/green ontbreken nog in de database voor deze hole. Zodra die zijn toegevoegd, verschijnt hier de route.'
+            : 'Geen slagdata beschikbaar voor deze hole.'}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   // SVG rendering
   const lats = coords.map(c => c.lat);
@@ -532,21 +537,23 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             return (
               <div key={`${hole.hole}-${hole.score}-${hole.putts}`} className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="font-display text-xl text-emerald-300">Hole {hole.hole}</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      <div className="font-display text-xl text-emerald-300">Hole {hole.hole}</div>
+                      {hole.stablefordPts != null && (
+                        <div className="font-display text-lg text-yellow-300">{hole.stablefordPts} PT</div>
+                      )}
+                    </div>
                     <span className="font-body text-xs text-white/40">
                       {[
                         hole.par ? `Par ${hole.par}` : null,
                         hole.stroke_index_men ? `SI ${hole.stroke_index_men}` : null,
                         hole.playingHcp != null && hole.stroke_index_men ? `${hole.stroke_index_men <= hole.playingHcp ? '1 slag mee' : '0 slagen mee'}` : null,
-                        `Aantal slagen: ${hole.score}`
                       ].filter(Boolean).join(' · ')}
                     </span>
+                    <span className="font-body text-xs text-white/40">Aantal slagen: {hole.score}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {hole.stablefordPts != null && (
-                      <div className="font-display text-lg text-yellow-300">{hole.stablefordPts} PT</div>
-                    )}
                     {(hole.shots?.some(s => s.gpsLat) || hole.shots?.some(s => s.distancePlayed > 0) || holeGpsData.some(h => h.hole_number === hole.hole && h.tee_latitude)) && (
                       <button onClick={() => setMapHole(hole)}
                         className="p-2 rounded-lg hover:bg-white/10 transition">
