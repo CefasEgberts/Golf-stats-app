@@ -101,8 +101,9 @@ function HoleMap({ hole }) {
     );
   }
 
-  // SVG rendering — tee ONDERAAN, green BOVENAAN
-  // Y-as: hogere lat = hoger op scherm (kleinere Y waarde)
+  // SVG rendering — tee ALTIJD ONDERAAN, green ALTIJD BOVENAAN
+  // Bepaal tee en green pixel-positie, schaal daarna alle punten zodat
+  // tee altijd onderaan (hoge Y) en green altijd bovenaan (lage Y) staat.
   const lats = coords.map(c => c.lat);
   const lngs = coords.map(c => c.lng);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -111,16 +112,17 @@ function HoleMap({ hole }) {
   const padLng = (maxLng - minLng) * 0.25 || 0.0002;
 
   const W = 300, H = 460;
-  // toX: normaal links-rechts
   const toX = (lng) => 20 + ((lng - (minLng - padLng)) / ((maxLng + padLng) - (minLng - padLng))) * (W - 40);
-  // toY: hoge lat = kleine Y (bovenaan) — geen inversie nodig, standaard geografisch
-  const toY = (lat) => H - 20 - ((lat - (minLat - padLat)) / ((maxLat + padLat) - (minLat - padLat))) * (H - 40);
+  // Standaard: hoge lat = hoog op scherm
+  const toYRaw = (lat) => H - 20 - ((lat - (minLat - padLat)) / ((maxLat + padLat) - (minLat - padLat))) * (H - 40);
+
+  // Tee moet ALTIJD onderaan (grote Y). Als tee nu bovenaan staat, flip de Y-as.
+  const teeYRaw = toYRaw(coords[0].lat);
+  const greenYRaw = toYRaw(coords[coords.length - 1].lat);
+  const flipY = teeYRaw < greenYRaw; // tee staat hoger dan green => omdraaien
+  const toY = (lat) => flipY ? (H - toYRaw(lat)) : toYRaw(lat);
 
   const pts = coords.map(c => ({ x: toX(c.lng), y: toY(c.lat), ...c }));
-
-  // Tee punt moet onderaan zijn — check of tee inderdaad laagste lat heeft
-  // (normaal is tee verder van green verwijderd, meestal hogere of lagere lat afhankelijk van baan)
-  // Door toY correct te implementeren staat de tee automatisch op de juiste plek
 
   return (
     <div className="w-full flex justify-center">
