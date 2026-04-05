@@ -102,7 +102,12 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                 <div className="font-body text-sm text-white/60 text-center">{hole.par || '-'}</div>
                 <div className="font-body text-sm text-white/40 text-center">{hole.stroke_index_men || '-'}</div>
                 <div className={`font-body text-sm text-center ${mee === 1 ? 'text-emerald-300' : 'text-white/30'}`}>{mee}</div>
-                <div className="font-display text-sm text-white text-center">{hole.score}</div>
+                <div className="font-display text-sm text-white text-center">
+                  {hole.score}
+                  {hole.par && <span className="font-body text-xs text-white/40 ml-1">
+                    ({hole.score - hole.par === 0 ? '0' : hole.score - hole.par > 0 ? `+${hole.score - hole.par}` : hole.score - hole.par})
+                  </span>}
+                </div>
                 <div className="font-display text-sm text-yellow-300 text-right">{hole.stablefordPts ?? '-'}</div>
               </div>
               );
