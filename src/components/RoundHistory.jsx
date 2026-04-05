@@ -77,10 +77,10 @@ function HoleMap({ hole }) {
     return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   };
 
-  // Bouw punten op
-  const teeLat = hole.teeLat || hole.tee_latitude;
+  // Bouw punten op — gebruik hole-data óf opgehaalde DB-data
+  const teeLat = hole.teeLat || hole.tee_latitude || dbData.tee_latitude;
   const teeLng = hole.teeLng || hole.tee_longitude || dbData.tee_longitude;
-  const greenLat = hole.greenLat || hole.latitude;
+  const greenLat = hole.greenLat || hole.latitude || dbData.latitude;
   const greenLng = hole.greenLng || hole.longitude || dbData.longitude;
 
   let coords = [];
