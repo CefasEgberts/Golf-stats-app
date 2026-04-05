@@ -15,10 +15,13 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const [originalPutts, setOriginalPutts] = React.useState(0);
+
   const openEdit = (hole) => {
     setEditingHole(hole.hole);
     setEditScore(hole.score || 0);
     setEditPutts(hole.putts || 0);
+    setOriginalPutts(hole.putts || 0);
   };
 
   const holesRef = React.useRef(holes);
@@ -73,7 +76,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
               <div>
                 <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-3">Score (totaal slagen)</div>
                 <div className="flex items-center gap-4 justify-center">
-                  <button onClick={() => setEditScore(s => Math.max(1, s - 1))}
+                  <button onClick={() => setEditScore(s => Math.max(editPutts + 1, s - 1))}
                     className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">−</button>
                   <div className="font-display text-6xl text-white w-20 text-center">{editScore}</div>
                   <button onClick={() => setEditScore(s => s + 1)}
@@ -83,10 +86,10 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
               <div>
                 <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-3">Putts</div>
                 <div className="flex items-center gap-4 justify-center">
-                  <button onClick={() => setEditPutts(p => Math.max(0, p - 1))}
+                  <button onClick={() => { const np = Math.max(0, editPutts - 1); setEditScore(s => s - editPutts + np); setEditPutts(np); }}
                     className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">−</button>
                   <div className="font-display text-6xl text-white w-20 text-center">{editPutts}</div>
-                  <button onClick={() => setEditPutts(p => p + 1)}
+                  <button onClick={() => { const np = editPutts + 1; setEditScore(s => s - editPutts + np); setEditPutts(np); }}
                     className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">+</button>
                 </div>
               </div>
