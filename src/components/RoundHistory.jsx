@@ -11,7 +11,35 @@ function formatDate(dateStr) {
 // ── HoleMap: teken GPS trail per hole ─────────────────────────────
 // Werkt met echte GPS coördinaten OF berekend vanuit tee+richting+afstand+positie
 function HoleMap({ hole }) {
+  const [holeDb, setHoleDb] = React.useState(null);
   const shots = (hole.shots || []).filter(s => s.club !== 'Putter');
+
+  React.useEffect(() => {
+    // Haal tee/green GPS op als niet aanwezig
+    const teeLat = hole.teeLat || hole.tee_latitude || dbData.tee_latitude;
+    const greenLat = hole.greenLat || hole.latitude || dbData.latitude;
+    if (!teeLat || !greenLat) {
+      // Zoek in Supabase
+      const fetchHole = async () => {
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const courseName = hole.courseName;
+          const loopId = hole.loopId;
+          if (!courseName || !loopId) return;
+          const courseId = courseName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + loopId;
+          const { data } = await supabase.from('golf_holes')
+            .select('tee_latitude,tee_longitude,latitude,longitude,green_front_lat,green_front_lng,green_back_lat,green_back_lng')
+            .eq('course_id', courseId)
+            .eq('hole_number', hole.hole)
+            .single();
+          if (data) setHoleDb(data);
+        } catch {}
+      };
+      fetchHole();
+    }
+  }, [hole]);
+
+  const dbData = holeDb || {};
 
   // Bereken punt op basis van startpunt, richting, afstand en zijkant
   const calcPoint = (startLat, startLng, bearingDeg, distanceM, side) => {
@@ -52,9 +80,9 @@ function HoleMap({ hole }) {
 
   // Bouw punten op
   const teeLat = hole.teeLat || hole.tee_latitude;
-  const teeLng = hole.teeLng || hole.tee_longitude;
+  const teeLng = hole.teeLng || hole.tee_longitude || dbData.tee_longitude;
   const greenLat = hole.greenLat || hole.latitude;
-  const greenLng = hole.greenLng || hole.longitude;
+  const greenLng = hole.greenLng || hole.longitude || dbData.longitude;
 
   let coords = [];
 
@@ -349,6 +377,8 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           <div className="flex-1 px-4 pb-4" onClick={e => e.stopPropagation()}>
             <HoleMap hole={{
                 ...mapHole,
+                courseName: roundData.course?.name,
+                loopId: roundData.loop?.id || roundData.loop,
                 ...(holeGpsData.find(h => h.hole_number === mapHole.hole) || {})
               }} />
           </div>
@@ -518,7 +548,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                     {hole.stablefordPts != null && (
                       <div className="font-display text-lg text-yellow-300">{hole.stablefordPts} PT</div>
                     )}
-                    {(hole.shots?.some(s => s.gpsLat) || holeGpsData.some(h => h.hole_number === hole.hole && h.tee_latitude)) && (
+                    {(hole.shots?.some(s => s.gpsLat) || hole.shots?.some(s => s.distancePlayed > 0) || holeGpsData.some(h => h.hole_number === hole.hole && h.tee_latitude)) && (
                       <button onClick={() => setMapHole(hole)}
                         className="p-2 rounded-lg hover:bg-white/10 transition">
                         <Map className="w-4 h-4 text-blue-400/60" />
