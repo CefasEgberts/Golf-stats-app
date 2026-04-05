@@ -196,6 +196,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [mapHole, setMapHole] = useState(null);
 
   const [originalPutts, setOriginalPutts] = React.useState(0);
+  const [shotPositions, setShotPositions] = React.useState({});
 
   const openEdit = (hole) => {
     setEditingHole(hole.hole);
@@ -204,6 +205,10 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
     setEditPutts(hole.putts || 0);
     setEditScore(nonPuttShots + (hole.putts || 0) + penalties);
     setOriginalPutts(hole.putts || 0);
+    // Laad bestaande posities
+    const pos = {};
+    (hole.shots || []).forEach(s => { if (s.position) pos[s.shotNumber] = s.position; });
+    setShotPositions(pos);
   };
 
   const holesRef = React.useRef(holes);
@@ -226,7 +231,12 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         const net = newScore - par - extra;
         stablefordPts = Math.max(0, 2 - net);
       }
-      return { ...h, score: newScore, putts: editPutts, stablefordPts };
+      // Update shot posities
+      const updatedShots = (h.shots || []).map(s => ({
+        ...s,
+        ...(shotPositions[s.shotNumber] ? { position: shotPositions[s.shotNumber] } : {})
+      }));
+      return { ...h, score: newScore, putts: editPutts, stablefordPts, shots: updatedShots };
     });
     holesRef.current = updated;
     setHoles([...updated]);
@@ -372,6 +382,28 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                 </div>
               </div>
             </div>
+            {/* Positie per slag */}
+            {holesRef.current.find(h => Number(h.hole) === Number(editingHole))?.shots
+              ?.filter(s => s.club !== 'Putter' && s.club !== 'Strafslag')
+              .map(shot => (
+              <div key={shot.shotNumber} className="mt-2">
+                <div className="font-body text-xs text-emerald-200/70 mb-2">
+                  Slag {shot.shotNumber}: {shot.club} — positie
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {['links', 'midden', 'rechts'].map(pos => (
+                    <button key={pos} onClick={() => setShotPositions(p => ({ ...p, [shot.shotNumber]: p[shot.shotNumber] === pos ? null : pos }))}
+                      className={'rounded-xl py-2 font-body text-sm transition border ' +
+                        (shotPositions[shot.shotNumber] === pos
+                          ? 'bg-blue-500 border-blue-400 text-white'
+                          : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/15')}>
+                      {pos}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
             <button onClick={confirmEdit}
               className="w-full mt-6 btn-primary rounded-xl py-4 font-display text-xl tracking-wider flex items-center justify-center gap-2">
               <Check className="w-5 h-5" /> Opslaan
@@ -509,7 +541,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                             <span className="font-body text-white/40">{shot.lie}</span>
                           )}
                           {shot.position && (
-                            <span className="font-body text-white/30">{shot.position}</span>
+                            <span className="font-body text-white/30">({shot.position})</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
