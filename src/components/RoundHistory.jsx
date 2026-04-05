@@ -23,13 +23,12 @@ function HoleMap({ hole }) {
       const fetchHole = async () => {
         try {
           const { supabase } = await import('../lib/supabase');
-          const courseName = hole.courseName;
           const loopId = hole.loopId;
-          if (!courseName || !loopId) return;
-          const courseId = courseName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + loopId;
+          if (!loopId) return;
+          // Zoek op loop_id en hole_number — werkt altijd ongeacht course naam
           const { data } = await supabase.from('golf_holes')
             .select('tee_latitude,tee_longitude,latitude,longitude,green_front_lat,green_front_lng,green_back_lat,green_back_lng')
-            .eq('course_id', courseId)
+            .eq('loop_id', loopId)
             .eq('hole_number', hole.hole)
             .single();
           if (data) setHoleDb(data);
