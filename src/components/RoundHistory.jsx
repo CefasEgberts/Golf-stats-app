@@ -8,208 +8,171 @@ function formatDate(dateStr) {
 }
 
 
-// ── HoleMap: teken GPS trail per hole ─────────────────────────────
+// ── HoleMap: schematisch kaartje van gespeelde hole ──────────────
 function HoleMap({ hole }) {
-  const [holeDb, setHoleDb] = React.useState(null);
   const shots = (hole.shots || []).filter(s => s.club !== 'Putter');
 
-  React.useEffect(() => {
-    const fetchHole = async () => {
-      try {
-        const { supabase } = await import('../lib/supabase');
-        const loopId = hole.loopId;
-        if (!loopId) return;
-        const { data } = await supabase.from('golf_holes')
-          .select('tee_latitude,tee_longitude,latitude,longitude,photo_url')
-          .eq('loop_id', loopId)
-          .eq('hole_number', hole.hole)
-          .single();
-        if (data) setHoleDb(data);
-      } catch {}
+  const W = 280, H = 480;
+  const TEE_X = W / 2, TEE_Y = H - 40;
+  const GREEN_X = W / 2, GREEN_Y = 50;
+
+  // Club afkorting
+  const clubAbbr = (club) => {
+    if (!club) return '?';
+    const map = {
+      'Driver': 'D', 'Fairway hout 3': '3H', 'Fairway hout 5': '5H',
+      'Hybride 3': 'H3', 'Hybride 4': 'H4', 'Hybride 5': 'H5',
+      'Ijzer 3': '3', 'Ijzer 4': '4', 'Ijzer 5': '5', 'Ijzer 6': '6',
+      'Ijzer 7': '7', 'Ijzer 8': '8', 'Ijzer 9': '9',
+      'Pitching wedge': 'PW', 'Gap wedge': 'GW', 'Sand wedge': 'SW',
+      'Lob wedge': 'LW', 'Approach wedge': 'AW',
     };
-    fetchHole();
-  }, [hole]);
-
-  const dbData = holeDb || {};
-
-  // Bereken punt op basis van startpunt, richting, afstand en zijkant
-  const calcPoint = (startLat, startLng, bearingDeg, distanceM, side) => {
-    const R = 6371000;
-    const bear = (bearingDeg * Math.PI) / 180;
-    const sideOffset = side === 'links' ? -15 : side === 'rechts' ? 15 : 0;
-    const perpBear = bear + Math.PI / 2;
-    const lat1 = (startLat * Math.PI) / 180;
-    const lng1 = (startLng * Math.PI) / 180;
-    const lat2 = Math.asin(Math.sin(lat1) * Math.cos(distanceM / R) +
-      Math.cos(lat1) * Math.sin(distanceM / R) * Math.cos(bear));
-    const lng2 = lng1 + Math.atan2(Math.sin(bear) * Math.sin(distanceM / R) * Math.cos(lat1),
-      Math.cos(distanceM / R) - Math.sin(lat1) * Math.sin(lat2));
-    const lat3 = Math.asin(Math.sin(lat2) * Math.cos(Math.abs(sideOffset) / R) +
-      Math.cos(lat2) * Math.sin(Math.abs(sideOffset) / R) * Math.cos(sideOffset < 0 ? perpBear + Math.PI : perpBear));
-    const lng3 = lng2 + Math.atan2(
-      Math.sin(sideOffset < 0 ? perpBear + Math.PI : perpBear) * Math.sin(Math.abs(sideOffset) / R) * Math.cos(lat2),
-      Math.cos(Math.abs(sideOffset) / R) - Math.sin(lat2) * Math.sin(lat3));
-    return { lat: (lat3 * 180) / Math.PI, lng: (lng3 * 180) / Math.PI };
+    if (map[club]) return map[club];
+    // Fallback: eerste 2 letters
+    return club.substring(0, 2).toUpperCase();
   };
 
-  const calcBearing = (lat1, lng1, lat2, lng2) => {
-    const dLng = ((lng2 - lng1) * Math.PI) / 180;
-    const rlat1 = (lat1 * Math.PI) / 180;
-    const rlat2 = (lat2 * Math.PI) / 180;
-    const y = Math.sin(dLng) * Math.cos(rlat2);
-    const x = Math.cos(rlat1) * Math.sin(rlat2) - Math.sin(rlat1) * Math.cos(rlat2) * Math.cos(dLng);
-    return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
-  };
+  // Bouw het pad op — elke slag heeft een richting en afstand
+  // Richting: midden = recht, links = schuin links, rechts = schuin rechts
+  // We tekenen in SVG-coordinaten: x groter = rechts, y kleiner = omhoog
+  const STEP_SCALE = 1.1; // pixels per meter — past automatisch
+  
+  // Bereken totale verticale ruimte beschikbaar
+  const availableH = TEE_Y - GREEN_Y - 20;
+  const totalDist = shots.reduce((s, sh) => s + (sh.distancePlayed || 80), 0);
+  const scale = totalDist > 0 ? Math.min(availableH / totalDist, 1.5) : 1;
 
-  const teeLat = hole.teeLat || hole.tee_latitude || dbData.tee_latitude;
-  const teeLng = hole.teeLng || hole.tee_longitude || dbData.tee_longitude;
-  const greenLat = hole.greenLat || hole.latitude || dbData.latitude;
-  const greenLng = hole.greenLng || hole.longitude || dbData.longitude;
-  const photoUrl = dbData.photo_url || null;
+  let points = [{ x: TEE_X, y: TEE_Y }];
+  let cx = TEE_X, cy = TEE_Y;
 
-  let coords = [];
+  shots.forEach((shot) => {
+    const dist = (shot.distancePlayed || 80) * scale;
+    const angle = shot.position === 'links' ? -25 : shot.position === 'rechts' ? 25 : 0; // graden afwijking
+    const rad = (angle * Math.PI) / 180;
+    // Recht omhoog = negatieve Y richting, zijwaarts via sin(angle)
+    const dx = Math.sin(rad) * dist;
+    const dy = -Math.cos(rad) * dist;
+    cx += dx;
+    cy += dy;
+    points.push({ x: cx, y: cy, shot });
+  });
 
-  if (shots.some(s => s.gpsLat)) {
-    coords = shots.filter(s => s.gpsLat).map(s => ({
-      lat: s.gpsLat, lng: s.gpsLng, shot: s, real: true
-    }));
-  } else if (teeLat && teeLng && greenLat && greenLng) {
-    const dir = calcBearing(teeLat, teeLng, greenLat, greenLng);
-    let curLat = teeLat, curLng = teeLng;
-    coords = [{ lat: teeLat, lng: teeLng, shot: { club: 'Tee' }, real: false }];
-    shots.forEach(s => {
-      const dist = s.distancePlayed || 0;
-      if (dist > 0) {
-        const pt = calcPoint(curLat, curLng, dir, dist, s.position);
-        curLat = pt.lat; curLng = pt.lng;
-        coords.push({ lat: pt.lat, lng: pt.lng, shot: s, real: false });
-      }
-    });
-    coords.push({ lat: greenLat, lng: greenLng, shot: { club: 'Green' }, real: false, isGreen: true });
-  }
-
-  if (coords.length < 2) {
-    const hasDistanceData = shots.some(s => s.distancePlayed > 0);
-    return (
-      <div className="flex items-center justify-center h-48">
-        <div className="text-center font-body text-sm text-white/40 px-8">
-          {hasDistanceData
-            ? 'GPS coordinaten voor tee/green ontbreken nog in de database voor deze hole.'
-            : 'Geen slagdata beschikbaar voor deze hole.'}
-        </div>
-      </div>
-    );
-  }
-
-  // SVG rendering — tee ALTIJD ONDERAAN, green ALTIJD BOVENAAN
-  // Bepaal tee en green pixel-positie, schaal daarna alle punten zodat
-  // tee altijd onderaan (hoge Y) en green altijd bovenaan (lage Y) staat.
-  const lats = coords.map(c => c.lat);
-  const lngs = coords.map(c => c.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const padLat = (maxLat - minLat) * 0.25 || 0.0002;
-  const padLng = (maxLng - minLng) * 0.25 || 0.0002;
-
-  const W = 300, H = 460;
-  const toX = (lng) => 20 + ((lng - (minLng - padLng)) / ((maxLng + padLng) - (minLng - padLng))) * (W - 40);
-  // Standaard: hoge lat = hoog op scherm
-  const toYRaw = (lat) => H - 20 - ((lat - (minLat - padLat)) / ((maxLat + padLat) - (minLat - padLat))) * (H - 40);
-
-  // Tee moet ALTIJD onderaan (grote Y). Als tee nu bovenaan staat, flip de Y-as.
-  const teeYRaw = toYRaw(coords[0].lat);
-  const greenYRaw = toYRaw(coords[coords.length - 1].lat);
-  const flipY = teeYRaw < greenYRaw; // tee staat hoger dan green => omdraaien
-  const toY = (lat) => flipY ? (H - toYRaw(lat)) : toYRaw(lat);
-
-  const pts = coords.map(c => ({ x: toX(c.lng), y: toY(c.lat), ...c }));
+  // Laatste slag punt
+  const lastPt = points[points.length - 1];
 
   return (
     <div className="w-full flex justify-center">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-xs rounded-2xl border border-white/10"
-        style={{ background: photoUrl ? 'none' : 'linear-gradient(180deg, rgba(0,30,15,0.95) 0%, rgba(0,50,25,0.95) 100%)' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-xs rounded-2xl"
+        style={{ background: 'none' }}>
 
-        {/* Hole foto als achtergrond */}
-        {photoUrl && (
-          <>
-            <defs>
-              <clipPath id="roundedClip">
-                <rect x="0" y="0" width={W} height={H} rx="16" />
-              </clipPath>
-            </defs>
-            <image href={photoUrl} x="0" y="0" width={W} height={H}
-              clipPath="url(#roundedClip)" preserveAspectRatio="xMidYMid slice" />
-            {/* Donkere overlay voor leesbaarheid */}
-            <rect x="0" y="0" width={W} height={H} fill="rgba(0,0,0,0.45)" rx="16" />
-          </>
-        )}
+        {/* Groen veld achtergrond */}
+        <defs>
+          <linearGradient id="fairwayGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#166534" />
+            <stop offset="100%" stopColor="#14532d" />
+          </linearGradient>
+          <radialGradient id="greenGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#16a34a" />
+            <stop offset="100%" stopColor="#15803d" />
+          </radialGradient>
+        </defs>
 
-        {/* Fairway achtergrond lijn */}
-        <polyline
-          points={pts.map(p => `${p.x},${p.y}`).join(' ')}
-          fill="none" stroke="rgba(16,185,129,0.2)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Achtergrond */}
+        <rect x="0" y="0" width={W} height={H} rx="16" fill="url(#fairwayGrad)" />
 
-        {/* Blauwe route lijn */}
-        {pts.map((p, i) => i < pts.length - 1 ? (
-          <line key={i} x1={p.x} y1={p.y} x2={pts[i+1].x} y2={pts[i+1].y}
-            stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" opacity="0.9"
-            strokeDasharray={pts[i+1].isGreen ? "4,3" : "none"} />
-        ) : null)}
+        {/* Fairway strook */}
+        <rect x={W/2 - 45} y="30" width="90" height={H - 60} rx="45"
+          fill="rgba(22,163,74,0.35)" />
 
-        {/* Green cirkel */}
-        {pts[pts.length-1] && (
-          <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y}
-            r="14" fill="rgba(16,185,129,0.35)" stroke="#10b981" strokeWidth="2" />
-        )}
+        {/* Green bovenaan */}
+        <ellipse cx={GREEN_X} cy={GREEN_Y} rx="38" ry="22"
+          fill="url(#greenGrad)" stroke="#4ade80" strokeWidth="1.5" opacity="0.9" />
+        <text x={GREEN_X} y={GREEN_Y + 4} textAnchor="middle"
+          fill="white" fontSize="9" fontWeight="bold" opacity="0.8">GREEN</text>
 
         {/* Vlag op green */}
-        {pts[pts.length-1] && (
+        <line x1={GREEN_X} y1={GREEN_Y - 22} x2={GREEN_X} y2={GREEN_Y - 42}
+          stroke="white" strokeWidth="1.5" opacity="0.8" />
+        <polygon points={`${GREEN_X},${GREEN_Y-42} ${GREEN_X+12},${GREEN_Y-36} ${GREEN_X},${GREEN_Y-30}`}
+          fill="#ef4444" />
+
+        {/* Gestippelde lijn van laatste slagpunt naar green */}
+        <line x1={lastPt.x} y1={lastPt.y} x2={GREEN_X} y2={GREEN_Y + 22}
+          stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="5,4" />
+
+        {/* Slaglijnen */}
+        {points.map((pt, i) => {
+          if (i === 0) return null;
+          const prev = points[i - 1];
+          const shot = pt.shot;
+          const midX = (prev.x + pt.x) / 2;
+          const midY = (prev.y + pt.y) / 2;
+          const abbr = clubAbbr(shot?.club);
+          const dist = shot?.distancePlayed;
+          return (
+            <g key={i}>
+              {/* Lijn */}
+              <line x1={prev.x} y1={prev.y} x2={pt.x} y2={pt.y}
+                stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" opacity="0.95" />
+              {/* Label naast lijn */}
+              <g transform={`translate(${midX + (prev.x < pt.x ? 10 : prev.x > pt.x ? -10 : 10)}, ${midY})`}>
+                <rect x="-1" y="-10" width={dist ? 44 : 22} height="14" rx="3"
+                  fill="rgba(0,0,0,0.55)" />
+                <text x="2" y="1" fill="#60a5fa" fontSize="9" fontWeight="bold">{abbr}</text>
+                {dist && <text x="16" y="1" fill="white" fontSize="9" opacity="0.9">{dist}m</text>}
+              </g>
+            </g>
+          );
+        })}
+
+        {/* Slag eindpunten (niet tee) */}
+        {points.map((pt, i) => {
+          if (i === 0) return null;
+          const shot = pt.shot;
+          const isLast = i === points.length - 1;
+          return (
+            <g key={`dot-${i}`}>
+              <circle cx={pt.x} cy={pt.y} r="9"
+                fill={shot?.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6'}
+                stroke="white" strokeWidth="1.5" />
+              <text x={pt.x} y={pt.y + 4} textAnchor="middle"
+                fill="white" fontSize="9" fontWeight="bold">{i}</text>
+            </g>
+          );
+        })}
+
+        {/* Tee onderaan midden */}
+        <circle cx={TEE_X} cy={TEE_Y} r="12" fill="#10b981" stroke="white" strokeWidth="2" />
+        <text x={TEE_X} y={TEE_Y + 5} textAnchor="middle"
+          fill="white" fontSize="11" fontWeight="bold">T</text>
+
+        {/* Putts label als er putts zijn */}
+        {hole.putts > 0 && (
           <g>
-            <line x1={pts[pts.length-1].x} y1={pts[pts.length-1].y - 14}
-              x2={pts[pts.length-1].x} y2={pts[pts.length-1].y - 28}
-              stroke="white" strokeWidth="1.5" />
-            <polygon points={`${pts[pts.length-1].x},${pts[pts.length-1].y-28} ${pts[pts.length-1].x+10},${pts[pts.length-1].y-23} ${pts[pts.length-1].x},${pts[pts.length-1].y-18}`}
-              fill="#ef4444" />
+            <rect x={GREEN_X - 28} y={GREEN_Y + 26} width="56" height="14" rx="4"
+              fill="rgba(0,0,0,0.5)" />
+            <text x={GREEN_X} y={GREEN_Y + 36} textAnchor="middle"
+              fill="#a7f3d0" fontSize="8">{hole.putts} putt{hole.putts !== 1 ? 's' : ''}</text>
           </g>
         )}
 
-        {/* Slag punten */}
-        {pts.filter((p, i) => i > 0 && !p.isGreen).map((p, i) => (
-          <g key={i}>
-            <circle cx={p.x} cy={p.y} r="11"
-              fill={p.shot.position && p.shot.position !== 'midden' ? '#f59e0b' : '#3b82f6'}
-              stroke="white" strokeWidth="2" />
-            <text x={p.x} y={p.y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">{i + 1}</text>
-            {p.shot.distancePlayed > 0 && (
-              <text x={p.x + 15} y={p.y - 3} fill="white" fontSize="9" opacity="0.9"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.shot.distancePlayed}m</text>
-            )}
-            {p.shot.position && p.shot.position !== 'midden' && (
-              <text x={p.x + 15} y={p.y + 9} fill="#f59e0b" fontSize="8" opacity="0.9">{p.shot.position}</text>
-            )}
-          </g>
-        ))}
-
-        {/* Tee punt */}
-        {pts[0] && (
-          <g>
-            <circle cx={pts[0].x} cy={pts[0].y} r="10" fill="#10b981" stroke="white" strokeWidth="2" />
-            <text x={pts[0].x} y={pts[0].y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">T</text>
-          </g>
+        {/* Hole nummer + par */}
+        <rect x="8" y="8" width="70" height="26" rx="6" fill="rgba(0,0,0,0.45)" />
+        <text x="16" y="24" fill="white" fontSize="11" fontWeight="bold">
+          Hole {hole.hole}
+        </text>
+        {hole.par && (
+          <text x="57" y="24" fill="#86efac" fontSize="9">p{hole.par}</text>
         )}
 
-        {/* Legenda */}
-        <rect x="8" y={H - 45} width="120" height="38" rx="6" fill="rgba(0,0,0,0.55)" />
-        <circle cx="20" cy={H - 30} r="5" fill="#10b981" />
-        <text x="29" y={H - 26} fill="white" fontSize="8" opacity="0.8">Tee / Green</text>
-        <circle cx="20" cy={H - 16} r="5" fill="#3b82f6" />
-        <text x="29" y={H - 12} fill="white" fontSize="8" opacity="0.8">Slag (midden)</text>
-        <circle cx="78" cy={H - 16} r="5" fill="#f59e0b" />
-        <text x="87" y={H - 12} fill="white" fontSize="8" opacity="0.8">L/R</text>
-
-        {/* Geschatte posities label */}
-        {!coords[1]?.real && (
-          <text x={W / 2} y="16" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="8">Geschatte posities</text>
+        {/* Score rechtsboven */}
+        {hole.score && (
+          <g>
+            <rect x={W - 50} y="8" width="42" height="26" rx="6" fill="rgba(0,0,0,0.45)" />
+            <text x={W - 29} y="24" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
+              {hole.score} sl.
+            </text>
+          </g>
         )}
       </svg>
     </div>
@@ -554,7 +517,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                     <span className="font-body text-xs text-white/40">Aantal slagen: {hole.score}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {(hole.shots?.some(s => s.gpsLat) || hole.shots?.some(s => s.distancePlayed > 0) || holeGpsData.some(h => h.hole_number === hole.hole && h.tee_latitude)) && (
+                    {(hole.shots?.filter(s => s.club !== 'Putter').length > 0) && (
                       <button onClick={() => setMapHole(hole)}
                         className="p-2 rounded-lg hover:bg-white/10 transition">
                         <Map className="w-4 h-4 text-blue-400/60" />
