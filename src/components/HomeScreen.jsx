@@ -23,6 +23,9 @@ export default function HomeScreen({
               <X className="w-5 h-5" />
             </button>
           </div>
+          {!course.phone && !course.address && !course.email && (
+            <p className="font-body text-sm text-emerald-200/50 mb-4">Geen contactgegevens beschikbaar voor deze baan.</p>
+          )}
           {course.description && (
             <p className="font-body text-sm text-emerald-200/80 mb-4 leading-relaxed">{course.description}</p>
           )}

@@ -35,17 +35,34 @@ export const useRound = () => {
         .eq('user_id', userId)
         .order('date', { ascending: false });
       if (!error && data) {
-        setSavedRounds(data.map(r => ({
-          id: r.id,
-          course: { name: r.course_name },
-          loop: r.loop_id,
-          teeColor: r.tee_color,
-          date: r.date,
-          startTime: r.start_time,
-          temperature: r.temperature,
-          holes: r.holes || [],
-          totalScore: r.total_score
-        })));
+        // Haal ook course details op
+        const courseNames = [...new Set(data.map(r => r.course_name).filter(Boolean))];
+        let courseDetails = {};
+        if (courseNames.length > 0) {
+          const { data: courses } = await supabase.from('golf_courses').select('*').in('name', courseNames);
+          if (courses) courses.forEach(c => { courseDetails[c.name] = c; });
+        }
+
+        setSavedRounds(data.map(r => {
+          const cd = courseDetails[r.course_name] || {};
+          return {
+            id: r.id,
+            course: {
+              name: r.course_name,
+              address: cd.address || null, postal_code: cd.postal_code || null,
+              city: cd.city || null, phone: cd.phone || null,
+              email: cd.email || null, website: cd.website || null,
+              description: cd.description || null, extra_info: cd.extra_info || null
+            },
+            loop: r.loop_id,
+            teeColor: r.tee_color,
+            date: r.date,
+            startTime: r.start_time,
+            temperature: r.temperature,
+            holes: r.holes || [],
+            totalScore: r.total_score
+          };
+        }));
       }
     } catch (e) {
       console.error('Fout bij laden rondes:', e);

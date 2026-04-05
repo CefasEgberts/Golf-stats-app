@@ -198,15 +198,14 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                       <div className="font-display text-lg text-yellow-300">{hole.stablefordPts}pt</div>
                     )}
                     <button onClick={() => openEdit(hole)}
-                      className="p-2 rounded-lg hover:bg-white/10 transition flex items-center gap-1">
-                      <span className="font-body text-xs text-emerald-200/50">{hole.putts}p</span>
+                      className="p-2 rounded-lg hover:bg-white/10 transition">
                       <Edit2 className="w-4 h-4 text-emerald-400/60" />
                     </button>
                   </div>
                 </div>
                 {hole.shots && hole.shots.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    {hole.shots.map((shot) => (
+                    {hole.shots.filter(s => s.club !== 'Putter').map((shot) => (
                       <div key={shot.shotNumber} className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-3 py-1.5">
                         <div className="flex items-center gap-2">
                           <span className="font-display text-emerald-300">{shot.shotNumber}.</span>
@@ -220,6 +219,16 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                         )}
                       </div>
                     ))}
+                    {hole.putts > 0 && (
+                      <div className="flex items-center justify-between text-xs bg-white/5 rounded-lg px-3 py-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-emerald-300">{hole.shots.filter(s => s.club !== 'Putter').length + 1}.</span>
+                          <span className="font-body text-white">Putter</span>
+                          <span className="font-body text-white/40">green</span>
+                        </div>
+                        <span className="font-body text-emerald-200/50">{hole.putts} putt{hole.putts !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
