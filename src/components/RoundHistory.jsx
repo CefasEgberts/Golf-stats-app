@@ -19,8 +19,10 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
 
   const openEdit = (hole) => {
     setEditingHole(hole.hole);
-    setEditScore(hole.score || 0);
+    const nonPuttShots = (hole.shots || []).filter(s => s.club !== 'Putter' && s.club !== 'Strafslag').length;
+    const penalties = (hole.shots || []).filter(s => s.club === 'Strafslag').reduce((sum, s) => sum + (s.penaltyStrokes || 0), 0);
     setEditPutts(hole.putts || 0);
+    setEditScore(nonPuttShots + (hole.putts || 0) + penalties);
     setOriginalPutts(hole.putts || 0);
   };
 
@@ -30,6 +32,10 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const confirmEdit = () => {
     const updated = holesRef.current.map(h => {
       if (Number(h.hole) !== Number(editingHole)) return h;
+      // Score = niet-putt slagen + putts
+      const nonPuttShots = (h.shots || []).filter(s => s.club !== 'Putter' && s.club !== 'Strafslag').length;
+      const penalties = (h.shots || []).filter(s => s.club === 'Strafslag').reduce((sum, s) => sum + (s.penaltyStrokes || 0), 0);
+      const newScore = nonPuttShots + editPutts + penalties;
       const par = h.par;
       const si = h.stroke_index_men || h.si || null;
       const hcp = h.handicapSnapshot || holesRef.current.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
@@ -37,10 +43,10 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       if (par && si && hcp) {
         const playingHcp = Math.round(hcp / 2);
         const extra = si <= playingHcp ? 1 : 0;
-        const net = editScore - par - extra;
+        const net = newScore - par - extra;
         stablefordPts = Math.max(0, 2 - net);
       }
-      return { ...h, score: editScore, putts: editPutts, stablefordPts };
+      return { ...h, score: newScore, putts: editPutts, stablefordPts };
     });
     holesRef.current = updated;
     setHoles([...updated]);
@@ -74,13 +80,10 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             </div>
             <div className="space-y-6">
               <div>
-                <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-3">Score (totaal slagen)</div>
-                <div className="flex items-center gap-4 justify-center">
-                  <button onClick={() => setEditScore(s => Math.max(editPutts + 1, s - 1))}
-                    className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">−</button>
-                  <div className="font-display text-6xl text-white w-20 text-center">{editScore}</div>
-                  <button onClick={() => setEditScore(s => s + 1)}
-                    className="w-14 h-14 rounded-xl bg-white/10 font-display text-3xl text-white hover:bg-white/20 active:bg-white/30 transition">+</button>
+                <div className="font-body text-xs text-emerald-200/70 uppercase tracking-wider mb-1">Score (automatisch berekend)</div>
+                <div className="text-center py-3">
+                  <div className="font-display text-5xl text-white/50">{editScore}</div>
+                  <div className="font-body text-xs text-emerald-200/40 mt-1">slagen buiten green + putts</div>
                 </div>
               </div>
               <div>
@@ -185,13 +188,15 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             return (
               <div key={`${hole.hole}-${hole.score}-${hole.putts}`} className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="font-display text-xl text-emerald-300 w-16">Hole {hole.hole}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-display text-xl text-emerald-300">Hole {hole.hole}</div>
+                    {hole.par && <div className="font-body text-xs text-white/40">Par {hole.par}</div>}
+                    {(hole.stroke_index_men || hole.si) && <div className="font-body text-xs text-white/30">SI {hole.stroke_index_men || hole.si}</div>}
                     <div className={`font-display text-2xl ${scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300'}`}>
                       {hole.score}
                     </div>
                     {scoreToPar !== null && (
-                      <div className="font-body text-xs text-white/40">
+                      <div className={`font-body text-xs ${scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white/50' : 'text-red-300'}`}>
                         {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar < 0 ? scoreToPar : 'Par'}
                       </div>
                     )}

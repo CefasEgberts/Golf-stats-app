@@ -63,6 +63,7 @@ export const useRound = () => {
             totalScore: r.total_score
           };
         }));
+        console.log('Loaded', data.length, 'rounds');
       }
     } catch (e) {
       console.error('Fout bij laden rondes:', e);

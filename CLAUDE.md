@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v2.90
+- **Versie**: v2.91
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -125,7 +125,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v2.90)
+## Huidige Features (v2.91)
 1. Splash screen met weer + begroeting + versienummer
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
@@ -198,6 +198,8 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 70. **Putts als slag** in scorekaart (putts meegeteld in slagen-weergave)
 71. **Info knop laadt course details** (HomeScreen haalt baaninfo op uit database)
 72. **Score volgt putts** (score past automatisch mee als putts wijzigt, minimum score = putts+1)
+73. **Score = slagen + putts** (score automatisch berekend uit aantal slagen + putts)
+74. **Par/SI in hole header** (par en stroke index zichtbaar in scorekaart hole header)
 
 ## TODO's
 
