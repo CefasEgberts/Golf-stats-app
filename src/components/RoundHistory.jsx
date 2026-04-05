@@ -14,6 +14,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [editPutts, setEditPutts] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [listView, setListView] = useState(false);
 
   const [originalPutts, setOriginalPutts] = React.useState(0);
 
@@ -67,6 +68,74 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const totalStableford = holes.reduce((s, h) => s + (h.stablefordPts || 0), 0);
   const handicap = holes.find(h => h.handicapSnapshot)?.handicapSnapshot ?? null;
 
+  // Lijstweergave scherm
+  if (listView) {
+    return (
+      <div className="min-h-screen pb-6">
+        <div className="p-6 flex items-center justify-between">
+          <button onClick={() => setListView(false)} className="p-2"><ChevronLeft className="w-6 h-6" /></button>
+          <h1 className="font-display text-2xl">SCOREKAART</h1>
+          <div className="w-10" />
+        </div>
+        <div className="px-6 space-y-3">
+          {/* Baan info */}
+          <div className="glass-card rounded-xl p-4 bg-emerald-500/10 border border-emerald-400/20">
+            <div className="font-body text-xs text-emerald-200/60 mb-1">{roundData.loop?.name || roundData.loop} · {roundData.teeColor} · {formatDate(roundData.date)}</div>
+            {handicap && <div className="font-body text-xs text-emerald-200/40">HCP: {handicap}</div>}
+          </div>
+
+          {/* Scorekaart tabel */}
+          <div className="glass-card rounded-xl overflow-hidden">
+            <div className="grid grid-cols-5 bg-white/5 px-4 py-2">
+              <div className="font-body text-xs text-emerald-200/50">Hole</div>
+              <div className="font-body text-xs text-emerald-200/50 text-center">Par</div>
+              <div className="font-body text-xs text-emerald-200/50 text-center">SI</div>
+              <div className="font-body text-xs text-emerald-200/50 text-center">Slagen</div>
+              <div className="font-body text-xs text-yellow-300/60 text-right">Punten</div>
+            </div>
+            {holes.map((hole) => (
+              <div key={hole.hole} className="grid grid-cols-5 px-4 py-3 border-t border-white/5">
+                <div className="font-display text-sm text-emerald-300">{hole.hole}</div>
+                <div className="font-body text-sm text-white/60 text-center">{hole.par || '-'}</div>
+                <div className="font-body text-sm text-white/40 text-center">{hole.stroke_index_men || '-'}</div>
+                <div className="font-display text-sm text-white text-center">{hole.score}</div>
+                <div className="font-display text-sm text-yellow-300 text-right">{hole.stablefordPts ?? '-'}</div>
+              </div>
+            ))}
+            <div className="grid grid-cols-5 px-4 py-3 border-t border-white/20 bg-white/5">
+              <div className="font-display text-sm text-emerald-300">Tot</div>
+              <div className="font-body text-sm text-white/60 text-center">{holes.reduce((s, h) => s + (h.par || 0), 0)}</div>
+              <div className="text-center">-</div>
+              <div className="font-display text-sm text-white text-center">{totalScore}</div>
+              <div className="font-display text-sm text-yellow-300 text-right">{totalStableford}</div>
+            </div>
+          </div>
+
+          {/* Totalen */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="glass-card rounded-xl p-3 text-center">
+              <div className="font-display text-2xl text-white">{totalScore}</div>
+              <div className="font-body text-xs text-emerald-200/50">Slagen</div>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center">
+              <div className="font-display text-2xl text-white">{totalPutts}</div>
+              <div className="font-body text-xs text-emerald-200/50">Putts</div>
+            </div>
+            <div className="glass-card rounded-xl p-3 text-center">
+              <div className="font-display text-2xl text-yellow-300">{totalStableford}</div>
+              <div className="font-body text-xs text-emerald-200/50">Punten</div>
+            </div>
+          </div>
+
+          <button onClick={() => setListView(false)}
+            className="w-full glass-card rounded-xl py-3 font-body text-sm text-emerald-300 hover:bg-white/10 transition border border-emerald-400/20 flex items-center justify-center gap-2">
+            📋 Hole info
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-6">
 
@@ -109,16 +178,18 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       <div className="p-6 flex items-center justify-between">
         <button onClick={onBack} className="p-2"><ChevronLeft className="w-6 h-6" /></button>
         <h1 className="font-display text-2xl">{roundData.course?.name}</h1>
-        {saveSuccess ? (
-          <div className="bg-emerald-600 rounded-xl px-3 py-2 font-body text-xs text-white flex items-center gap-1">
-            <Check className="w-3 h-3" /> Opgeslagen!
-          </div>
-        ) : hasChanges ? (
-          <button onClick={handleSaveRound}
-            className="bg-emerald-500 rounded-xl px-3 py-2 font-body text-xs text-white flex items-center gap-1">
-            <Check className="w-3 h-3" /> Opslaan
-          </button>
-        ) : <div className="w-16" />}
+        <div className="flex items-center gap-2">
+          {saveSuccess ? (
+            <div className="bg-emerald-600 rounded-xl px-3 py-2 font-body text-xs text-white flex items-center gap-1">
+              <Check className="w-3 h-3" /> Opgeslagen!
+            </div>
+          ) : hasChanges ? (
+            <button onClick={handleSaveRound}
+              className="bg-emerald-500 rounded-xl px-3 py-2 font-body text-xs text-white flex items-center gap-1">
+              <Check className="w-3 h-3" /> Opslaan
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="px-6 space-y-4">
@@ -181,6 +252,12 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           </div>
         </div>
 
+        {/* Lijstweergave knop */}
+        <button onClick={() => setListView(true)}
+          className="w-full glass-card rounded-xl py-3 font-body text-sm text-emerald-300 hover:bg-white/10 transition border border-emerald-400/20 flex items-center justify-center gap-2">
+          📋 Lijstweergave
+        </button>
+
         {/* Holes */}
         <div className="space-y-2">
           {holes.map((hole) => {
@@ -200,11 +277,8 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    {hole.stablefordPts != null && hole.stablefordPts > 0 && (
-                      <div className="font-display text-lg text-yellow-300">{hole.stablefordPts}PT</div>
-                    )}
-                    {hole.stablefordPts === 0 && (
-                      <div className="font-display text-lg text-white/30">0PT</div>
+                    {hole.stablefordPts != null && (
+                      <div className="font-display text-lg text-yellow-300">{hole.stablefordPts} PT</div>
                     )}
                     <button onClick={() => openEdit(hole)}
                       className="p-2 rounded-lg hover:bg-white/10 transition">
