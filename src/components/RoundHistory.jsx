@@ -46,19 +46,25 @@ function HoleMap({ hole }) {
   let cx = TEE_X, cy = TEE_Y;
 
   shots.forEach((shot) => {
-    const dist = (shot.distancePlayed || 80) * scale;
-    const angle = shot.position === 'links' ? -25 : shot.position === 'rechts' ? 25 : 0; // graden afwijking
-    const rad = (angle * Math.PI) / 180;
-    // Recht omhoog = negatieve Y richting, zijwaarts via sin(angle)
-    const dx = Math.sin(rad) * dist;
-    const dy = -Math.cos(rad) * dist;
-    cx += dx;
-    cy += dy;
-    points.push({ x: cx, y: cy, shot });
+    const onGreen = shot.lie === 'green';
+    if (onGreen) {
+      // Slag eindigt op green: teken lijn naar green positie (met kleine L/R offset)
+      const offset = shot.position === 'links' ? -18 : shot.position === 'rechts' ? 18 : 0;
+      cx = GREEN_X + offset;
+      cy = GREEN_Y;
+    } else {
+      const dist = (shot.distancePlayed || 80) * scale;
+      const angle = shot.position === 'links' ? -25 : shot.position === 'rechts' ? 25 : 0;
+      const rad = (angle * Math.PI) / 180;
+      cx += Math.sin(rad) * dist;
+      cy += -Math.cos(rad) * dist;
+    }
+    points.push({ x: cx, y: cy, shot, onGreen });
   });
 
-  // Laatste slag punt
-  const lastPt = points[points.length - 1];
+  // Laatste punt dat NIET op green is = startpunt gestippelde lijn
+  const lastNonGreen = [...points].reverse().find(p => !p.onGreen) || points[points.length - 1];
+  const lastPt = lastNonGreen;
 
   return (
     <div className="w-full flex justify-center">
@@ -96,9 +102,11 @@ function HoleMap({ hole }) {
         <polygon points={`${GREEN_X},${GREEN_Y-42} ${GREEN_X+12},${GREEN_Y-36} ${GREEN_X},${GREEN_Y-30}`}
           fill="#ef4444" />
 
-        {/* Gestippelde lijn van laatste slagpunt naar green */}
-        <line x1={lastPt.x} y1={lastPt.y} x2={GREEN_X} y2={GREEN_Y + 22}
-          stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="5,4" />
+        {/* Gestippelde lijn naar green — alleen als laatste slag niet op green landde */}
+        {!points[points.length - 1]?.onGreen && (
+          <line x1={lastPt.x} y1={lastPt.y} x2={GREEN_X} y2={GREEN_Y + 22}
+            stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeDasharray="5,4" />
+        )}
 
         {/* Slaglijnen */}
         {points.map((pt, i) => {
