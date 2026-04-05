@@ -307,10 +307,15 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                           {shot.lie && shot.lie !== 'tee' && (
                             <span className="font-body text-white/40">{shot.lie}</span>
                           )}
+                          {shot.position && (
+                            <span className="font-body text-white/30">{shot.position}</span>
+                          )}
                         </div>
-                        {shot.distancePlayed > 0 && (
-                          <span className="font-body text-emerald-300">{convertDistance(shot.distancePlayed)}{getUnitLabel()}</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {shot.distancePlayed > 0 && (
+                            <span className="font-body text-emerald-300">{convertDistance(shot.distancePlayed)}{getUnitLabel()}</span>
+                          )}
+                        </div>
                       </div>
                     ))}
                     {hole.putts > 0 && (

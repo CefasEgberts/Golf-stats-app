@@ -127,6 +127,28 @@ export default function SettingsScreen({ settings, setSettings, appVersion, onSa
           </div>
         </div>
 
+        {/* Uitgebreide balpositie */}
+        <div className="glass-card rounded-2xl p-6">
+          <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">
+            UITGEBREIDE BALPOSITIE OPSLAAN
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setSettings({ ...settings, trackPosition: true })}
+              className={'rounded-xl py-4 font-body font-medium transition ' +
+                (settings.trackPosition ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/10 text-white hover:bg-white/15')}>
+              Ja
+            </button>
+            <button onClick={() => setSettings({ ...settings, trackPosition: false })}
+              className={'rounded-xl py-4 font-body font-medium transition ' +
+                (!settings.trackPosition ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/50' : 'bg-white/10 text-white hover:bg-white/15')}>
+              Nee
+            </button>
+          </div>
+          <div className="mt-3 font-body text-xs text-emerald-200/60">
+            Bij Ja vraagt de app na elke slag of de bal Links, Midden of Rechts terecht is gekomen. Geeft meer analyse mogelijkheden.
+          </div>
+        </div>
+
         <button onClick={onBag} className="w-full btn-secondary rounded-xl py-4 font-display text-xl tracking-wider">
           ⛳ {tr('myBag').toUpperCase()}{settings.bag.length > 0 && ` (${settings.bag.length}/14)`}
         </button>

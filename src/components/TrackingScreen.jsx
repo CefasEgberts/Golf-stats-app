@@ -9,6 +9,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showPenalty, setShowPenalty] = useState(false);
   const [showFinishHole, setShowFinishHole] = useState(false);
   const [shotStarted, setShotStarted] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState(null);
   const [displayDistance, setDisplayDistance] = useState('');
   const [showCaddy, setShowCaddy] = useState(false);
   const [caddyAdvice, setCaddyAdvice] = useState('');
@@ -812,6 +813,26 @@ INSTRUCTIES VOOR JE ADVIES:
                   </div>
                 )}
 
+                {/* Positie selectie - alleen als trackPosition aan staat */}
+                {settings.trackPosition && round.selectedLie && round.selectedLie !== 'penalty' && (
+                  <div>
+                    <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">Balpositie</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { key: 'links', emoji: '⬅️' },
+                        { key: 'midden', emoji: '⬆️' },
+                        { key: 'rechts', emoji: '➡️' }
+                      ].map(({ key, emoji }) => (
+                        <button key={key} onClick={() => setSelectedPosition(key)}
+                          className={'rounded-xl py-3 flex items-center justify-center gap-2 font-body font-medium transition border-2 ' +
+                            (selectedPosition === key ? 'bg-blue-500 border-blue-400 text-white shadow-lg shadow-blue-500/50' : 'bg-white/10 border-white/20 text-white hover:bg-white/15')}>
+                          {emoji} {key.charAt(0).toUpperCase() + key.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <button onClick={() => {
                   if (gps?.gpsTracking) gps.captureShot();
                   if (gps?.disarmShotReminder) gps.disarmShotReminder();
@@ -819,8 +840,9 @@ INSTRUCTIES VOOR JE ADVIES:
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
-                  round.addShot(gps?.gpsTracking || false);
+                  round.addShot(gps?.gpsTracking || false, selectedPosition);
                   setShotStarted(false);
+                  setSelectedPosition(null);
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
                   {t('distanceOk').toUpperCase()}

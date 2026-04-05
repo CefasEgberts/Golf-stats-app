@@ -81,20 +81,22 @@ export const useRound = () => {
     setShowStrategy(false);
   };
 
-  const addShot = (gpsActive = false) => {
+  const addShot = (gpsActive = false, position = null) => {
     if (selectedClub === 'Putter') {
       const puttsCount = manualDistance ? parseInt(manualDistance) : 1;
       setCurrentHoleShots(prev => [...prev, {
         shotNumber: prev.length + 1,
         club: selectedClub, distanceToGreen: remainingDistance,
-        distancePlayed: 0, lie: selectedLie, putts: puttsCount
+        distancePlayed: 0, lie: selectedLie, putts: puttsCount,
+        ...(position && { position })
       }]);
     } else {
       const distancePlayed = manualDistance ? parseInt(manualDistance) : suggestedDistance;
       setCurrentHoleShots(prev => [...prev, {
         shotNumber: prev.length + 1,
         club: selectedClub, distanceToGreen: remainingDistance,
-        distancePlayed, lie: selectedLie
+        distancePlayed, lie: selectedLie,
+        ...(position && { position })
       }]);
       if (!gpsActive) {
         setRemainingDistance(prev => Math.max(0, prev - distancePlayed));
