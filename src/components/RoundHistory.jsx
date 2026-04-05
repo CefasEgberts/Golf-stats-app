@@ -86,26 +86,32 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
 
           {/* Scorekaart tabel */}
           <div className="glass-card rounded-xl overflow-hidden">
-            <div className="grid grid-cols-5 bg-white/5 px-4 py-2">
+            <div className="grid grid-cols-6 bg-white/5 px-4 py-2">
               <div className="font-body text-xs text-emerald-200/50">Hole</div>
               <div className="font-body text-xs text-emerald-200/50 text-center">Par</div>
               <div className="font-body text-xs text-emerald-200/50 text-center">SI</div>
+              <div className="font-body text-xs text-emerald-200/50 text-center">Mee</div>
               <div className="font-body text-xs text-emerald-200/50 text-center">Slagen</div>
               <div className="font-body text-xs text-yellow-300/60 text-right">Punten</div>
             </div>
-            {holes.map((hole) => (
-              <div key={hole.hole} className="grid grid-cols-5 px-4 py-3 border-t border-white/5">
+            {holes.map((hole) => {
+              const mee = hole.playingHcp != null && hole.stroke_index_men ? (hole.stroke_index_men <= hole.playingHcp ? 1 : 0) : '-';
+              return (
+              <div key={hole.hole} className="grid grid-cols-6 px-4 py-3 border-t border-white/5">
                 <div className="font-display text-sm text-emerald-300">{hole.hole}</div>
                 <div className="font-body text-sm text-white/60 text-center">{hole.par || '-'}</div>
                 <div className="font-body text-sm text-white/40 text-center">{hole.stroke_index_men || '-'}</div>
+                <div className={`font-body text-sm text-center ${mee === 1 ? 'text-emerald-300' : 'text-white/30'}`}>{mee}</div>
                 <div className="font-display text-sm text-white text-center">{hole.score}</div>
                 <div className="font-display text-sm text-yellow-300 text-right">{hole.stablefordPts ?? '-'}</div>
               </div>
-            ))}
-            <div className="grid grid-cols-5 px-4 py-3 border-t border-white/20 bg-white/5">
+              );
+            })}
+            <div className="grid grid-cols-6 px-4 py-3 border-t border-white/20 bg-white/5">
               <div className="font-display text-sm text-emerald-300">Tot</div>
               <div className="font-body text-sm text-white/60 text-center">{holes.reduce((s, h) => s + (h.par || 0), 0)}</div>
-              <div className="text-center">-</div>
+              <div className="text-center text-white/30">-</div>
+              <div className="font-body text-sm text-emerald-300 text-center">{holes.filter(h => h.playingHcp != null && h.stroke_index_men && h.stroke_index_men <= h.playingHcp).length}</div>
               <div className="font-display text-sm text-white text-center">{totalScore}</div>
               <div className="font-display text-sm text-yellow-300 text-right">{totalStableford}</div>
             </div>
