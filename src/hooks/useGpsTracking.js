@@ -114,13 +114,16 @@ export const useGpsTracking = (greenLat, greenLng, greenPoints) => {
   }, []);
 
   // START knop: sla huidige GPS op als beginpunt van deze slag
+  // Geeft de positie terug zodat TrackingScreen hem kan opslaan per slag
   const captureStartPosition = useCallback(() => {
     if (gpsPosition) {
       if (!teePosition) setTeePosition({ ...gpsPosition });
-      shotStartRef.current = { ...gpsPosition };  // ← het enige dat telt
+      shotStartRef.current = { ...gpsPosition };
       setLastShotPosition({ ...gpsPosition });
       setGpsShotDistance(0);
+      return { ...gpsPosition }; // ← return voor opslag per slag
     }
+    return null;
   }, [gpsPosition, teePosition]);
 
   const stopTracking = useCallback(() => {

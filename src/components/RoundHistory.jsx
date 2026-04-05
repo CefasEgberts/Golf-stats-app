@@ -1,10 +1,88 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, Edit2, Check, X, Thermometer, Clock, Flag } from 'lucide-react';
+import { ChevronLeft, Edit2, Check, X, Thermometer, Clock, Flag, Map } from 'lucide-react';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const [y, m, d] = dateStr.split('-');
   return `${d}-${m}-${y}`;
+}
+
+
+// ── HoleMap: teken GPS trail per hole ─────────────────────────────
+function HoleMap({ hole }) {
+  const shots = hole.shots || [];
+  const gpsShots = shots.filter(s => s.gpsLat && s.gpsLng);
+
+  if (gpsShots.length === 0) return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center text-white/40 font-body">Geen GPS data beschikbaar</div>
+    </div>
+  );
+
+  // Bereken bounding box
+  const lats = gpsShots.map(s => s.gpsLat);
+  const lngs = gpsShots.map(s => s.gpsLng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+
+  // Padding
+  const padLat = (maxLat - minLat) * 0.2 || 0.0001;
+  const padLng = (maxLng - minLng) * 0.2 || 0.0001;
+  const bLat = [minLat - padLat, maxLat + padLat];
+  const bLng = [minLng - padLng, maxLng + padLng];
+
+  const W = 320, H = 480;
+  const toX = (lng) => ((lng - bLng[0]) / (bLng[1] - bLng[0])) * W;
+  const toY = (lat) => H - ((lat - bLat[0]) / (bLat[1] - bLat[0])) * H;
+
+  const points = gpsShots.map(s => ({ x: toX(s.gpsLng), y: toY(s.gpsLat), shot: s }));
+
+  const posColor = { links: '#f59e0b', midden: '#10b981', rechts: '#f59e0b' };
+
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      {hole.photo_url && (
+        <img src={hole.photo_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 rounded-xl" />
+      )}
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-h-full rounded-xl border border-white/10"
+        style={{ background: 'rgba(0,40,20,0.8)' }}>
+
+        {/* Lijn tussen punten */}
+        {points.length > 1 && points.map((p, i) => i < points.length - 1 ? (
+          <line key={i}
+            x1={p.x} y1={p.y} x2={points[i+1].x} y2={points[i+1].y}
+            stroke="#3b82f6" strokeWidth="3" strokeLinecap="round"
+            strokeDasharray={i === 0 ? "none" : "none"} opacity="0.8" />
+        ) : null)}
+
+        {/* Punten per slag */}
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="10" fill={i === 0 ? '#10b981' : '#3b82f6'}
+              stroke="white" strokeWidth="2" opacity="0.9" />
+            <text x={p.x} y={p.y + 4} textAnchor="middle"
+              fill="white" fontSize="10" fontWeight="bold">{i + 1}</text>
+            {p.shot.distancePlayed > 0 && (
+              <text x={p.x + 14} y={p.y - 4} fill="white" fontSize="9" opacity="0.7">
+                {p.shot.distancePlayed}m
+              </text>
+            )}
+            {p.shot.position && (
+              <text x={p.x + 14} y={p.y + 8} fill={posColor[p.shot.position] || 'white'} fontSize="8" opacity="0.8">
+                {p.shot.position}
+              </text>
+            )}
+          </g>
+        ))}
+
+        {/* Legenda */}
+        <circle cx="16" cy="16" r="7" fill="#10b981" stroke="white" strokeWidth="1.5" />
+        <text x="28" y="20" fill="white" fontSize="9" opacity="0.7">Start</text>
+        <circle cx="16" cy="36" r="7" fill="#3b82f6" stroke="white" strokeWidth="1.5" />
+        <text x="28" y="40" fill="white" fontSize="9" opacity="0.7">Slag</text>
+      </svg>
+    </div>
+  );
 }
 
 export default function RoundHistory({ roundData, convertDistance, getUnitLabel, onBack, onSaveRound }) {
@@ -15,6 +93,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [listView, setListView] = useState(false);
+  const [mapHole, setMapHole] = useState(null);
 
   const [originalPutts, setOriginalPutts] = React.useState(0);
 
@@ -149,6 +228,19 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
 
   return (
     <div className="min-h-screen pb-6">
+
+      {/* Kaart Modal */}
+      {mapHole && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setMapHole(null)}>
+          <div className="p-4 flex items-center justify-between">
+            <div className="font-display text-xl text-emerald-300">Hole {mapHole.hole} — GPS Trail</div>
+            <button onClick={() => setMapHole(null)}><X className="w-6 h-6 text-white/50" /></button>
+          </div>
+          <div className="flex-1 px-4 pb-4" onClick={e => e.stopPropagation()}>
+            <HoleMap hole={mapHole} />
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editingHole !== null && (
@@ -287,9 +379,15 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                       ].filter(Boolean).join(' · ')}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {hole.stablefordPts != null && (
                       <div className="font-display text-lg text-yellow-300">{hole.stablefordPts} PT</div>
+                    )}
+                    {hole.shots?.some(s => s.gpsLat) && (
+                      <button onClick={() => setMapHole(hole)}
+                        className="p-2 rounded-lg hover:bg-white/10 transition">
+                        <Map className="w-4 h-4 text-blue-400/60" />
+                      </button>
                     )}
                     <button onClick={() => openEdit(hole)}
                       className="p-2 rounded-lg hover:bg-white/10 transition">

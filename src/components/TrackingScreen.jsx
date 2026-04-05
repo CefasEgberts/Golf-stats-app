@@ -10,6 +10,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showFinishHole, setShowFinishHole] = useState(false);
   const [shotStarted, setShotStarted] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState(null);
+  const [shotStartGps, setShotStartGps] = useState(null);
   const [displayDistance, setDisplayDistance] = useState('');
   const [showCaddy, setShowCaddy] = useState(false);
   const [caddyAdvice, setCaddyAdvice] = useState('');
@@ -710,7 +711,7 @@ INSTRUCTIES VOOR JE ADVIES:
               /* GPS mode: START button to capture position, then show live distance */
               <>
                 {!shotStarted ? (
-                  <button onClick={() => { gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(''); const clubDist = settings.clubDistances?.[round.selectedClub]; if (gps.armShotReminder) gps.armShotReminder(clubDist || null); setTimeout(() => lieRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); if (nextHoleReminderRef.current) { clearTimeout(nextHoleReminderRef.current); nextHoleReminderRef.current = null; } }}
+                  <button onClick={() => { const startPos = gps.captureStartPosition(); setShotStarted(true); setDisplayDistance(''); setShotStartGps(startPos); const clubDist = settings.clubDistances?.[round.selectedClub]; if (gps.armShotReminder) gps.armShotReminder(clubDist || null); setTimeout(() => lieRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150); if (nextHoleReminderRef.current) { clearTimeout(nextHoleReminderRef.current); nextHoleReminderRef.current = null; } }}
                     className="w-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl py-5 font-display text-2xl tracking-wider text-white shadow-lg shadow-blue-500/40 flex items-center justify-center gap-3 active:scale-95 transition">
                     📍 START
                   </button>
@@ -840,9 +841,10 @@ INSTRUCTIES VOOR JE ADVIES:
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
-                  round.addShot(gps?.gpsTracking || false, selectedPosition);
+                  round.addShot(gps?.gpsTracking || false, selectedPosition, shotStartGps);
                   setShotStarted(false);
                   setSelectedPosition(null);
+                  setShotStartGps(null);
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
                   {t('distanceOk').toUpperCase()}
