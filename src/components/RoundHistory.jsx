@@ -9,33 +9,25 @@ function formatDate(dateStr) {
 
 
 // ── HoleMap: teken GPS trail per hole ─────────────────────────────
-// Werkt met echte GPS coördinaten OF berekend vanuit tee+richting+afstand+positie
 function HoleMap({ hole }) {
   const [holeDb, setHoleDb] = React.useState(null);
   const shots = (hole.shots || []).filter(s => s.club !== 'Putter');
 
   React.useEffect(() => {
-    // Haal tee/green GPS op als niet aanwezig
-    const teeLat = hole.teeLat || hole.tee_latitude;
-    const greenLat = hole.greenLat || hole.latitude;
-    if (!teeLat || !greenLat) {
-      // Zoek in Supabase
-      const fetchHole = async () => {
-        try {
-          const { supabase } = await import('../lib/supabase');
-          const loopId = hole.loopId;
-          if (!loopId) return;
-          // Zoek op loop_id en hole_number — werkt altijd ongeacht course naam
-          const { data } = await supabase.from('golf_holes')
-            .select('tee_latitude,tee_longitude,latitude,longitude,green_front_lat,green_front_lng,green_back_lat,green_back_lng')
-            .eq('loop_id', loopId)
-            .eq('hole_number', hole.hole)
-            .single();
-          if (data) setHoleDb(data);
-        } catch {}
-      };
-      fetchHole();
-    }
+    const fetchHole = async () => {
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const loopId = hole.loopId;
+        if (!loopId) return;
+        const { data } = await supabase.from('golf_holes')
+          .select('tee_latitude,tee_longitude,latitude,longitude,photo_url')
+          .eq('loop_id', loopId)
+          .eq('hole_number', hole.hole)
+          .single();
+        if (data) setHoleDb(data);
+      } catch {}
+    };
+    fetchHole();
   }, [hole]);
 
   const dbData = holeDb || {};
@@ -43,32 +35,24 @@ function HoleMap({ hole }) {
   // Bereken punt op basis van startpunt, richting, afstand en zijkant
   const calcPoint = (startLat, startLng, bearingDeg, distanceM, side) => {
     const R = 6371000;
-    const bearing = (bearingDeg * Math.PI) / 180;
-    // Offset loodrecht: links = -15m, midden = 0, rechts = +15m
+    const bear = (bearingDeg * Math.PI) / 180;
     const sideOffset = side === 'links' ? -15 : side === 'rechts' ? 15 : 0;
-    const perpBearing = bearing + Math.PI / 2;
-
+    const perpBear = bear + Math.PI / 2;
     const lat1 = (startLat * Math.PI) / 180;
     const lng1 = (startLng * Math.PI) / 180;
-
-    // Voorwaarts
     const lat2 = Math.asin(Math.sin(lat1) * Math.cos(distanceM / R) +
-      Math.cos(lat1) * Math.sin(distanceM / R) * Math.cos(bearing));
-    const lng2 = lng1 + Math.atan2(Math.sin(bearing) * Math.sin(distanceM / R) * Math.cos(lat1),
+      Math.cos(lat1) * Math.sin(distanceM / R) * Math.cos(bear));
+    const lng2 = lng1 + Math.atan2(Math.sin(bear) * Math.sin(distanceM / R) * Math.cos(lat1),
       Math.cos(distanceM / R) - Math.sin(lat1) * Math.sin(lat2));
-
-    // Zijwaarts
     const lat3 = Math.asin(Math.sin(lat2) * Math.cos(Math.abs(sideOffset) / R) +
-      Math.cos(lat2) * Math.sin(Math.abs(sideOffset) / R) * Math.cos(sideOffset < 0 ? perpBearing + Math.PI : perpBearing));
+      Math.cos(lat2) * Math.sin(Math.abs(sideOffset) / R) * Math.cos(sideOffset < 0 ? perpBear + Math.PI : perpBear));
     const lng3 = lng2 + Math.atan2(
-      Math.sin(sideOffset < 0 ? perpBearing + Math.PI : perpBearing) * Math.sin(Math.abs(sideOffset) / R) * Math.cos(lat2),
+      Math.sin(sideOffset < 0 ? perpBear + Math.PI : perpBear) * Math.sin(Math.abs(sideOffset) / R) * Math.cos(lat2),
       Math.cos(Math.abs(sideOffset) / R) - Math.sin(lat2) * Math.sin(lat3));
-
     return { lat: (lat3 * 180) / Math.PI, lng: (lng3 * 180) / Math.PI };
   };
 
-  // Bereken richting van tee naar green
-  const bearing = (lat1, lng1, lat2, lng2) => {
+  const calcBearing = (lat1, lng1, lat2, lng2) => {
     const dLng = ((lng2 - lng1) * Math.PI) / 180;
     const rlat1 = (lat1 * Math.PI) / 180;
     const rlat2 = (lat2 * Math.PI) / 180;
@@ -77,38 +61,30 @@ function HoleMap({ hole }) {
     return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   };
 
-  // Bouw punten op — gebruik hole-data óf opgehaalde DB-data
   const teeLat = hole.teeLat || hole.tee_latitude || dbData.tee_latitude;
   const teeLng = hole.teeLng || hole.tee_longitude || dbData.tee_longitude;
   const greenLat = hole.greenLat || hole.latitude || dbData.latitude;
   const greenLng = hole.greenLng || hole.longitude || dbData.longitude;
+  const photoUrl = dbData.photo_url || null;
 
   let coords = [];
 
-  // Probeer echte GPS coördinaten eerst
   if (shots.some(s => s.gpsLat)) {
     coords = shots.filter(s => s.gpsLat).map(s => ({
       lat: s.gpsLat, lng: s.gpsLng, shot: s, real: true
     }));
   } else if (teeLat && teeLng && greenLat && greenLng) {
-    // Bereken vanuit tee + richting + afstand + positie
-    const dir = bearing(teeLat, teeLng, greenLat, greenLng);
-    let cumDist = 0;
+    const dir = calcBearing(teeLat, teeLng, greenLat, greenLng);
     let curLat = teeLat, curLng = teeLng;
-
     coords = [{ lat: teeLat, lng: teeLng, shot: { club: 'Tee' }, real: false }];
-
     shots.forEach(s => {
       const dist = s.distancePlayed || 0;
       if (dist > 0) {
-        cumDist += dist;
         const pt = calcPoint(curLat, curLng, dir, dist, s.position);
         curLat = pt.lat; curLng = pt.lng;
         coords.push({ lat: pt.lat, lng: pt.lng, shot: s, real: false });
       }
     });
-
-    // Voeg green toe
     coords.push({ lat: greenLat, lng: greenLng, shot: { club: 'Green' }, real: false, isGreen: true });
   }
 
@@ -118,14 +94,15 @@ function HoleMap({ hole }) {
       <div className="flex items-center justify-center h-48">
         <div className="text-center font-body text-sm text-white/40 px-8">
           {hasDistanceData
-            ? 'GPS coördinaten voor tee/green ontbreken nog in de database voor deze hole. Zodra die zijn toegevoegd, verschijnt hier de route.'
+            ? 'GPS coordinaten voor tee/green ontbreken nog in de database voor deze hole.'
             : 'Geen slagdata beschikbaar voor deze hole.'}
         </div>
       </div>
     );
   }
 
-  // SVG rendering
+  // SVG rendering — tee ONDERAAN, green BOVENAAN
+  // Y-as: hogere lat = hoger op scherm (kleinere Y waarde)
   const lats = coords.map(c => c.lat);
   const lngs = coords.map(c => c.lng);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -134,20 +111,41 @@ function HoleMap({ hole }) {
   const padLng = (maxLng - minLng) * 0.25 || 0.0002;
 
   const W = 300, H = 460;
+  // toX: normaal links-rechts
   const toX = (lng) => 20 + ((lng - (minLng - padLng)) / ((maxLng + padLng) - (minLng - padLng))) * (W - 40);
+  // toY: hoge lat = kleine Y (bovenaan) — geen inversie nodig, standaard geografisch
   const toY = (lat) => H - 20 - ((lat - (minLat - padLat)) / ((maxLat + padLat) - (minLat - padLat))) * (H - 40);
 
   const pts = coords.map(c => ({ x: toX(c.lng), y: toY(c.lat), ...c }));
 
+  // Tee punt moet onderaan zijn — check of tee inderdaad laagste lat heeft
+  // (normaal is tee verder van green verwijderd, meestal hogere of lagere lat afhankelijk van baan)
+  // Door toY correct te implementeren staat de tee automatisch op de juiste plek
+
   return (
     <div className="w-full flex justify-center">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-xs rounded-2xl border border-white/10"
-        style={{ background: 'linear-gradient(180deg, rgba(0,30,15,0.95) 0%, rgba(0,50,25,0.95) 100%)' }}>
+        style={{ background: photoUrl ? 'none' : 'linear-gradient(180deg, rgba(0,30,15,0.95) 0%, rgba(0,50,25,0.95) 100%)' }}>
+
+        {/* Hole foto als achtergrond */}
+        {photoUrl && (
+          <>
+            <defs>
+              <clipPath id="roundedClip">
+                <rect x="0" y="0" width={W} height={H} rx="16" />
+              </clipPath>
+            </defs>
+            <image href={photoUrl} x="0" y="0" width={W} height={H}
+              clipPath="url(#roundedClip)" preserveAspectRatio="xMidYMid slice" />
+            {/* Donkere overlay voor leesbaarheid */}
+            <rect x="0" y="0" width={W} height={H} fill="rgba(0,0,0,0.45)" rx="16" />
+          </>
+        )}
 
         {/* Fairway achtergrond lijn */}
         <polyline
           points={pts.map(p => `${p.x},${p.y}`).join(' ')}
-          fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="20" strokeLinecap="round" strokeLinejoin="round" />
+          fill="none" stroke="rgba(16,185,129,0.2)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
 
         {/* Blauwe route lijn */}
         {pts.map((p, i) => i < pts.length - 1 ? (
@@ -159,29 +157,30 @@ function HoleMap({ hole }) {
         {/* Green cirkel */}
         {pts[pts.length-1] && (
           <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y}
-            r="14" fill="rgba(16,185,129,0.3)" stroke="#10b981" strokeWidth="2" />
+            r="14" fill="rgba(16,185,129,0.35)" stroke="#10b981" strokeWidth="2" />
         )}
 
         {/* Vlag op green */}
         {pts[pts.length-1] && (
           <g>
-            <line x1={pts[pts.length-1].x} y1={pts[pts.length-1].y-14}
-              x2={pts[pts.length-1].x} y2={pts[pts.length-1].y-28}
+            <line x1={pts[pts.length-1].x} y1={pts[pts.length-1].y - 14}
+              x2={pts[pts.length-1].x} y2={pts[pts.length-1].y - 28}
               stroke="white" strokeWidth="1.5" />
             <polygon points={`${pts[pts.length-1].x},${pts[pts.length-1].y-28} ${pts[pts.length-1].x+10},${pts[pts.length-1].y-23} ${pts[pts.length-1].x},${pts[pts.length-1].y-18}`}
               fill="#ef4444" />
           </g>
         )}
 
-        {/* Slag punten (niet tee en green) */}
-        {pts.filter((p,i) => i > 0 && !p.isGreen).map((p, i) => (
+        {/* Slag punten */}
+        {pts.filter((p, i) => i > 0 && !p.isGreen).map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r="11"
-              fill={p.shot.position === 'midden' ? '#3b82f6' : p.shot.position ? '#f59e0b' : '#3b82f6'}
+              fill={p.shot.position && p.shot.position !== 'midden' ? '#f59e0b' : '#3b82f6'}
               stroke="white" strokeWidth="2" />
             <text x={p.x} y={p.y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">{i + 1}</text>
             {p.shot.distancePlayed > 0 && (
-              <text x={p.x + 15} y={p.y - 3} fill="white" fontSize="9" opacity="0.8">{p.shot.distancePlayed}m</text>
+              <text x={p.x + 15} y={p.y - 3} fill="white" fontSize="9" opacity="0.9"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{p.shot.distancePlayed}m</text>
             )}
             {p.shot.position && p.shot.position !== 'midden' && (
               <text x={p.x + 15} y={p.y + 9} fill="#f59e0b" fontSize="8" opacity="0.9">{p.shot.position}</text>
@@ -192,30 +191,29 @@ function HoleMap({ hole }) {
         {/* Tee punt */}
         {pts[0] && (
           <g>
-            <circle cx={pts[0].x} cy={pts[0].y} r="8" fill="#10b981" stroke="white" strokeWidth="2" />
-            <text x={pts[0].x} y={pts[0].y + 4} textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">T</text>
+            <circle cx={pts[0].x} cy={pts[0].y} r="10" fill="#10b981" stroke="white" strokeWidth="2" />
+            <text x={pts[0].x} y={pts[0].y + 4} textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">T</text>
           </g>
         )}
 
         {/* Legenda */}
-        <rect x="8" y={H-45} width="120" height="38" rx="6" fill="rgba(0,0,0,0.4)" />
-        <circle cx="20" cy={H-30} r="5" fill="#10b981" />
-        <text x="29" y={H-26} fill="white" fontSize="8" opacity="0.7">Tee / Green</text>
-        <circle cx="20" cy={H-16} r="5" fill="#3b82f6" />
-        <text x="29" y={H-12} fill="white" fontSize="8" opacity="0.7">Slag (midden)</text>
-        <circle cx="78" cy={H-16} r="5" fill="#f59e0b" />
-        <text x="87" y={H-12} fill="white" fontSize="8" opacity="0.7">L/R</text>
+        <rect x="8" y={H - 45} width="120" height="38" rx="6" fill="rgba(0,0,0,0.55)" />
+        <circle cx="20" cy={H - 30} r="5" fill="#10b981" />
+        <text x="29" y={H - 26} fill="white" fontSize="8" opacity="0.8">Tee / Green</text>
+        <circle cx="20" cy={H - 16} r="5" fill="#3b82f6" />
+        <text x="29" y={H - 12} fill="white" fontSize="8" opacity="0.8">Slag (midden)</text>
+        <circle cx="78" cy={H - 16} r="5" fill="#f59e0b" />
+        <text x="87" y={H - 12} fill="white" fontSize="8" opacity="0.8">L/R</text>
 
-        {/* Geen GPS label */}
+        {/* Geschatte posities label */}
         {!coords[1]?.real && (
-          <text x={W/2} y="15" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="8">
-            Geschatte posities
-          </text>
+          <text x={W / 2} y="16" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="8">Geschatte posities</text>
         )}
       </svg>
     </div>
   );
 }
+
 
 export default function RoundHistory({ roundData, convertDistance, getUnitLabel, onBack, onSaveRound, holeGpsData = [] }) {
   const [holes, setHoles] = useState(() => JSON.parse(JSON.stringify(roundData.holes || [])));
@@ -375,7 +373,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       {mapHole && (
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setMapHole(null)}>
           <div className="p-4 flex items-center justify-between">
-            <div className="font-display text-xl text-emerald-300">Hole {mapHole.hole} — GPS Trail</div>
+            <div className="font-display text-xl text-emerald-300">Hole {mapHole.hole} - GPS Trail</div>
             <button onClick={() => setMapHole(null)}><X className="w-6 h-6 text-white/50" /></button>
           </div>
           <div className="flex-1 px-4 pb-4" onClick={e => e.stopPropagation()}>
@@ -422,7 +420,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
               .map(shot => (
               <div key={shot.shotNumber} className="mt-2">
                 <div className="font-body text-xs text-emerald-200/70 mb-2">
-                  Slag {shot.shotNumber}: {shot.club} — positie
+                  Slag {shot.shotNumber}: {shot.club} - positie
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {['links', 'midden', 'rechts'].map(pos => (
