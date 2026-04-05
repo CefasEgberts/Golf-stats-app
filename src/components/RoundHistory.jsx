@@ -188,23 +188,23 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             return (
               <div key={`${hole.hole}-${hole.score}-${hole.putts}`} className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <div className="font-display text-xl text-emerald-300">Hole {hole.hole}</div>
                     <span className="font-body text-xs text-white/40">
                       {[
                         hole.par ? `Par ${hole.par}` : null,
                         hole.stroke_index_men ? `SI ${hole.stroke_index_men}` : null,
-                        hole.playingHcp != null && hole.stroke_index_men ? `${hole.stroke_index_men <= hole.playingHcp ? '1' : '0'} slag mee` : null,
-                        `Score: ${scoreToPar === 0 ? 'Par' : scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar}`
+                        hole.playingHcp != null && hole.stroke_index_men ? `${hole.stroke_index_men <= hole.playingHcp ? '1 slag mee' : '0 slagen mee'}` : null,
+                        `Aantal slagen: ${hole.score}`
                       ].filter(Boolean).join(' · ')}
                     </span>
-                    <div className={`font-display text-2xl ml-1 ${scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300'}`}>
-                      {hole.score}
-                    </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {hole.stablefordPts != null && (
-                      <div className="font-display text-lg text-yellow-300">{hole.stablefordPts}pt</div>
+                    {hole.stablefordPts != null && hole.stablefordPts > 0 && (
+                      <div className="font-display text-lg text-yellow-300">{hole.stablefordPts}PT</div>
+                    )}
+                    {hole.stablefordPts === 0 && (
+                      <div className="font-display text-lg text-white/30">0PT</div>
                     )}
                     <button onClick={() => openEdit(hole)}
                       className="p-2 rounded-lg hover:bg-white/10 transition">
