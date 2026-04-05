@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v2.91`;
+const appVersion = `${commitHash} v2.92`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -298,8 +298,8 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     setCurrentScreen('track');
   };
 
-  const finishHole = async (putts, score, stablefordPts = null, handicapSnapshot = null) => {
-    const updatedRound = round.saveHole(putts, score, stablefordPts, handicapSnapshot);
+  const finishHole = async (putts, score, stablefordPts = null, handicapSnapshot = null, si = null, par = null, playingHcp = null) => {
+    const updatedRound = round.saveHole(putts, score, stablefordPts, handicapSnapshot, si, par, playingHcp);
     const { loop, course } = round.roundData;
     if (!loop?.holes) { alert('Error: No loop data'); return; }
 

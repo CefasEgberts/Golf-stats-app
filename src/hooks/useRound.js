@@ -133,12 +133,12 @@ export const useRound = () => {
     }
   };
 
-  const saveHole = (putts, score, stablefordPts = null, handicapSnapshot = null) => {
+  const saveHole = (putts, score, stablefordPts = null, handicapSnapshot = null, si = null, par = null, playingHcp = null) => {
     const holeData = {
       hole: currentHole, shots: currentHoleShots, putts, score,
       totalShots: currentHoleShots.length + putts,
-      stablefordPts,
-      handicapSnapshot
+      stablefordPts, handicapSnapshot,
+      stroke_index_men: si, par, playingHcp
     };
     const newHoles = [...roundData.holes, holeData];
     const updatedRound = { ...roundData, holes: newHoles };

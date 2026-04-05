@@ -40,9 +40,9 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
       const si = h.stroke_index_men || h.si || null;
       const hcp = h.handicapSnapshot || holesRef.current.find(x => x.handicapSnapshot)?.handicapSnapshot || null;
       let stablefordPts = h.stablefordPts ?? null;
-      if (par && si && hcp) {
-        const playingHcp = Math.round(hcp / 2);
-        const extra = si <= playingHcp ? 1 : 0;
+      if (par && hcp) {
+        const playingHcp = h.playingHcp ?? Math.round(hcp / 2);
+        const extra = si && si <= playingHcp ? 1 : 0;
         const net = newScore - par - extra;
         stablefordPts = Math.max(0, 2 - net);
       }
@@ -190,15 +190,18 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="font-display text-xl text-emerald-300">Hole {hole.hole}</div>
-                    {hole.par && <div className="font-body text-xs text-white/40">Par {hole.par}</div>}
-                    {(hole.stroke_index_men || hole.si) && <div className="font-body text-xs text-white/30">SI {hole.stroke_index_men || hole.si}</div>}
+                    {hole.par && <span className="font-body text-xs text-white/40">Par {hole.par}</span>}
+                    {hole.stroke_index_men && <span className="font-body text-xs text-white/40">· SI {hole.stroke_index_men}</span>}
+                    {hole.playingHcp != null && hole.stroke_index_men && (
+                      <span className="font-body text-xs text-white/40">· {hole.stroke_index_men <= hole.playingHcp ? '1 slag mee' : 'geen slag mee'}</span>
+                    )}
                     <div className={`font-display text-2xl ${scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white' : 'text-red-300'}`}>
                       {hole.score}
                     </div>
                     {scoreToPar !== null && (
-                      <div className={`font-body text-xs ${scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white/50' : 'text-red-300'}`}>
-                        {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar < 0 ? scoreToPar : 'Par'}
-                      </div>
+                      <span className={`font-body text-xs ${scoreToPar < 0 ? 'text-emerald-300' : scoreToPar === 0 ? 'text-white/50' : 'text-red-300'}`}>
+                        · {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar < 0 ? scoreToPar : 'Par'}
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3">

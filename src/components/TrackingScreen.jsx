@@ -930,7 +930,7 @@ INSTRUCTIES VOOR JE ADVIES:
                     </div>
                   )}
                   <button onClick={() => {
-                    finishHole(totalPutts, autoScore, stablefordPts, settings.handicap);
+                    finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating));
                     setShowFinishHole(false);
                     // Start 60s reminder timer voor volgende hole
                     if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
