@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v3.04`;
+const appVersion = `${commitHash} v3.05`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -590,6 +590,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
           roundData={round.roundData}
           convertDistance={convertDistance}
           getUnitLabel={getUnitLabel}
+          holeGpsData={courseData.allHolesData || []}
           onBack={() => setCurrentScreen('home')}
           onSaveRound={async (updatedRoundData) => {
             const totalScore = updatedRoundData.holes.reduce((s, h) => s + (h.score || 0), 0);
