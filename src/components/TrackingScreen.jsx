@@ -817,7 +817,9 @@ INSTRUCTIES VOOR JE ADVIES:
                 {/* Positie selectie - alleen als trackPosition aan staat */}
                 {settings.trackPosition && round.selectedLie && round.selectedLie !== 'penalty' && (
                   <div>
-                    <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">Balpositie</label>
+                    <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">
+                      {round.selectedLie === 'green' ? 'Balpositie t.o.v. de vlag' : 'Balpositie'}
+                    </label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { key: 'links', emoji: '⬅️' },
