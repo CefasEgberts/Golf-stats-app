@@ -8,14 +8,17 @@ function formatDate(dateStr) {
 }
 
 
-// ── PhotoMap: toon tap-punten op hole foto ──────────────────────
-function PhotoMap({ hole }) {
+// ── PhotoMap: toon + bewerk tap-punten op hole foto ────────────
+function PhotoMap({ hole, onSaveTaps }) {
   const [photoUrl, setPhotoUrl] = React.useState(hole.photo_url || null);
-  const shots = (hole.shots || []).filter(s => s.club !== 'Putter' && (s.tapPoint || s.teeTapPoint));
+  const [editMode, setEditMode] = React.useState(false);
+  const [editStep, setEditStep] = React.useState(null); // 'T', 1, 2, 3...
+  const [editPoints, setEditPoints] = React.useState(null); // null = gebruik hole data
+  const imgRef = React.useRef(null);
 
   React.useEffect(() => {
     if (photoUrl) return;
-    const fetch = async () => {
+    const fetchPhoto = async () => {
       try {
         const { supabase } = await import('../lib/supabase');
         const loopId = hole.loopId;
@@ -28,8 +31,89 @@ function PhotoMap({ hole }) {
         if (data?.photo_url) setPhotoUrl(data.photo_url);
       } catch {}
     };
-    fetch();
+    fetchPhoto();
   }, [hole]);
+
+  const clubAbbr = (club) => {
+    const map = { 'Driver': 'D', 'Pitching wedge': 'PW', 'Gap wedge': 'GW', 'Sand wedge': 'SW', 'Lob wedge': 'LW', 'Approach wedge': 'AW' };
+    if (map[club]) return map[club];
+    const m = club?.match(/\d+/);
+    return m ? m[0] : (club || '?').substring(0, 2).toUpperCase();
+  };
+
+  // Haal actuele punten op (edit of origineel)
+  const getTeeTap = () => editPoints ? editPoints.tee : ((hole.shots || []).find(s => s.teeTapPoint)?.teeTapPoint || null);
+  const getShotTap = (shotNumber) => {
+    if (editPoints) return editPoints.shots[shotNumber] || null;
+    const shot = (hole.shots || []).find(s => s.shotNumber === shotNumber);
+    return shot?.tapPoint || null;
+  };
+
+  // Alle niet-putter shots
+  const nonPutterShots = (hole.shots || [])
+    .filter(s => s.club !== 'Putter')
+    .sort((a, b) => (a.shotNumber || 0) - (b.shotNumber || 0));
+
+  // Bouw allPoints op
+  const buildAllPoints = () => {
+    const pts = [];
+    const tee = getTeeTap();
+    if (tee) pts.push({ x: tee.x, y: tee.y, label: 'T', color: '#10b981', isTee: true });
+    nonPutterShots.forEach((shot, i) => {
+      const pt = getShotTap(shot.shotNumber);
+      if (!pt) return;
+      pts.push({ x: pt.x, y: pt.y, label: String(shot.shotNumber), color: shot.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6' });
+    });
+    return pts;
+  };
+
+  const allPoints = buildAllPoints();
+
+  // Start edit modus
+  const startEdit = () => {
+    // Initialiseer editPoints vanuit huidige data
+    const shots = {};
+    nonPutterShots.forEach(s => { if (s.tapPoint) shots[s.shotNumber] = s.tapPoint; });
+    setEditPoints({ tee: getTeeTap(), shots });
+    setEditStep('T');
+    setEditMode(true);
+  };
+
+  // Stap volgorde: T, dan slag 1, 2, 3...
+  const editSteps = ['T', ...nonPutterShots.map(s => s.shotNumber)];
+  const currentStepIndex = editSteps.indexOf(editStep);
+  const nextStep = () => {
+    const next = editSteps[currentStepIndex + 1];
+    if (next !== undefined) setEditStep(next);
+    else setEditStep(null); // klaar
+  };
+
+  // Tik op foto tijdens edit
+  const handleImgTap = (e) => {
+    if (!editMode || editStep === null) return;
+    const rect = e.target.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setEditPoints(prev => {
+      if (editStep === 'T') return { ...prev, tee: { x, y } };
+      return { ...prev, shots: { ...prev.shots, [editStep]: { x, y } } };
+    });
+    nextStep();
+  };
+
+  // Sla op
+  const handleSave = () => {
+    if (!editPoints || !onSaveTaps) return;
+    onSaveTaps(hole.hole, editPoints);
+    setEditMode(false);
+    setEditStep(null);
+  };
+
+  const handleCancel = () => {
+    setEditMode(false);
+    setEditStep(null);
+    setEditPoints(null);
+  };
 
   if (!photoUrl) return (
     <div className="flex items-center justify-center h-48">
@@ -37,82 +121,99 @@ function PhotoMap({ hole }) {
     </div>
   );
 
-  // Tee tap uit eerste shot
-  const teeTap = (hole.shots || []).find(s => s.teeTapPoint)?.teeTapPoint || null;
-
-  if (shots.length === 0 && !teeTap) return (
-    <div className="relative w-full">
-      <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-white/10" />
-      <div className="absolute bottom-3 left-0 right-0 text-center">
-        <span className="bg-black/60 text-white/50 text-xs px-3 py-1 rounded-full">Geen tap-punten opgeslagen</span>
-      </div>
-    </div>
-  );
-
-  const clubAbbr = (club) => {
-    const map = { 'Driver': 'D', 'Pitching wedge': 'PW', 'Gap wedge': 'GW', 'Sand wedge': 'SW', 'Lob wedge': 'LW', 'Approach wedge': 'AW' };
-    if (map[club]) return map[club];
-    const m = club.match(/\d+/);
-    return m ? m[0] : club.substring(0, 2).toUpperCase();
-  };
-
-  // Bouw alle punten op: tee + slagpunten
-  const allPoints = [];
-  if (teeTap) allPoints.push({ x: teeTap.x, y: teeTap.y, label: 'T', color: '#10b981', isTee: true });
-  shots.forEach((shot, i) => {
-    const pt = shot.tapPoint || null;
-    if (!pt) return; // skip shots zonder tap positie
-    allPoints.push({
-      x: pt.x, y: pt.y,
-      label: String(shot.shotNumber || i + 1),
-      color: shot.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6',
-      club: clubAbbr(shot.club),
-      distance: shot.distancePlayed
-    });
-  });
+  // Preview punten tijdens edit
+  const previewPoints = editMode ? buildAllPoints() : allPoints;
 
   return (
-    <div className="relative w-full">
-      <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-emerald-400/20" style={{ display: 'block' }} />
-      {/* SVG overlay exact over de foto — blauwe lijn met witte rand voor zichtbaarheid */}
-      <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-        viewBox="0 0 100 100" preserveAspectRatio="none">
-        {/* Witte achtergrondlijn voor contrast */}
-        {allPoints.map((pt, i) => i > 0 ? (
-          <line key={`line-bg-${i}`}
-            x1={allPoints[i-1].x} y1={allPoints[i-1].y}
-            x2={pt.x} y2={pt.y}
-            stroke="white" strokeWidth="0.6" strokeLinecap="round" opacity="0.4" />
-        ) : null)}
-        {/* Blauwe lijn */}
-        {allPoints.map((pt, i) => i > 0 ? (
-          <line key={`line-${i}`}
-            x1={allPoints[i-1].x} y1={allPoints[i-1].y}
-            x2={pt.x} y2={pt.y}
-            stroke="#60a5fa" strokeWidth="0.35" strokeLinecap="round" opacity="0.85" />
-        ) : null)}
-      </svg>
-      {/* Punten als absolute divs */}
-      {allPoints.map((pt, i) => (
-        <div key={i} style={{
-          position: 'absolute', left: pt.x + '%', top: pt.y + '%',
-          transform: 'translate(-50%, -50%)', pointerEvents: 'none'
-        }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%',
-            background: pt.color, border: '2px solid white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.6)', fontSize: 10, fontWeight: 'bold', color: 'white'
-          }}>{pt.label}</div>
-
+    <div className="w-full">
+      {/* Edit instructie */}
+      {editMode && editStep !== null && (
+        <div className="mb-3 px-3 py-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-center">
+          <span className="font-body text-sm text-emerald-300">
+            {editStep === 'T' ? '🏌️ Tik de tee positie aan' : `👆 Tik waar slag ${editStep} terechtkwam`}
+          </span>
+          <div className="font-body text-xs text-emerald-200/50 mt-1">
+            Stap {currentStepIndex + 1} van {editSteps.length}
+          </div>
         </div>
-      ))}
-      <div className="absolute bottom-3 left-3">
-        <div className="bg-black/50 text-white/60 text-xs px-2 py-1 rounded">📍 tap-posities</div>
+      )}
+      {editMode && editStep === null && (
+        <div className="mb-3 px-3 py-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-center">
+          <span className="font-body text-sm text-emerald-300">✅ Alle punten gemarkeerd</span>
+        </div>
+      )}
+
+      <div className="relative w-full">
+        <img src={photoUrl} alt="Hole" ref={imgRef}
+          onClick={handleImgTap}
+          className={"w-full rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
+          style={{ display: 'block' }} />
+
+        {/* SVG lijnen */}
+        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+          viewBox="0 0 100 100" preserveAspectRatio="none">
+          {previewPoints.map((pt, i) => i > 0 ? (
+            <line key={`line-bg-${i}`}
+              x1={previewPoints[i-1].x} y1={previewPoints[i-1].y}
+              x2={pt.x} y2={pt.y}
+              stroke="white" strokeWidth="0.6" strokeLinecap="round" opacity="0.4" />
+          ) : null)}
+          {previewPoints.map((pt, i) => i > 0 ? (
+            <line key={`line-${i}`}
+              x1={previewPoints[i-1].x} y1={previewPoints[i-1].y}
+              x2={pt.x} y2={pt.y}
+              stroke="#60a5fa" strokeWidth="0.35" strokeLinecap="round" opacity="0.85" />
+          ) : null)}
+        </svg>
+
+        {/* Punten */}
+        {previewPoints.map((pt, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: pt.x + '%', top: pt.y + '%',
+            transform: 'translate(-50%, -50%)', pointerEvents: 'none'
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: pt.color, border: '2px solid white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.6)', fontSize: 9, fontWeight: 'bold', color: 'white'
+            }}>{pt.label}</div>
+          </div>
+        ))}
+
+        {/* Huidig te tikken punt indicator */}
+        {editMode && editStep !== null && (
+          <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.7)', borderRadius: 8, padding: '4px 12px' }}>
+            <span style={{ color: '#fbbf24', fontSize: 11, fontWeight: 'bold' }}>
+              {editStep === 'T' ? '🏌️ Tik tee' : `👆 Tik slag ${editStep}`}
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Knoppen */}
+      {!editMode ? (
+        <button onClick={startEdit}
+          className="w-full mt-3 glass-card rounded-xl py-2.5 font-body text-sm text-emerald-300 border border-emerald-400/30 hover:bg-white/10 transition">
+          ✏️ Posities bewerken
+        </button>
+      ) : (
+        <div className="flex gap-2 mt-3">
+          <button onClick={handleCancel}
+            className="flex-1 glass-card rounded-xl py-2.5 font-body text-sm text-white/60 border border-white/20">
+            Annuleren
+          </button>
+          <button onClick={handleSave}
+            className="flex-1 btn-primary rounded-xl py-2.5 font-body text-sm">
+            ✓ Opslaan
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ── HoleMap: schematisch kaartje van gespeelde hole ──────────────
 function HoleMap({ hole }) {
@@ -295,8 +396,8 @@ function HoleMap({ hole }) {
 
 
 // ── MapTabView: twee tabs in de kaart modal ──────────────────────
-function MapTabView({ hole, hasTapPoints }) {
-  const [tab, setTab] = React.useState(hasTapPoints ? 'foto' : 'kaart');
+function MapTabView({ hole, hasTapPoints, onSaveTaps }) {
+  const [tab, setTab] = React.useState('foto');
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -318,7 +419,7 @@ function MapTabView({ hole, hasTapPoints }) {
       {/* Tab inhoud */}
       <div className="flex-1 overflow-y-auto px-4 pb-6">
         {tab === 'kaart' && <HoleMap hole={hole} />}
-        {tab === 'foto' && <PhotoMap hole={hole} />}
+        {tab === 'foto' && <PhotoMap hole={hole} onSaveTaps={onSaveTaps} />}
       </div>
     </div>
   );
@@ -495,7 +596,22 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
               <button onClick={() => setMapHole(null)}><X className="w-6 h-6 text-white/50" /></button>
             </div>
             {/* Tabs */}
-            <MapTabView hole={holeWithData} hasTapPoints={hasTapPoints} />
+            <MapTabView hole={holeWithData} hasTapPoints={hasTapPoints} onSaveTaps={(holeNr, editPoints) => {
+              // Update holes state met nieuwe tap punten
+              const updatedHoles = holes.map(h => {
+                if (h.hole !== holeNr) return h;
+                const updatedShots = (h.shots || []).map(s => {
+                  if (s.club === 'Putter') return s;
+                  const newTap = editPoints.shots[s.shotNumber] || s.tapPoint;
+                  const newTee = s.shotNumber === 1 ? editPoints.tee : s.teeTapPoint;
+                  return { ...s, tapPoint: newTap, teeTapPoint: newTee };
+                });
+                return { ...h, shots: updatedShots };
+              });
+              setHoles(updatedHoles);
+              setHasChanges(true);
+              setMapHole(updatedHoles.find(h => h.hole === holeNr) || mapHole);
+            }} />
           </div>
         );
       })()}
