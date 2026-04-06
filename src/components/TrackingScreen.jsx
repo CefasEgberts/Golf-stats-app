@@ -16,7 +16,6 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [caddyAdvice, setCaddyAdvice] = useState('');
   const [caddyLoading, setCaddyLoading] = useState(false);
   const [showTapOverlay, setShowTapOverlay] = useState(false);
-  const [showTeeTapOverlay, setShowTeeTapOverlay] = useState(false);
   const [pendingTapShot, setPendingTapShot] = useState(null);
   const tapPointsRef = useRef({});
   const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole // shotNumber -> {x, y} tap positions op foto
@@ -482,28 +481,6 @@ INSTRUCTIES VOOR JE ADVIES:
         />
       )}
 
-      {/* Tee Tap Overlay — markeer tee positie bij eerste slag */}
-      {showTeeTapOverlay && round.currentHoleInfo?.photoUrl && (
-        <HoleOverlay
-          currentHoleInfo={round.currentHoleInfo}
-          remainingDistance={round.remainingDistance}
-          showStrategy={false}
-          setShowStrategy={() => {}}
-          onClose={() => { setShowTeeTapOverlay(false); setShowTapOverlay(true); }}
-          t={t}
-          gps={null}
-          wind={null}
-          hasShots={true}
-          tapMode={true}
-          tapShotInfo={{ shotNumber: 'T', club: 'Tee', isTee: true }}
-          onTapPosition={(tapPoint) => {
-            teeTapRef.current = tapPoint;
-            setShowTeeTapOverlay(false);
-            setShowTapOverlay(true);
-          }}
-        />
-      )}
-
       {/* Tap Overlay — markeer waar de bal ligt na elke slag */}
       {showTapOverlay && round.currentHoleInfo?.photoUrl && (
         <HoleOverlay
@@ -900,21 +877,15 @@ INSTRUCTIES VOOR JE ADVIES:
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
-                  const isFirstShot = round.currentHoleShots.length === 0;
                   const shotNum = round.addShot(gps?.gpsTracking || false, selectedPosition, shotStartGps);
                   setShotStarted(false);
                   setSelectedPosition(null);
                   setShotStartGps(null);
-                  // Open tap overlay als er een hole foto is (niet voor putter)
+                  // Open bal-tap overlay als er een hole foto is (niet voor putter)
                   if (round.selectedClub !== 'Putter' && round.currentHoleInfo?.photoUrl) {
-                    const newShotNum = round.currentHoleShots.length; // na addShot is het al toegevoegd
+                    const newShotNum = round.currentHoleShots.length;
                     setPendingTapShot({ shotNumber: newShotNum, club: round.selectedClub, distance: round.manualDistance });
-                    if (isFirstShot && !teeTapRef.current) {
-                      // Eerste slag: eerst tee-positie laten tikken
-                      setShowTeeTapOverlay(true);
-                    } else {
-                      setShowTapOverlay(true);
-                    }
+                    setShowTapOverlay(true);
                   }
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
