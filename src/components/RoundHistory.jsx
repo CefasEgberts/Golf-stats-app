@@ -80,14 +80,14 @@ function PhotoMap({ hole }) {
           <line key={`line-bg-${i}`}
             x1={allPoints[i-1].x} y1={allPoints[i-1].y}
             x2={pt.x} y2={pt.y}
-            stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+            stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
         ) : null)}
         {/* Blauwe lijn */}
         {allPoints.map((pt, i) => i > 0 ? (
           <line key={`line-${i}`}
             x1={allPoints[i-1].x} y1={allPoints[i-1].y}
             x2={pt.x} y2={pt.y}
-            stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" opacity="0.95" />
+            stroke="#60a5fa" strokeWidth="0.7" strokeLinecap="round" opacity="0.85" />
         ) : null)}
       </svg>
       {/* Punten als absolute divs */}
@@ -104,12 +104,12 @@ function PhotoMap({ hole }) {
           }}>{pt.label}</div>
           {!pt.isTee && pt.club && (
             <div style={{
-              position: 'absolute', left: 16, top: -18, whiteSpace: 'nowrap',
-              background: 'rgba(0,0,0,0.75)', borderRadius: 4,
-              padding: '2px 6px', fontSize: 9, color: 'white', lineHeight: '1.4'
+              position: 'absolute', left: 14, top: -6, whiteSpace: 'nowrap',
+              background: 'rgba(0,0,0,0.75)', borderRadius: 3,
+              padding: '1px 4px', fontSize: 8, color: 'white', lineHeight: '1.3'
             }}>
-              <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>{pt.club}</span>
-              {pt.distance ? <span style={{ color: 'white' }}> {pt.distance}m</span> : ''}
+              <span style={{ color: '#93c5fd', fontWeight: 'bold' }}>{pt.club}</span>
+              {pt.distance ? <span> {pt.distance}m</span> : ''}
             </div>
           )}
         </div>
