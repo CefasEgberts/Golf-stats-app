@@ -5,6 +5,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
   const [tapPoint, setTapPoint] = React.useState(null);
   const [teeTapMode, setTeeTapMode] = React.useState(false);
   const [teeTapPoint, setTeeTapPoint] = React.useState(null);
+  const [showTeeTapWarning, setShowTeeTapWarning] = React.useState(false);
   const imgRef = React.useRef(null);
 
   const handleImageTap = (e) => {
@@ -321,14 +322,19 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
             </div>
           ) : (
             <>
-              {requireTeeTap && !teeTapPoint && !hasShots && (
+              {showTeeTapWarning && requireTeeTap && !teeTapPoint && !hasShots && (
                 <div className="mt-3 px-3 py-2 bg-yellow-500/20 border border-yellow-400/40 rounded-xl text-center">
                   <span className="font-body text-xs text-yellow-300">📍 Markeer eerst de tee positie op het kaartje</span>
                 </div>
               )}
-              <button onClick={onClose}
-                disabled={requireTeeTap && !teeTapPoint && !hasShots}
-                className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-40 disabled:cursor-not-allowed">
+              <button onClick={() => {
+                if (requireTeeTap && !teeTapPoint && !hasShots) {
+                  setShowTeeTapWarning(true);
+                  return;
+                }
+                onClose();
+              }}
+                className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
                 {hasShots ? '← Terug naar invoer' : t('beginHole')}
               </button>
             </>
