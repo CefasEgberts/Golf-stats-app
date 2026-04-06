@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { TEE_COLOR_ORDER } from '../lib/constants';
 
+// Filtert generieke woorden zodat 'Golf Amsteldijk' → 'amsteldijk', 'Golf & Countryclub Liemeer' → 'liemeer'
+const getCourseKey = (courseName) => {
+  const skipWords = ['golf', 'club', 'country', 'countryclub', 'golfclub', 'golfbaan', 'golfcentrum', 'de', 'het', 'van', 'en', '&'];
+  const words = courseName.toLowerCase().split(/[\s&]+/);
+  const meaningful = words.filter(w => w.length > 1 && !skipWords.includes(w));
+  return meaningful[0] || words[0];
+};
+
 export const useCourseData = () => {
   const [courseRating, setCourseRating] = useState(null);
   const [allHolesData, setAllHolesData] = useState([]);
@@ -13,7 +21,7 @@ export const useCourseData = () => {
   const fetchAvailableTees = async (courseName, loopName) => {
     try {
       const loopId = loopName.toLowerCase();
-      const firstWord = courseName.toLowerCase().split(' ')[0];
+      const firstWord = getCourseKey(courseName);
       const { data } = await supabase
         .from('golf_holes')
         .select('distances')
@@ -37,7 +45,7 @@ export const useCourseData = () => {
   const fetchCourseRating = async (courseName, loopName, gender, teeColor, isCombo, comboId) => {
     try {
       const loopId = loopName.toLowerCase();
-      const firstWord = courseName.toLowerCase().split(' ')[0];
+      const firstWord = getCourseKey(courseName);
       let data, error;
       if (isCombo && comboId) {
         const result = await supabase
@@ -78,7 +86,7 @@ export const useCourseData = () => {
           .order('hole_number');
         if (data?.length > 0) {
           const enrichedData = await Promise.all(data.map(async (hole) => {
-            const firstWord = courseName.toLowerCase().split(' ')[0];
+            const firstWord = getCourseKey(courseName);
             const { data: holeData } = await supabase
               .from('golf_holes')
               .select('par')
@@ -94,7 +102,7 @@ export const useCourseData = () => {
         }
       } else {
         const loopId = loopName.toLowerCase();
-        const firstWord = courseName.toLowerCase().split(' ')[0];
+        const firstWord = getCourseKey(courseName);
         const { data } = await supabase
           .from('golf_holes')
           .select('hole_number, par, stroke_index_men, stroke_index_ladies')
@@ -119,7 +127,7 @@ export const useCourseData = () => {
         .from('golf_holes').select('*')
         .eq('course_id', courseId).eq('loop_id', loopId).eq('hole_number', holeNumber).single();
       if (error || !data) {
-        const firstWord = courseName.toLowerCase().split(' ')[0];
+        const firstWord = getCourseKey(courseName);
         const result = await supabase
           .from('golf_holes').select('*')
           .ilike('course_id', '%' + firstWord + '%').eq('loop_id', loopId).eq('hole_number', holeNumber).single();
