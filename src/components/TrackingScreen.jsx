@@ -472,6 +472,12 @@ INSTRUCTIES VOOR JE ADVIES:
           gps={gps}
           wind={wind}
           hasShots={round.currentHoleShots.length > 0}
+          showTeeTap={!!(round.currentHoleInfo?.photoUrl && !teeTapRef.current && round.currentHoleShots.length === 0)}
+          onTeeTap={(tapPoint) => {
+            teeTapRef.current = tapPoint;
+            round.setShowHoleOverview(false);
+            round.setShowStrategy(false);
+          }}
         />
       )}
 

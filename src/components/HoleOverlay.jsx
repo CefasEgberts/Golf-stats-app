@@ -1,11 +1,20 @@
 import React from 'react';
 import { haversineMeters } from '../lib/gps';
 
-export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots, tapMode = false, onTapPosition = null, tapShotInfo = null }) {
+export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots, tapMode = false, onTapPosition = null, tapShotInfo = null, showTeeTap = false, onTeeTap = null }) {
   const [tapPoint, setTapPoint] = React.useState(null);
+  const [teeTapMode, setTeeTapMode] = React.useState(false);
+  const [teeTapPoint, setTeeTapPoint] = React.useState(null);
   const imgRef = React.useRef(null);
 
   const handleImageTap = (e) => {
+    if (teeTapMode) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      setTeeTapPoint({ x, y });
+      return;
+    }
     if (!tapMode) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -121,6 +130,18 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               onClick={handleImageTap}
               className={"object-contain rounded-xl border transition-all duration-300 " + (tapMode ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
               style={{ maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%' }} />
+            {/* Tee tap indicator */}
+            {teeTapMode && teeTapPoint && (
+              <div style={{ position: 'absolute', left: teeTapPoint.x + '%', top: teeTapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 'bold', color: 'white' }}>T</div>
+              </div>
+            )}
+            {teeTapMode && !teeTapPoint && (
+              <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
+                <span style={{ color: '#10b981', fontSize: 13, fontWeight: 'bold' }}>🏌️ Tik op de tee-positie</span>
+              </div>
+            )}
+
             {/* Tap punt indicator */}
             {tapMode && tapPoint && (
               <div style={{ position: 'absolute', left: tapPoint.x + '%', top: tapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
@@ -262,6 +283,29 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               )}
             </>
           )}
+          {/* Tee tap confirm */}
+          {teeTapMode && (
+            <div className="flex gap-3 mt-3">
+              <button onClick={() => { setTeeTapMode(false); setTeeTapPoint(null); }}
+                className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/60 border border-white/20">
+                Annuleren
+              </button>
+              <button onClick={() => { if (teeTapPoint && onTeeTap) onTeeTap(teeTapPoint); setTeeTapMode(false); }}
+                disabled={!teeTapPoint}
+                className="flex-1 btn-primary rounded-xl py-3 font-display text-lg tracking-wider disabled:opacity-40">
+                ✓ Tee opgeslagen
+              </button>
+            </div>
+          )}
+
+          {/* Tee tap knop — toon als nog niet getapt */}
+          {!tapMode && !teeTapMode && showTeeTap && (
+            <button onClick={() => setTeeTapMode(true)}
+              className="w-full mt-3 glass-card rounded-xl py-3 font-body text-sm text-emerald-300 border border-emerald-400/30 hover:bg-white/10 transition">
+              📍 Markeer tee positie op kaartje
+            </button>
+          )}
+
           {/* Close / tap confirm button */}
           {tapMode ? (
             <div className="flex gap-3 mt-3">
