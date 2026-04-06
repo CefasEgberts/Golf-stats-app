@@ -72,15 +72,22 @@ function PhotoMap({ hole }) {
   return (
     <div className="relative w-full">
       <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-emerald-400/20" style={{ display: 'block' }} />
-      {/* SVG overlay exact over de foto */}
+      {/* SVG overlay exact over de foto — blauwe lijn met witte rand voor zichtbaarheid */}
       <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
         viewBox="0 0 100 100" preserveAspectRatio="none">
-        {/* Lijnen tussen punten */}
+        {/* Witte achtergrondlijn voor contrast */}
+        {allPoints.map((pt, i) => i > 0 ? (
+          <line key={`line-bg-${i}`}
+            x1={allPoints[i-1].x} y1={allPoints[i-1].y}
+            x2={pt.x} y2={pt.y}
+            stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+        ) : null)}
+        {/* Blauwe lijn */}
         {allPoints.map((pt, i) => i > 0 ? (
           <line key={`line-${i}`}
             x1={allPoints[i-1].x} y1={allPoints[i-1].y}
             x2={pt.x} y2={pt.y}
-            stroke="#f97316" strokeWidth="0.8" strokeLinecap="round" opacity="0.9" />
+            stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" opacity="0.95" />
         ) : null)}
       </svg>
       {/* Punten als absolute divs */}
@@ -97,10 +104,13 @@ function PhotoMap({ hole }) {
           }}>{pt.label}</div>
           {!pt.isTee && pt.club && (
             <div style={{
-              position: 'absolute', left: 16, top: -8, whiteSpace: 'nowrap',
-              background: 'rgba(0,0,0,0.65)', borderRadius: 4,
-              padding: '2px 5px', fontSize: 9, color: 'white'
-            }}>{pt.club}{pt.distance ? ` ${pt.distance}m` : ''}</div>
+              position: 'absolute', left: 16, top: -18, whiteSpace: 'nowrap',
+              background: 'rgba(0,0,0,0.75)', borderRadius: 4,
+              padding: '2px 6px', fontSize: 9, color: 'white', lineHeight: '1.4'
+            }}>
+              <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>{pt.club}</span>
+              {pt.distance ? <span style={{ color: 'white' }}> {pt.distance}m</span> : ''}
+            </div>
           )}
         </div>
       ))}
