@@ -877,14 +877,17 @@ INSTRUCTIES VOOR JE ADVIES:
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
-                  const shotNum = round.addShot(gps?.gpsTracking || false, selectedPosition, shotStartGps);
+                  // Sla shotNumber op VOOR addShot (state update is async)
+                  const newShotNum = round.currentHoleShots.length + 1;
+                  const shotClub = round.selectedClub;
+                  const shotDistance = round.manualDistance;
+                  round.addShot(gps?.gpsTracking || false, selectedPosition, shotStartGps);
                   setShotStarted(false);
                   setSelectedPosition(null);
                   setShotStartGps(null);
                   // Open bal-tap overlay als er een hole foto is (niet voor putter)
-                  if (round.selectedClub !== 'Putter' && round.currentHoleInfo?.photoUrl) {
-                    const newShotNum = round.currentHoleShots.length;
-                    setPendingTapShot({ shotNumber: newShotNum, club: round.selectedClub, distance: round.manualDistance });
+                  if (shotClub !== 'Putter' && round.currentHoleInfo?.photoUrl) {
+                    setPendingTapShot({ shotNumber: newShotNum, club: shotClub, distance: shotDistance });
                     setShowTapOverlay(true);
                   }
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
