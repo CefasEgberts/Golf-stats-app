@@ -16,6 +16,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [caddyAdvice, setCaddyAdvice] = useState('');
   const [caddyLoading, setCaddyLoading] = useState(false);
   const [showTapOverlay, setShowTapOverlay] = useState(false);
+  const [showPuttWarning, setShowPuttWarning] = useState(false);
   const [pendingTapShot, setPendingTapShot] = useState(null);
   const tapPointsRef = useRef({});
   const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole // shotNumber -> {x, y} tap positions op foto
@@ -475,6 +476,7 @@ INSTRUCTIES VOOR JE ADVIES:
           requireTeeTap={!!(settings.trackPosition && round.currentHoleInfo?.photoUrl && round.currentHoleShots.length === 0)}
           onTeeTap={(tapPoint) => {
             teeTapRef.current = tapPoint;
+            setTeeTapSaved(tapPoint); // backup in state
             round.setShowHoleOverview(false);
             round.setShowStrategy(false);
           }}
@@ -998,29 +1000,73 @@ INSTRUCTIES VOOR JE ADVIES:
                       </div>
                     </div>
                   )}
-                  <button onClick={() => {
-                    // Voeg tap-punten toe aan shots voor dit hole
-                    const shotsWithTaps = round.currentHoleShots.map(s => ({
-                      ...s,
-                      tapPoint: tapPointsRef.current[s.shotNumber] || null
-                    }));
-                    // Voeg tee tap toe aan eerste shot
-                    if (teeTapRef.current && shotsWithTaps.length > 0) {
-                      shotsWithTaps[0].teeTapPoint = teeTapRef.current;
-                    }
-                    tapPointsRef.current = {};
-                    teeTapRef.current = null;
-                    finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
-                    setShowFinishHole(false);
-                    // Start 60s reminder timer voor volgende hole
-                    if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
-                    nextHoleReminderRef.current = setTimeout(() => {
-                      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
-                    }, 60000);
-                  }}
-                    className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-                    ✓ {t('completeHole').toUpperCase()}
-                  </button>
+                  {/* Putt waarschuwing popup */}
+                  {showPuttWarning && (
+                    <div className="mb-4 p-4 bg-orange-500/20 border border-orange-400/40 rounded-xl">
+                      <div className="font-body text-sm text-orange-300 text-center mb-3">
+                        ⚠️ Je hebt geen putt(s) geregistreerd. Klopt dit?<br/>
+                        <span className="text-orange-200/70 text-xs">(bijv. uitgehold in 1 slag)</span>
+                      </div>
+                      <div className="flex gap-3">
+                        <button onClick={() => setShowPuttWarning(false)}
+                          className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/70 border border-white/20">
+                          Nee, terug
+                        </button>
+                        <button onClick={() => {
+                          setShowPuttWarning(false);
+                          const shotsWithTaps = round.currentHoleShots.map(s => ({
+                            ...s,
+                            tapPoint: tapPointsRef.current[s.shotNumber] || null
+                          }));
+                          const teePos2 = teeTapRef.current || teeTapSaved;
+                          if (teePos2 && shotsWithTaps.length > 0) {
+                            shotsWithTaps[0].teeTapPoint = teePos2;
+                          }
+                          tapPointsRef.current = {};
+                          teeTapRef.current = null;
+                          setTeeTapSaved(null);
+                          finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
+                          setShowFinishHole(false);
+                          if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
+                          nextHoleReminderRef.current = setTimeout(() => {
+                            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+                          }, 60000);
+                        }}
+                          className="flex-1 btn-primary rounded-xl py-3 font-body text-sm">
+                          Ja, klopt
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!showPuttWarning && (
+                    <button onClick={() => {
+                      if (totalPutts === 0) {
+                        setShowPuttWarning(true);
+                        return;
+                      }
+                      const shotsWithTaps = round.currentHoleShots.map(s => ({
+                        ...s,
+                        tapPoint: tapPointsRef.current[s.shotNumber] || null
+                      }));
+                      const teePos = teeTapRef.current || teeTapSaved;
+                      if (teePos && shotsWithTaps.length > 0) {
+                        shotsWithTaps[0].teeTapPoint = teePos;
+                      }
+                      tapPointsRef.current = {};
+                      teeTapRef.current = null;
+                      setTeeTapSaved(null);
+                      finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
+                      setShowFinishHole(false);
+                      if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
+                      nextHoleReminderRef.current = setTimeout(() => {
+                        if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
+                      }, 60000);
+                    }}
+                      className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+                      ✓ {t('completeHole').toUpperCase()}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
