@@ -11,7 +11,7 @@ function formatDate(dateStr) {
 // ── PhotoMap: toon tap-punten op hole foto ──────────────────────
 function PhotoMap({ hole }) {
   const [photoUrl, setPhotoUrl] = React.useState(hole.photo_url || null);
-  const shots = (hole.shots || []).filter(s => s.club !== 'Putter' && s.tapPoint);
+  const shots = (hole.shots || []).filter(s => s.club !== 'Putter' && (s.tapPoint || s.teeTapPoint));
 
   React.useEffect(() => {
     if (photoUrl) return;
@@ -60,8 +60,10 @@ function PhotoMap({ hole }) {
   const allPoints = [];
   if (teeTap) allPoints.push({ x: teeTap.x, y: teeTap.y, label: 'T', color: '#10b981', isTee: true });
   shots.forEach((shot, i) => {
+    const pt = shot.tapPoint || null;
+    if (!pt) return; // skip shots zonder tap positie
     allPoints.push({
-      x: shot.tapPoint.x, y: shot.tapPoint.y,
+      x: pt.x, y: pt.y,
       label: String(shot.shotNumber || i + 1),
       color: shot.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6',
       club: clubAbbr(shot.club),
@@ -494,7 +496,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           loopId: roundData.loop?.id || roundData.loop,
           ...(holeGpsData.find(h => h.hole_number === mapHole.hole) || {})
         };
-        const hasTapPoints = (mapHole.shots || []).some(s => s.tapPoint);
+        const hasTapPoints = (mapHole.shots || []).some(s => s.tapPoint || s.teeTapPoint);
         return (
           <div className="fixed inset-0 bg-black/95 z-50 flex flex-col">
             <div className="p-4 flex items-center justify-between flex-shrink-0">
