@@ -15,6 +15,9 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [showCaddy, setShowCaddy] = useState(false);
   const [caddyAdvice, setCaddyAdvice] = useState('');
   const [caddyLoading, setCaddyLoading] = useState(false);
+  const [showTapOverlay, setShowTapOverlay] = useState(false);
+  const [pendingTapShot, setPendingTapShot] = useState(null);
+  const tapPointsRef = useRef({}); // shotNumber -> {x, y} tap positions op foto
   const finishHoleRef = useRef(null);
   const nextHoleReminderRef = useRef(null);
   const startButtonRef = useRef(null);
@@ -470,6 +473,30 @@ INSTRUCTIES VOOR JE ADVIES:
         />
       )}
 
+      {/* Tap Overlay — markeer waar de bal ligt na elke slag */}
+      {showTapOverlay && round.currentHoleInfo?.photoUrl && (
+        <HoleOverlay
+          currentHoleInfo={round.currentHoleInfo}
+          remainingDistance={round.remainingDistance}
+          showStrategy={false}
+          setShowStrategy={() => {}}
+          onClose={() => setShowTapOverlay(false)}
+          t={t}
+          gps={null}
+          wind={null}
+          hasShots={true}
+          tapMode={true}
+          tapShotInfo={pendingTapShot}
+          onTapPosition={(tapPoint) => {
+            if (tapPoint && pendingTapShot?.shotNumber) {
+              tapPointsRef.current[pendingTapShot.shotNumber] = tapPoint;
+            }
+            setShowTapOverlay(false);
+            setPendingTapShot(null);
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="p-6 bg-gradient-to-b from-black/20 to-transparent">
         <div className="flex items-center justify-between mb-4">
@@ -839,14 +866,18 @@ INSTRUCTIES VOOR JE ADVIES:
                 <button onClick={() => {
                   if (gps?.gpsTracking) gps.captureShot();
                   if (gps?.disarmShotReminder) gps.disarmShotReminder();
-                  // In GPS or sim mode, auto-set distance from GPS
                   if (gps?.gpsTracking && gps.gpsShotDistance != null && !round.manualDistance) {
                     round.setManualDistance(gps.gpsShotDistance.toString());
                   }
-                  round.addShot(gps?.gpsTracking || false, selectedPosition, shotStartGps);
+                  const shotNum = round.addShot(gps?.gpsTracking || false, selectedPosition, shotStartGps);
                   setShotStarted(false);
                   setSelectedPosition(null);
                   setShotStartGps(null);
+                  // Open tap overlay als er een hole foto is (niet voor putter)
+                  if (round.selectedClub !== 'Putter' && round.currentHoleInfo?.photoUrl) {
+                    setPendingTapShot({ shotNumber: (round.currentHoleShots.length), club: round.selectedClub, distance: round.manualDistance });
+                    setShowTapOverlay(true);
+                  }
                 }} disabled={round.selectedClub !== 'Putter' && !round.selectedLie}
                   className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
                   {t('distanceOk').toUpperCase()}
@@ -956,7 +987,13 @@ INSTRUCTIES VOOR JE ADVIES:
                     </div>
                   )}
                   <button onClick={() => {
-                    finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating));
+                    // Voeg tap-punten toe aan shots voor dit hole
+                    const shotsWithTaps = round.currentHoleShots.map(s => ({
+                      ...s,
+                      tapPoint: tapPointsRef.current[s.shotNumber] || null
+                    }));
+                    tapPointsRef.current = {};
+                    finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
                     setShowFinishHole(false);
                     // Start 60s reminder timer voor volgende hole
                     if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);

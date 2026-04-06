@@ -1,7 +1,29 @@
 import React from 'react';
 import { haversineMeters } from '../lib/gps';
 
-export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots }) {
+export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots, tapMode = false, onTapPosition = null, tapShotInfo = null }) {
+  const [tapPoint, setTapPoint] = React.useState(null);
+  const imgRef = React.useRef(null);
+
+  const handleImageTap = (e) => {
+    if (!tapMode) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setTapPoint({ x, y });
+  };
+
+  const confirmTap = () => {
+    if (tapPoint && onTapPosition) {
+      onTapPosition(tapPoint);
+    }
+    onClose();
+  };
+
+  const skipTap = () => {
+    if (onTapPosition) onTapPosition(null);
+    onClose();
+  };
   const hasGreenCoords = currentHoleInfo.greenLat != null && currentHoleInfo.greenLng != null;
 
   // Wind direction label (absolute compass)
@@ -95,8 +117,26 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
         {currentHoleInfo.photoUrl ? (
           <div className="relative h-full flex items-center justify-center">
             <img src={currentHoleInfo.photoUrl} alt={`Hole ${currentHoleInfo.number}`}
-              className="object-contain rounded-xl border border-emerald-600/30 transition-all duration-300"
+              ref={imgRef}
+              onClick={handleImageTap}
+              className={"object-contain rounded-xl border transition-all duration-300 " + (tapMode ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
               style={{ maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%' }} />
+            {/* Tap punt indicator */}
+            {tapMode && tapPoint && (
+              <div style={{ position: 'absolute', left: tapPoint.x + '%', top: tapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f59e0b', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                  <span style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                    {tapShotInfo?.shotNumber || '•'}
+                  </span>
+                </div>
+              </div>
+            )}
+            {/* Tap mode instructie */}
+            {tapMode && !tapPoint && (
+              <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
+                <span style={{ color: '#fbbf24', fontSize: 13, fontWeight: 'bold' }}>👆 Tik waar de bal ligt</span>
+              </div>
+            )}
             {/* GPS blinking dot */}
             {gpsDotTop != null && (
               <div style={{ position: 'absolute', left: '50%', top: gpsDotTop + '%', transform: 'translate(-50%, -50%)' }}>
@@ -218,11 +258,24 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               )}
             </>
           )}
-          {/* Close button */}
-          <button onClick={onClose}
-            className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-            {hasShots ? '← Terug naar invoer' : t('beginHole')}
-          </button>
+          {/* Close / tap confirm button */}
+          {tapMode ? (
+            <div className="flex gap-3 mt-3">
+              <button onClick={skipTap}
+                className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/60 border border-white/20">
+                Overslaan
+              </button>
+              <button onClick={confirmTap} disabled={!tapPoint}
+                className="flex-1 btn-primary rounded-xl py-3 font-display text-lg tracking-wider disabled:opacity-40">
+                ✓ Bevestigen
+              </button>
+            </div>
+          ) : (
+            <button onClick={onClose}
+              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+              {hasShots ? '← Terug naar invoer' : t('beginHole')}
+            </button>
+          )}
         </div>
       </div>
     </div>
