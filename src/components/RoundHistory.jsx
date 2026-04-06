@@ -8,6 +8,129 @@ function formatDate(dateStr) {
 }
 
 
+// ── PhotoMap: toon tap-punten op hole foto ──────────────────────
+function PhotoMap({ hole }) {
+  const [photoUrl, setPhotoUrl] = React.useState(hole.photo_url || null);
+  const shots = (hole.shots || []).filter(s => s.club !== 'Putter' && s.tapPoint);
+
+  React.useEffect(() => {
+    if (photoUrl) return;
+    const fetch = async () => {
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const loopId = hole.loopId;
+        if (!loopId) return;
+        const { data } = await supabase.from('golf_holes')
+          .select('photo_url')
+          .eq('loop_id', loopId)
+          .eq('hole_number', hole.hole)
+          .single();
+        if (data?.photo_url) setPhotoUrl(data.photo_url);
+      } catch {}
+    };
+    fetch();
+  }, [hole]);
+
+  if (!photoUrl) return (
+    <div className="flex items-center justify-center h-48">
+      <div className="text-center font-body text-sm text-white/40 px-8">Geen hole foto beschikbaar.</div>
+    </div>
+  );
+
+  // Tee tap uit eerste shot
+  const teeTap = (hole.shots || []).find(s => s.teeTapPoint)?.teeTapPoint || null;
+
+  if (shots.length === 0 && !teeTap) return (
+    <div className="relative w-full">
+      <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-white/10" />
+      <div className="absolute bottom-3 left-0 right-0 text-center">
+        <span className="bg-black/60 text-white/50 text-xs px-3 py-1 rounded-full">Geen tap-punten opgeslagen</span>
+      </div>
+    </div>
+  );
+
+  const clubAbbr = (club) => {
+    const map = { 'Driver': 'D', 'Pitching wedge': 'PW', 'Gap wedge': 'GW', 'Sand wedge': 'SW', 'Lob wedge': 'LW', 'Approach wedge': 'AW' };
+    if (map[club]) return map[club];
+    const m = club.match(/\d+/);
+    return m ? m[0] : club.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="relative w-full">
+      <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-emerald-400/20" />
+      {/* Tee positie */}
+      {teeTap && (
+        <div style={{
+          position: 'absolute', left: teeTap.x + '%', top: teeTap.y + '%',
+          transform: 'translate(-50%, -50%)', pointerEvents: 'none'
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: '#10b981', border: '2px solid white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.6)', fontSize: 11, fontWeight: 'bold', color: 'white'
+          }}>T</div>
+        </div>
+      )}
+
+      {shots.map((shot, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          left: shot.tapPoint.x + '%',
+          top: shot.tapPoint.y + '%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none'
+        }}>
+          {/* Lijn van vorig punt */}
+          {i > 0 && shots[i-1].tapPoint && (() => {
+            const prev = shots[i-1].tapPoint;
+            const curr = shot.tapPoint;
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            return (
+              <div style={{
+                position: 'absolute',
+                left: '50%', top: '50%',
+                width: len + '%',
+                height: 2,
+                background: 'rgba(96,165,250,0.8)',
+                transformOrigin: '0 50%',
+                transform: `rotate(${angle}deg) translateX(-${len}%)`,
+                pointerEvents: 'none'
+              }} />
+            );
+          })()}
+          {/* Punt */}
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: shot.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6',
+            border: '2px solid white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
+            fontSize: 10, fontWeight: 'bold', color: 'white'
+          }}>
+            {shot.shotNumber}
+          </div>
+          {/* Label */}
+          <div style={{
+            position: 'absolute', left: 16, top: -8,
+            background: 'rgba(0,0,0,0.65)', borderRadius: 4,
+            padding: '2px 5px', whiteSpace: 'nowrap', fontSize: 9, color: 'white'
+          }}>
+            {clubAbbr(shot.club)}{shot.distancePlayed ? ` ${shot.distancePlayed}m` : ''}
+          </div>
+        </div>
+      ))}
+      <div className="absolute bottom-3 left-3">
+        <div className="bg-black/50 text-white/60 text-xs px-2 py-1 rounded">📍 tap-posities</div>
+      </div>
+    </div>
+  );
+}
+
 // ── HoleMap: schematisch kaartje van gespeelde hole ──────────────
 function HoleMap({ hole }) {
   const shots = (hole.shots || []).filter(s => s.club !== 'Putter');
@@ -188,6 +311,37 @@ function HoleMap({ hole }) {
 }
 
 
+// ── MapTabView: twee tabs in de kaart modal ──────────────────────
+function MapTabView({ hole, hasTapPoints }) {
+  const [tab, setTab] = React.useState(hasTapPoints ? 'foto' : 'kaart');
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Tab knoppen */}
+      <div className="flex gap-2 px-4 pb-3 flex-shrink-0">
+        <button
+          onClick={() => setTab('kaart')}
+          className={"flex-1 py-2 rounded-xl font-body text-sm font-medium transition border " +
+            (tab === 'kaart' ? 'bg-emerald-500/30 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/10 text-white/50')}>
+          🗺 Slagkaartje
+        </button>
+        <button
+          onClick={() => setTab('foto')}
+          className={"flex-1 py-2 rounded-xl font-body text-sm font-medium transition border " +
+            (tab === 'foto' ? 'bg-emerald-500/30 border-emerald-400/50 text-emerald-300' : 'bg-white/5 border-white/10 text-white/50')}>
+          📍 Op de foto
+        </button>
+      </div>
+      {/* Tab inhoud */}
+      <div className="flex-1 overflow-y-auto px-4 pb-6">
+        {tab === 'kaart' && <HoleMap hole={hole} />}
+        {tab === 'foto' && <PhotoMap hole={hole} />}
+      </div>
+    </div>
+  );
+}
+
+
 export default function RoundHistory({ roundData, convertDistance, getUnitLabel, onBack, onSaveRound, holeGpsData = [] }) {
   const [holes, setHoles] = useState(() => JSON.parse(JSON.stringify(roundData.holes || [])));
   const [editingHole, setEditingHole] = useState(null);
@@ -342,23 +496,26 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
   return (
     <div className="min-h-screen pb-6">
 
-      {/* Kaart Modal */}
-      {mapHole && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col" onClick={() => setMapHole(null)}>
-          <div className="p-4 flex items-center justify-between">
-            <div className="font-display text-xl text-emerald-300">Hole {mapHole.hole} - GPS Trail</div>
-            <button onClick={() => setMapHole(null)}><X className="w-6 h-6 text-white/50" /></button>
+      {/* Kaart Modal — twee tabs: schematisch kaartje + hole foto met tap-punten */}
+      {mapHole && (() => {
+        const holeWithData = {
+          ...mapHole,
+          courseName: roundData.course?.name,
+          loopId: roundData.loop?.id || roundData.loop,
+          ...(holeGpsData.find(h => h.hole_number === mapHole.hole) || {})
+        };
+        const hasTapPoints = (mapHole.shots || []).some(s => s.tapPoint);
+        return (
+          <div className="fixed inset-0 bg-black/95 z-50 flex flex-col">
+            <div className="p-4 flex items-center justify-between flex-shrink-0">
+              <div className="font-display text-xl text-emerald-300">Hole {mapHole.hole}</div>
+              <button onClick={() => setMapHole(null)}><X className="w-6 h-6 text-white/50" /></button>
+            </div>
+            {/* Tabs */}
+            <MapTabView hole={holeWithData} hasTapPoints={hasTapPoints} />
           </div>
-          <div className="flex-1 px-4 pb-4" onClick={e => e.stopPropagation()}>
-            <HoleMap hole={{
-                ...mapHole,
-                courseName: roundData.course?.name,
-                loopId: roundData.loop?.id || roundData.loop,
-                ...(holeGpsData.find(h => h.hole_number === mapHole.hole) || {})
-              }} />
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Edit Modal */}
       {editingHole !== null && (

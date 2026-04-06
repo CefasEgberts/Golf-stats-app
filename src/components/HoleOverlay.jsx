@@ -95,7 +95,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
   return (
     <div className="fixed inset-0 bg-black/95 z-50 flex flex-col" onClick={onClose}>
       <div className="flex-shrink-0 px-4 pt-3 pb-2 text-center">
-        <span className="font-body text-xs text-white/40">tik om te sluiten</span>
+        {!tapMode && <span className="font-body text-xs text-white/40">tik om te sluiten</span>}
         <div className="flex items-center justify-center gap-3 mt-1">
           <span className="font-display text-xl bg-gradient-to-r from-emerald-300 to-teal-200 bg-clip-text text-transparent">HOLE {currentHoleInfo.number}</span>
           <span className="font-body text-emerald-200/70 text-sm">Par {currentHoleInfo.par}</span>
@@ -124,9 +124,9 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
             {/* Tap punt indicator */}
             {tapMode && tapPoint && (
               <div style={{ position: 'absolute', left: tapPoint.x + '%', top: tapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#f59e0b', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: tapShotInfo?.isTee ? '#10b981' : '#f59e0b', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
                   <span style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
-                    {tapShotInfo?.shotNumber || '•'}
+                    {tapShotInfo?.isTee ? 'T' : (tapShotInfo?.shotNumber || '•')}
                   </span>
                 </div>
               </div>
@@ -134,7 +134,9 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
             {/* Tap mode instructie */}
             {tapMode && !tapPoint && (
               <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
-                <span style={{ color: '#fbbf24', fontSize: 13, fontWeight: 'bold' }}>👆 Tik waar de bal ligt</span>
+                <span style={{ color: tapShotInfo?.isTee ? '#10b981' : '#fbbf24', fontSize: 13, fontWeight: 'bold' }}>
+                  {tapShotInfo?.isTee ? '🏌️ Tik op de tee-positie' : '👆 Tik waar de bal ligt'}
+                </span>
               </div>
             )}
             {/* GPS blinking dot */}
@@ -150,9 +152,11 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 <div className="w-0 h-0" style={{ borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderRight: '8px solid #ef4444' }}></div>
               </div>
             )}
-            <div style={{ position: 'absolute', right: '8px', top: '4%' }}>
-              <div className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded shadow-lg" style={{ fontSize: '10px' }}>⛳ Green</div>
-            </div>
+            {!tapMode && (
+              <div style={{ position: 'absolute', right: '8px', top: '4%' }}>
+                <div className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded shadow-lg" style={{ fontSize: '10px' }}>⛳ Green</div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="h-32 w-full max-w-sm bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
@@ -162,7 +166,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
       </div>
       <div className="flex-shrink-0 px-4 pb-4 pt-2" onClick={(e) => e.stopPropagation()}>
         <div className="max-w-lg mx-auto">
-          {(currentHoleInfo.holeStrategy || (wind && wind.beaufort >= 2)) && (
+          {!tapMode && (currentHoleInfo.holeStrategy || (wind && wind.beaufort >= 2)) && (
             <>
               <button onClick={() => setShowStrategy(!showStrategy)}
                 className={'w-full rounded-xl py-3 px-4 font-body font-medium transition border ' +
