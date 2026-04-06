@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronLeft, BarChart3 } from 'lucide-react';
 import { calculateStablefordForHole, getStrokeIndex } from '../lib/stableford';
 
-export default function StatsScreen({ roundData, allHolesData, courseRating, settings, convertDistance, getUnitLabel, onNewRound, onHome }) {
+export default function StatsScreen({ roundData, allHolesData, courseRating, settings, convertDistance, getUnitLabel, onNewRound, onHome, onViewRound }) {
   const tr = (key) => {
     const map = {
       nl: { newRound: 'NIEUWE RONDE' },
@@ -100,9 +100,18 @@ export default function StatsScreen({ roundData, allHolesData, courseRating, set
           })}
         </div>
 
-        <button onClick={onNewRound} className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-          {tr('newRound').toUpperCase()}
-        </button>
+        <div className="space-y-3">
+          {onViewRound && (
+            <button onClick={onViewRound}
+              className="w-full glass-card rounded-xl py-4 font-display text-xl tracking-wider border border-emerald-400/30 text-emerald-300 hover:bg-white/10 transition">
+              📋 SCOREKAART BEKIJKEN
+            </button>
+          )}
+          <button onClick={onHome}
+            className="w-full btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+            ✓ AFRONDEN
+          </button>
+        </div>
       </div>
     </div>
   );
