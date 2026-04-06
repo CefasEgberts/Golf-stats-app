@@ -8,17 +8,15 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
   const imgRef = React.useRef(null);
 
   const handleImageTap = (e) => {
+    // Gebruik e.target (de img zelf) voor correcte positie binnen de afbeelding
+    const rect = e.target.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
     if (teeTapMode) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
       setTeeTapPoint({ x, y });
       return;
     }
     if (!tapMode) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
     setTapPoint({ x, y });
   };
 
@@ -125,22 +123,24 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
         onClick={(e) => e.stopPropagation()}>
         {currentHoleInfo.photoUrl ? (
           <div className="relative h-full flex items-center justify-center">
-            <img src={currentHoleInfo.photoUrl} alt={`Hole ${currentHoleInfo.number}`}
-              ref={imgRef}
-              onClick={handleImageTap}
-              className={"object-contain rounded-xl border transition-all duration-300 " + (tapMode ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
-              style={{ maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%' }} />
-            {/* Tee tap indicator */}
-            {teeTapMode && teeTapPoint && (
-              <div style={{ position: 'absolute', left: teeTapPoint.x + '%', top: teeTapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 'bold', color: 'white' }}>T</div>
-              </div>
-            )}
-            {teeTapMode && !teeTapPoint && (
-              <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
-                <span style={{ color: '#10b981', fontSize: 13, fontWeight: 'bold' }}>🏌️ Tik op de tee-positie</span>
-              </div>
-            )}
+            {/* Wrapper exact om de img heen zodat absolute posities kloppen */}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <img src={currentHoleInfo.photoUrl} alt={`Hole ${currentHoleInfo.number}`}
+                ref={imgRef}
+                onClick={handleImageTap}
+                className={"object-contain rounded-xl border transition-all duration-300 " + ((tapMode || teeTapMode) ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
+                style={{ maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%', display: 'block' }} />
+              {/* Tee tap indicator */}
+              {teeTapMode && teeTapPoint && (
+                <div style={{ position: 'absolute', left: teeTapPoint.x + '%', top: teeTapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 'bold', color: 'white' }}>T</div>
+                </div>
+              )}
+              {teeTapMode && !teeTapPoint && (
+                <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
+                  <span style={{ color: '#10b981', fontSize: 13, fontWeight: 'bold' }}>🏌️ Tik op de tee-positie</span>
+                </div>
+              )}
 
             {/* Tap punt indicator */}
             {tapMode && tapPoint && (
@@ -160,6 +160,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 </span>
               </div>
             )}
+            </div>{/* einde img wrapper */}
             {/* GPS blinking dot */}
             {gpsDotTop != null && (
               <div style={{ position: 'absolute', left: '50%', top: gpsDotTop + '%', transform: 'translate(-50%, -50%)' }}>
