@@ -1,7 +1,7 @@
 import React from 'react';
 import { haversineMeters } from '../lib/gps';
 
-export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots, tapMode = false, onTapPosition = null, tapShotInfo = null, showTeeTap = false, onTeeTap = null }) {
+export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots, tapMode = false, onTapPosition = null, tapShotInfo = null, showTeeTap = false, onTeeTap = null, requireTeeTap = false }) {
   const [tapPoint, setTapPoint] = React.useState(null);
   const [teeTapMode, setTeeTapMode] = React.useState(false);
   const [teeTapPoint, setTeeTapPoint] = React.useState(null);
@@ -320,10 +320,18 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               </button>
             </div>
           ) : (
-            <button onClick={onClose}
-              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
-              {hasShots ? '← Terug naar invoer' : t('beginHole')}
-            </button>
+            <>
+              {requireTeeTap && !teeTapPoint && !hasShots && (
+                <div className="mt-3 px-3 py-2 bg-yellow-500/20 border border-yellow-400/40 rounded-xl text-center">
+                  <span className="font-body text-xs text-yellow-300">📍 Markeer eerst de tee positie op het kaartje</span>
+                </div>
+              )}
+              <button onClick={onClose}
+                disabled={requireTeeTap && !teeTapPoint && !hasShots}
+                className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider disabled:opacity-40 disabled:cursor-not-allowed">
+                {hasShots ? '← Terug naar invoer' : t('beginHole')}
+              </button>
+            </>
           )}
         </div>
       </div>
