@@ -137,9 +137,11 @@ export const useRound = () => {
     }
   };
 
-  const saveHole = (putts, score, stablefordPts = null, handicapSnapshot = null, si = null, par = null, playingHcp = null) => {
+  const saveHole = (putts, score, stablefordPts = null, handicapSnapshot = null, si = null, par = null, playingHcp = null, shotsWithTaps = null) => {
+    // Gebruik shotsWithTaps als die meegegeven zijn (tap-punten op foto), anders gewone shots
+    const shots = shotsWithTaps || currentHoleShots;
     const holeData = {
-      hole: currentHole, shots: currentHoleShots, putts, score,
+      hole: currentHole, shots, putts, score,
       totalShots: currentHoleShots.length + putts,
       stablefordPts, handicapSnapshot,
       stroke_index_men: si, par, playingHcp
