@@ -56,72 +56,52 @@ function PhotoMap({ hole }) {
     return m ? m[0] : club.substring(0, 2).toUpperCase();
   };
 
+  // Bouw alle punten op: tee + slagpunten
+  const allPoints = [];
+  if (teeTap) allPoints.push({ x: teeTap.x, y: teeTap.y, label: 'T', color: '#10b981', isTee: true });
+  shots.forEach((shot, i) => {
+    allPoints.push({
+      x: shot.tapPoint.x, y: shot.tapPoint.y,
+      label: String(shot.shotNumber || i + 1),
+      color: shot.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6',
+      club: clubAbbr(shot.club),
+      distance: shot.distancePlayed
+    });
+  });
+
   return (
     <div className="relative w-full">
-      <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-emerald-400/20" />
-      {/* Tee positie */}
-      {teeTap && (
-        <div style={{
-          position: 'absolute', left: teeTap.x + '%', top: teeTap.y + '%',
+      <img src={photoUrl} alt="Hole" className="w-full rounded-2xl border border-emerald-400/20" style={{ display: 'block' }} />
+      {/* SVG overlay exact over de foto */}
+      <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+        viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* Lijnen tussen punten */}
+        {allPoints.map((pt, i) => i > 0 ? (
+          <line key={`line-${i}`}
+            x1={allPoints[i-1].x} y1={allPoints[i-1].y}
+            x2={pt.x} y2={pt.y}
+            stroke="#f97316" strokeWidth="0.8" strokeLinecap="round" opacity="0.9" />
+        ) : null)}
+      </svg>
+      {/* Punten als absolute divs */}
+      {allPoints.map((pt, i) => (
+        <div key={i} style={{
+          position: 'absolute', left: pt.x + '%', top: pt.y + '%',
           transform: 'translate(-50%, -50%)', pointerEvents: 'none'
         }}>
           <div style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: '#10b981', border: '2px solid white',
+            width: 26, height: 26, borderRadius: '50%',
+            background: pt.color, border: '2px solid white',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.6)', fontSize: 11, fontWeight: 'bold', color: 'white'
-          }}>T</div>
-        </div>
-      )}
-
-      {shots.map((shot, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          left: shot.tapPoint.x + '%',
-          top: shot.tapPoint.y + '%',
-          transform: 'translate(-50%, -50%)',
-          pointerEvents: 'none'
-        }}>
-          {/* Lijn van vorig punt */}
-          {i > 0 && shots[i-1].tapPoint && (() => {
-            const prev = shots[i-1].tapPoint;
-            const curr = shot.tapPoint;
-            const dx = curr.x - prev.x;
-            const dy = curr.y - prev.y;
-            const len = Math.sqrt(dx*dx + dy*dy);
-            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            return (
-              <div style={{
-                position: 'absolute',
-                left: '50%', top: '50%',
-                width: len + '%',
-                height: 2,
-                background: 'rgba(96,165,250,0.8)',
-                transformOrigin: '0 50%',
-                transform: `rotate(${angle}deg) translateX(-${len}%)`,
-                pointerEvents: 'none'
-              }} />
-            );
-          })()}
-          {/* Punt */}
-          <div style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: shot.position && shot.position !== 'midden' ? '#f59e0b' : '#3b82f6',
-            border: '2px solid white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.6)',
-            fontSize: 10, fontWeight: 'bold', color: 'white'
-          }}>
-            {shot.shotNumber}
-          </div>
-          {/* Label */}
-          <div style={{
-            position: 'absolute', left: 16, top: -8,
-            background: 'rgba(0,0,0,0.65)', borderRadius: 4,
-            padding: '2px 5px', whiteSpace: 'nowrap', fontSize: 9, color: 'white'
-          }}>
-            {clubAbbr(shot.club)}{shot.distancePlayed ? ` ${shot.distancePlayed}m` : ''}
-          </div>
+            boxShadow: '0 2px 6px rgba(0,0,0,0.6)', fontSize: 10, fontWeight: 'bold', color: 'white'
+          }}>{pt.label}</div>
+          {!pt.isTee && pt.club && (
+            <div style={{
+              position: 'absolute', left: 16, top: -8, whiteSpace: 'nowrap',
+              background: 'rgba(0,0,0,0.65)', borderRadius: 4,
+              padding: '2px 5px', fontSize: 9, color: 'white'
+            }}>{pt.club}{pt.distance ? ` ${pt.distance}m` : ''}</div>
+          )}
         </div>
       ))}
       <div className="absolute bottom-3 left-3">
