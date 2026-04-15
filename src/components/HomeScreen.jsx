@@ -11,6 +11,7 @@ export default function HomeScreen({
   const [showCourseInfo, setShowCourseInfo] = useState(false);
   const course = round.roundData.course;
   const loopSectionRef = useRef(null);
+  const teeColorRef = useRef(null);
 
   return (
     <>
@@ -203,6 +204,7 @@ export default function HomeScreen({
                     <button key={loop.id} onClick={async () => {
                       const tees = await courseData.fetchAvailableTees(round.roundData.course.name, loop.id);
                       round.setRoundData({ ...round.roundData, loop, availableTees: tees || round.roundData.course.teeColors });
+                      setTimeout(() => teeColorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                     }} className="glass-card rounded-xl p-4 text-center hover:bg-white/15 transition group overflow-hidden">
                       <div className="font-display text-2xl text-emerald-300 group-hover:text-emerald-200 transition mb-1 truncate uppercase">{loop.name}</div>
                       <div className="font-body text-xs text-emerald-200/60">9 holes</div>
@@ -218,6 +220,7 @@ export default function HomeScreen({
                         const firstLoopId = selectedLoop.id.split('-')[0];
                         const tees = await courseData.fetchAvailableTees(round.roundData.course.name, firstLoopId);
                         round.setRoundData({ ...round.roundData, loop: selectedLoop, availableTees: tees || round.roundData.course.teeColors });
+                        setTimeout(() => teeColorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                       }
                     }} defaultValue=""
                       className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 font-body text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 transition appearance-none cursor-pointer"
@@ -234,7 +237,7 @@ export default function HomeScreen({
 
             {/* Tee Color */}
             {round.roundData.course && round.roundData.loop && !round.roundData.teeColor && (
-              <div className="space-y-3 animate-slide-up">
+              <div ref={teeColorRef} className="space-y-3 animate-slide-up">
                 <div className="glass-card rounded-xl p-4 bg-emerald-500/10 border-emerald-400/30 mb-4">
                   <div className="flex items-center justify-between">
                     <div>
