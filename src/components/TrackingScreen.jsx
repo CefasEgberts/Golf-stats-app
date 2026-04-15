@@ -22,6 +22,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const tapPointsRef = useRef({});
   const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole // shotNumber -> {x, y} tap positions op foto
   const finishHoleRef = useRef(null);
+  const afstandRef = useRef(null);
   const nextHoleReminderRef = useRef(null);
   const startButtonRef = useRef(null);
   const lieRef = useRef(null);
@@ -842,7 +843,10 @@ INSTRUCTIES VOOR JE ADVIES:
                         { key: 'green', emoji: '🟩', color: 'bg-emerald-400 border-emerald-300 text-white shadow-lg shadow-emerald-400/50' },
                         { key: 'penalty', emoji: '🔴', color: 'bg-red-500 border-red-400 text-white shadow-lg shadow-red-500/50' }
                       ].map(({ key, emoji, color }) => (
-                        <button key={key} onClick={() => round.setSelectedLie(key)}
+                        <button key={key} onClick={() => {
+                          round.setSelectedLie(key);
+                          setTimeout(() => afstandRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                        }}
                           className={'rounded-xl py-4 flex items-center justify-center gap-2 font-body font-medium transition border-2 ' +
                             (round.selectedLie === key ? color : 'bg-white/10 border-white/20 text-white hover:bg-white/15')}>
                           {emoji} {t(key)}
@@ -854,7 +858,7 @@ INSTRUCTIES VOOR JE ADVIES:
 
                 {/* Positie selectie - alleen als trackPosition aan staat */}
                 {settings.trackPosition && round.selectedLie && round.selectedLie !== 'penalty' && (
-                  <div>
+                  <div ref={afstandRef}>
                     <label className="font-body text-xs text-emerald-200/70 mb-3 block uppercase tracking-wider">
                       {round.selectedLie === 'green' ? 'Balpositie t.o.v. de vlag' : 'Balpositie'}
                     </label>
@@ -874,6 +878,7 @@ INSTRUCTIES VOOR JE ADVIES:
                   </div>
                 )}
 
+                <div ref={!settings.trackPosition ? afstandRef : undefined} />
                 <button onClick={() => {
                   if (gps?.gpsTracking) gps.captureShot();
                   if (gps?.disarmShotReminder) gps.disarmShotReminder();
