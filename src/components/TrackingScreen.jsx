@@ -1014,7 +1014,7 @@ INSTRUCTIES VOOR JE ADVIES:
                         <span className="text-orange-200/70 text-xs">(bijv. uitgehold in 1 slag)</span>
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => setShowPuttWarning(false)}
+                        <button onClick={() => { setShowPuttWarning(false); setPuttWarningConfirmed(false); }}
                           className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/70 border border-white/20">
                           Nee, terug
                         </button>
@@ -1046,11 +1046,12 @@ INSTRUCTIES VOOR JE ADVIES:
                     </div>
                   )}
 
-                  {!showPuttWarning && (
+                  {!showPuttWarning && !puttWarningConfirmed && (
                     <button onClick={() => {
                       if (totalPutts === 0 && !puttWarningConfirmed) {
                         setShowPuttWarning(true);
                         setPuttWarningConfirmed(true);
+                        setTimeout(() => finishHoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
                         return;
                       }
                       const shotsWithTaps = round.currentHoleShots.map(s => ({
