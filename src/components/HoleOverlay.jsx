@@ -120,7 +120,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           )}
         </div>
       </div>
-      <div className={'flex-1 flex items-center justify-center px-4 transition-all duration-300 ' + (showStrategy ? 'max-h-[40vh]' : '')}
+      <div className={'flex-1 min-h-0 flex items-center justify-center px-4 transition-all duration-300 overflow-hidden ' + (showStrategy ? 'max-h-[40vh]' : 'max-h-[55vh]')}
         onClick={(e) => e.stopPropagation()}>
         {currentHoleInfo.photoUrl ? (
           <div className="relative h-full flex items-center justify-center">
@@ -187,7 +187,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           </div>
         )}
       </div>
-      <div className="flex-shrink-0 px-4 pt-2 overflow-y-auto" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }} onClick={(e) => e.stopPropagation()}>
+      <div className="flex-shrink-0 px-4 pt-2" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }} onClick={(e) => e.stopPropagation()}>
         <div className="max-w-lg mx-auto">
           {!tapMode && (currentHoleInfo.holeStrategy || (wind && wind.beaufort >= 2)) && (
             <>
