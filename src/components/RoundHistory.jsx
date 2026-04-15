@@ -572,7 +572,9 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             className="w-full glass-card rounded-xl py-3 font-body text-sm text-emerald-300 hover:bg-white/10 transition border border-emerald-400/20 flex items-center justify-center gap-2">
             📋 Hole info
           </button>
+        </div>
       </div>
+    </div>
     );
   }
 
@@ -831,8 +833,6 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         </div>
       </div>
     </div>
-      </div>
-      </div>
-      </div>
+    </div>
   );
 }

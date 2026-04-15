@@ -9,7 +9,7 @@ PWA voor het tracken van golfronden met live GPS, hole-foto's, Stableford scorin
 - **Build**: Vite 4
 - **Hosting**: Vercel (golf-stats-app-peach.vercel.app)
 - **Domein**: golfstats.nl (DNS pending via TransIP)
-- **Versie**: v3.60
+- **Versie**: v3.61
 
 ## Supabase
 - Project ID: `owocwwrzyspbpapmtckp`
@@ -125,7 +125,7 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 - `analyze-hole-photo.ts` — GEDEPLOYED, model: `claude-haiku-4-5-20251001`
 - Retourneert: par, distances, hazards, hole_strategy, strategy_is_ai_generated, crop
 
-## Huidige Features (v3.60)
+## Huidige Features (v3.61)
 1. Splash screen met weer + begroeting + versienummer
 2. Baan selectie via GPS nabijheid of zoeken
 3. Lus selectie (9-hole of 18-hole combo dropdown)
@@ -213,6 +213,20 @@ App.jsx bevat nu alleen nog: state, hooks, effects, business logic en component 
 85. **HoleMap schematisch** (groen kaartje met tee onderaan, green bovenaan, slagrichting L/M/R zichtbaar)
 86. **Tap-positie op hole foto** (balpositie aantikken op hole foto na elke slag)
 87. **Twee tabs in kaart modal** (schematische kaart + hole foto met slagpunten)
+88. **Tee tap verplicht** bij trackPosition=true, overgeslagen bij trackPosition=false
+89. **Tee tap alleen via hole overlay** bal-tap altijd correct na elke slag
+90. **Tee tap waarschuwing** alleen tonen bij klikken op BEGIN HOLE
+91. **Oranje/blauwe lijnen** tussen tap-punten op hole foto via SVG overlay
+92. **Scorekaart na ronde** afronden knop + scorekaart bekijken knop
+93. **Auto-scroll homescreen** naar lus selectie na baankeuze + naar tee kleur na lus selectie
+94. **Auto-scroll tracking** naar balpositie/afstand akkoord na lie selectie
+95. **Putt warning scroll** putt waarschuwing scrollt in beeld, knop verdwijnt na bevestigen
+96. **Instructietekst tap overlay** bij tee/bal tap modus
+97. **Hole overlay layout** foto krimpt mee, scrollbaar, BEGIN HOLE altijd zichtbaar, iOS safe area fix
+98. **Tee knop groen** BEGIN HOLE grijs tot tee gemarkeerd
+99. **Live slagpad op foto** T + slagen met blauwe lijn tijdens spelen
+100. **Tap posities achteraf bewerken** via Op de foto tab in scorekaart
+101. **completedRound state** fix scorekaart toont correcte data na ronde
 
 ## TODO's
 
