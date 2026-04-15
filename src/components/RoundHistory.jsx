@@ -831,5 +831,8 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
         </div>
       </div>
     </div>
+      </div>
+      </div>
+      </div>
   );
 }
