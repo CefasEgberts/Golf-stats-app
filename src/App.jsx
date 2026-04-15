@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v3.53`;
+const appVersion = `${commitHash} v3.54`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -299,11 +299,13 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   };
 
   const finishHole = async (putts, score, stablefordPts = null, handicapSnapshot = null, si = null, par = null, playingHcp = null, shotsWithTaps = null) => {
+    console.log('finishHole called', { putts, score, currentHole: round.currentHole, loop: round.roundData.loop });
     const updatedRound = round.saveHole(putts, score, stablefordPts, handicapSnapshot, si, par, playingHcp, shotsWithTaps);
     const { loop, course } = round.roundData;
     if (!loop?.holes) { alert('Error: No loop data'); return; }
 
     const currentIndex = loop.holes.indexOf(round.currentHole);
+    console.log('currentIndex:', currentIndex, 'loop.holes:', loop.holes);
     if (currentIndex < loop.holes.length - 1) {
       const nextHole = loop.holes[currentIndex + 1];
       const isCombo = loop.isFull || false;
