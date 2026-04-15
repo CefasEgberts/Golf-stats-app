@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Plus, TrendingUp, BarChart3, Calendar, MapPin, Settings, Home, Info, X, Phone, Mail, Globe } from 'lucide-react';
 
 export default function HomeScreen({
@@ -10,6 +10,7 @@ export default function HomeScreen({
 }) {
   const [showCourseInfo, setShowCourseInfo] = useState(false);
   const course = round.roundData.course;
+  const loopSectionRef = useRef(null);
 
   return (
     <>
@@ -162,7 +163,12 @@ export default function HomeScreen({
                   <div className="glass-card rounded-xl p-6 text-center"><div className="font-body text-emerald-200/60">Geen banen gevonden voor "{searchQuery}"</div></div>
                 )}
                 {filteredCourses.map((course) => (
-                  <button key={course.id} onClick={() => { round.setRoundData({ ...round.roundData, course }); setShowSearch(false); setSearchQuery(''); }}
+                  <button key={course.id} onClick={() => {
+                      round.setRoundData({ ...round.roundData, course });
+                      setShowSearch(false);
+                      setSearchQuery('');
+                      setTimeout(() => loopSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                    }}
                     className="w-full glass-card rounded-xl p-4 text-left hover:bg-white/15 transition group">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -183,7 +189,7 @@ export default function HomeScreen({
 
             {/* Loop Selection */}
             {round.roundData.course && !round.roundData.loop && (
-              <div className="space-y-3 animate-slide-up">
+              <div ref={loopSectionRef} className="space-y-3 animate-slide-up">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="font-body font-semibold text-emerald-300 text-lg">{round.roundData.course.name}</div>
