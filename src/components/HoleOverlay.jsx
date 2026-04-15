@@ -1,56 +1,6 @@
 import React from 'react';
 import { haversineMeters } from '../lib/gps';
 
-// ── LiveSlagpad: toont live slagpad op foto tijdens spelen ──────
-function LiveSlagpad({ previousTaps, tapPoint, tapShotInfo, tapMode }) {
-  if (!tapMode || !previousTaps) return null;
-
-  const pts = [];
-  if (previousTaps.tee) {
-    pts.push({ x: previousTaps.tee.x, y: previousTaps.tee.y, label: 'T', color: '#10b981' });
-  }
-  Object.entries(previousTaps.shots || {})
-    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-    .forEach(([shotNum, pt]) => {
-      if (pt) pts.push({ x: pt.x, y: pt.y, label: String(shotNum), color: '#3b82f6' });
-    });
-  if (tapPoint) {
-    pts.push({ x: tapPoint.x, y: tapPoint.y, label: String(tapShotInfo?.shotNumber || '?'), color: '#f59e0b', isCurrent: true });
-  }
-
-  if (pts.length === 0) return null;
-
-  return (
-    <>
-      <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-        viewBox="0 0 100 100" preserveAspectRatio="none">
-        {pts.map((pt, i) => i > 0 ? (
-          <line key={`w${i}`} x1={pts[i-1].x} y1={pts[i-1].y} x2={pt.x} y2={pt.y}
-            stroke="white" strokeWidth="0.5" opacity="0.4" strokeLinecap="round" />
-        ) : null)}
-        {pts.map((pt, i) => i > 0 ? (
-          <line key={`b${i}`} x1={pts[i-1].x} y1={pts[i-1].y} x2={pt.x} y2={pt.y}
-            stroke="#60a5fa" strokeWidth="0.3" opacity="0.9" strokeLinecap="round" />
-        ) : null)}
-      </svg>
-      {pts.map((pt, i) => (
-        <div key={i} style={{
-          position: 'absolute', left: pt.x + '%', top: pt.y + '%',
-          transform: 'translate(-50%,-50%)', pointerEvents: 'none'
-        }}>
-          <div style={{
-            width: pt.isCurrent ? 26 : 22, height: pt.isCurrent ? 26 : 22,
-            borderRadius: '50%', background: pt.color,
-            border: '2px solid white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, fontWeight: 'bold', color: 'white',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.5)'
-          }}>{pt.label}</div>
-        </div>
-      ))}
-    </>
-  );
-}
 
 export default function HoleOverlay({ currentHoleInfo, remainingDistance, showStrategy, setShowStrategy, onClose, t, gps, wind, hasShots, tapMode = false, onTapPosition = null, tapShotInfo = null, showTeeTap = false, onTeeTap = null, requireTeeTap = false, previousTaps = null }) {
   const [tapPoint, setTapPoint] = React.useState(null);
@@ -202,8 +152,20 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               </div>
             )}
 
-              {/* Live slagpad — tee + vorige slagen + huidige tap */}
-              <LiveSlagpad previousTaps={previousTaps} tapPoint={tapPoint} tapShotInfo={tapShotInfo} tapMode={tapMode} />
+              {/* Live slagpad — alleen binnen de img wrapper */}
+              {tapMode && previousTaps && (() => {
+                const pts = [];
+                if (previousTaps.tee) pts.push({ x: previousTaps.tee.x, y: previousTaps.tee.y, label: 'T', color: '#10b981' });
+                Object.entries(previousTaps.shots || {})
+                  .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                  .forEach(([num, pt]) => { if (pt) pts.push({ x: pt.x, y: pt.y, label: String(num), color: '#3b82f6' }); });
+                if (pts.length === 0) return null;
+                return pts.map((pt, i) => (
+                  <div key={i} style={{ position: 'absolute', left: pt.x + '%', top: pt.y + '%', transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 10 }}>
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: pt.color, border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 'bold', color: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{pt.label}</div>
+                  </div>
+                ));
+              })()}
             </div>{/* einde img wrapper */}
             {/* GPS blinking dot */}
             {gpsDotTop != null && (
