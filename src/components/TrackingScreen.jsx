@@ -1020,6 +1020,8 @@ INSTRUCTIES VOOR JE ADVIES:
                         </button>
                         <button onClick={() => {
                           setShowPuttWarning(false);
+                          setShowFinishHole(false);
+                          setPuttWarningConfirmed(false);
                           const shotsWithTaps = round.currentHoleShots.map(s => ({
                             ...s,
                             tapPoint: tapPointsRef.current[s.shotNumber] || null
@@ -1031,13 +1033,11 @@ INSTRUCTIES VOOR JE ADVIES:
                           tapPointsRef.current = {};
                           teeTapRef.current = null;
                           setTeeTapSaved(null);
-                          finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
-                          setShowFinishHole(false);
-                          setPuttWarningConfirmed(false);
                           if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
                           nextHoleReminderRef.current = setTimeout(() => {
                             if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
                           }, 60000);
+                          finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
                         }}
                           className="flex-1 btn-primary rounded-xl py-3 font-body text-sm">
                           Ja, klopt
@@ -1046,7 +1046,7 @@ INSTRUCTIES VOOR JE ADVIES:
                     </div>
                   )}
 
-                  {!showPuttWarning && !puttWarningConfirmed && (
+                  {!showPuttWarning && (
                     <button onClick={() => {
                       if (totalPutts === 0 && !puttWarningConfirmed) {
                         setShowPuttWarning(true);
