@@ -120,17 +120,17 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           )}
         </div>
       </div>
-      <div className={'flex-1 min-h-0 flex items-center justify-center px-4 transition-all duration-300 overflow-hidden ' + (showStrategy ? 'max-h-[40vh]' : 'max-h-[55vh]')}
+      <div className="flex-1 min-h-0 flex items-center justify-center px-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}>
         {currentHoleInfo.photoUrl ? (
-          <div className="relative h-full flex items-center justify-center">
+          <div className="relative w-full flex items-center justify-center" style={{ minHeight: 0 }}>
             {/* Wrapper exact om de img heen zodat absolute posities kloppen */}
-            <div style={{ position: 'relative', display: 'inline-block' }}>
+            <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
               <img src={currentHoleInfo.photoUrl} alt={`Hole ${currentHoleInfo.number}`}
                 ref={imgRef}
                 onClick={handleImageTap}
-                className={"object-contain rounded-xl border transition-all duration-300 " + ((tapMode || teeTapMode) ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
-                style={{ maxHeight: showStrategy ? '35vh' : '72vh', maxWidth: '100%', display: 'block' }} />
+                className={"rounded-xl border transition-all duration-300 " + ((tapMode || teeTapMode) ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
+                style={{ maxHeight: '100%', width: '100%', height: 'auto', display: 'block' }} />
               {/* Tee tap indicator */}
               {teeTapMode && teeTapPoint && (
                 <div style={{ position: 'absolute', left: teeTapPoint.x + '%', top: teeTapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
