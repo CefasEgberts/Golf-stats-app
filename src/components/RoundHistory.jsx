@@ -143,11 +143,11 @@ function PhotoMap({ hole, onSaveTaps }) {
         </div>
       )}
 
-      <div className="relative flex-1 min-h-0 flex items-center justify-center">
+      <div style={{ position: 'relative' }}>
         <img src={photoUrl} alt="Hole" ref={imgRef}
           onClick={handleImgTap}
-          className={"rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
-          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block' }} />
+          className={"w-full rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
+          style={{ display: 'block', height: 'auto' }} />
 
         {/* SVG lijnen */}
         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
@@ -572,7 +572,6 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             className="w-full glass-card rounded-xl py-3 font-body text-sm text-emerald-300 hover:bg-white/10 transition border border-emerald-400/20 flex items-center justify-center gap-2">
             📋 Hole info
           </button>
-        </div>
       </div>
     );
   }

@@ -132,8 +132,8 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 ref={imgRef}
                 onClick={handleImageTap}
                 onError={(e) => { e.target.style.display = 'none'; }}
-                className={"rounded-xl border transition-all duration-300 " + ((tapMode || teeTapMode) ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
-                style={{ maxHeight: '100%', width: '100%', height: 'auto', display: 'block' }} />
+                className={"w-full rounded-xl border transition-all duration-300 " + ((tapMode || teeTapMode) ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
+                style={{ display: 'block', height: 'auto' }} />
               {/* Tee tap indicator */}
               {teeTapMode && teeTapPoint && (
                 <div style={{ position: 'absolute', left: teeTapPoint.x + '%', top: teeTapPoint.y + '%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
