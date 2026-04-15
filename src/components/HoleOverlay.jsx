@@ -292,7 +292,14 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/60 border border-white/20">
                 Annuleren
               </button>
-              <button onClick={() => { if (teeTapPoint && onTeeTap) onTeeTap(teeTapPoint); setTeeTapMode(false); }}
+              <button onClick={() => {
+                if (teeTapPoint && onTeeTap) {
+                  onTeeTap(teeTapPoint);
+                } else {
+                  onClose();
+                }
+                setTeeTapMode(false);
+              }}
                 disabled={!teeTapPoint}
                 className="flex-1 btn-primary rounded-xl py-3 font-display text-lg tracking-wider disabled:opacity-40">
                 ✓ Tee opgeslagen
