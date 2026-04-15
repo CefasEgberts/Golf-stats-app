@@ -310,8 +310,8 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           {/* Tee tap knop — toon als nog niet getapt */}
           {!tapMode && !teeTapMode && showTeeTap && (
             <button onClick={() => setTeeTapMode(true)}
-              className="w-full mt-3 glass-card rounded-xl py-3 font-body text-sm text-emerald-300 border border-emerald-400/30 hover:bg-white/10 transition">
-              📍 Markeer tee positie op kaartje
+              className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-lg tracking-wider">
+              📍 Klik hier om tee positie op kaartje te markeren
             </button>
           )}
 
@@ -348,7 +348,10 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 }
                 onClose();
               }}
-                className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-xl tracking-wider">
+                className={"w-full mt-3 rounded-xl py-4 font-display text-xl tracking-wider transition " +
+                  (requireTeeTap && !teeTapPoint && !hasShots
+                    ? "bg-white/10 border-2 border-white/20 text-white/40 cursor-default"
+                    : "btn-primary")}>
                 {hasShots ? '← Terug naar invoer' : t('beginHole')}
               </button>
             </>
