@@ -6,6 +6,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
   const [teeTapMode, setTeeTapMode] = React.useState(false);
   const [teeTapPoint, setTeeTapPoint] = React.useState(null);
   const [showTeeTapWarning, setShowTeeTapWarning] = React.useState(false);
+  const photoScrollRef = React.useRef(null);
   const imgRef = React.useRef(null);
 
   const handleImageTap = (e) => {
@@ -120,7 +121,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto px-4"
+      <div ref={photoScrollRef} className="flex-1 overflow-y-auto px-4"
         onClick={(e) => e.stopPropagation()}>
         {currentHoleInfo.photoUrl ? (
           <div className="relative w-full flex items-center justify-center" style={{ minHeight: 0 }}>
@@ -288,6 +289,9 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                   onClose();
                 }
                 setTeeTapMode(false);
+                setTimeout(() => {
+                  if (photoScrollRef.current) photoScrollRef.current.scrollTop = 0;
+                }, 100);
               }}
                 disabled={!teeTapPoint}
                 className="flex-1 btn-primary rounded-xl py-3 font-display text-lg tracking-wider disabled:opacity-40">
@@ -298,7 +302,14 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
 
           {/* Tee tap knop — toon als nog niet getapt */}
           {!tapMode && !teeTapMode && showTeeTap && (
-            <button onClick={() => setTeeTapMode(true)}
+            <button onClick={() => {
+              setTeeTapMode(true);
+              setTimeout(() => {
+                if (photoScrollRef.current) {
+                  photoScrollRef.current.scrollTop = photoScrollRef.current.scrollHeight;
+                }
+              }, 100);
+            }}
               className="w-full mt-3 btn-primary rounded-xl py-4 font-display text-lg tracking-wider">
               📍 Klik hier om tee positie op kaartje te markeren
             </button>
