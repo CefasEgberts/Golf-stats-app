@@ -125,7 +125,7 @@ function PhotoMap({ hole, onSaveTaps }) {
   const previewPoints = editMode ? buildAllPoints() : allPoints;
 
   return (
-    <div className="w-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Edit instructie */}
       {editMode && editStep !== null && (
         <div className="mb-3 px-3 py-2 bg-emerald-500/20 border border-emerald-400/30 rounded-xl text-center">
@@ -143,11 +143,11 @@ function PhotoMap({ hole, onSaveTaps }) {
         </div>
       )}
 
-      <div className="relative w-full">
+      <div className="relative flex-1 min-h-0 flex items-center justify-center">
         <img src={photoUrl} alt="Hole" ref={imgRef}
           onClick={handleImgTap}
-          className={"w-full rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
-          style={{ display: 'block' }} />
+          className={"rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
+          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block' }} />
 
         {/* SVG lijnen */}
         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
@@ -417,9 +417,9 @@ function MapTabView({ hole, hasTapPoints, onSaveTaps }) {
         </button>
       </div>
       {/* Tab inhoud */}
-      <div className="flex-1 overflow-y-auto px-4 pb-6">
-        {tab === 'kaart' && <HoleMap hole={hole} />}
-        {tab === 'foto' && <PhotoMap hole={hole} onSaveTaps={onSaveTaps} />}
+      <div className="flex-1 min-h-0 px-4 pb-4 overflow-hidden flex flex-col">
+        {tab === 'kaart' && <div className="flex-1 overflow-y-auto"><HoleMap hole={hole} /></div>}
+        {tab === 'foto' && <div className="flex-1 overflow-hidden flex flex-col"><PhotoMap hole={hole} onSaveTaps={onSaveTaps} /></div>}
       </div>
     </div>
   );
