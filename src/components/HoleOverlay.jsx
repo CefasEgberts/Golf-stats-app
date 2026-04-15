@@ -131,6 +131,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               <img src={currentHoleInfo.photoUrl} alt={`Hole ${currentHoleInfo.number}`}
                 ref={imgRef}
                 onClick={handleImageTap}
+                onError={(e) => { e.target.style.display = 'none'; }}
                 className={"rounded-xl border transition-all duration-300 " + ((tapMode || teeTapMode) ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-600/30")}
                 style={{ maxHeight: '100%', width: '100%', height: 'auto', display: 'block' }} />
               {/* Tee tap indicator */}
@@ -152,20 +153,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
               </div>
             )}
 
-              {/* Live slagpad — alleen binnen de img wrapper */}
-              {tapMode && previousTaps && (() => {
-                const pts = [];
-                if (previousTaps.tee) pts.push({ x: previousTaps.tee.x, y: previousTaps.tee.y, label: 'T', color: '#10b981' });
-                Object.entries(previousTaps.shots || {})
-                  .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                  .forEach(([num, pt]) => { if (pt) pts.push({ x: pt.x, y: pt.y, label: String(num), color: '#3b82f6' }); });
-                if (pts.length === 0) return null;
-                return pts.map((pt, i) => (
-                  <div key={i} style={{ position: 'absolute', left: pt.x + '%', top: pt.y + '%', transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 10 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: pt.color, border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 'bold', color: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{pt.label}</div>
-                  </div>
-                ));
-              })()}
+
             </div>{/* einde img wrapper */}
             {/* GPS blinking dot */}
             {gpsDotTop != null && (

@@ -499,10 +499,6 @@ INSTRUCTIES VOOR JE ADVIES:
           hasShots={true}
           tapMode={true}
           tapShotInfo={pendingTapShot}
-          previousTaps={{
-            tee: teeTapSaved || teeTapRef.current,
-            shots: { ...tapPointsRef.current }
-          }}
           onTapPosition={(tapPoint) => {
             if (tapPoint && pendingTapShot?.shotNumber) {
               tapPointsRef.current[pendingTapShot.shotNumber] = tapPoint;
