@@ -17,6 +17,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [caddyLoading, setCaddyLoading] = useState(false);
   const [showTapOverlay, setShowTapOverlay] = useState(false);
   const [showPuttWarning, setShowPuttWarning] = useState(false);
+  const [puttWarningConfirmed, setPuttWarningConfirmed] = useState(false);
   const [pendingTapShot, setPendingTapShot] = useState(null);
   const tapPointsRef = useRef({});
   const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole // shotNumber -> {x, y} tap positions op foto
@@ -1027,6 +1028,7 @@ INSTRUCTIES VOOR JE ADVIES:
                           setTeeTapSaved(null);
                           finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
                           setShowFinishHole(false);
+                          setPuttWarningConfirmed(false);
                           if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
                           nextHoleReminderRef.current = setTimeout(() => {
                             if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
@@ -1041,8 +1043,9 @@ INSTRUCTIES VOOR JE ADVIES:
 
                   {!showPuttWarning && (
                     <button onClick={() => {
-                      if (totalPutts === 0) {
+                      if (totalPutts === 0 && !puttWarningConfirmed) {
                         setShowPuttWarning(true);
+                        setPuttWarningConfirmed(true);
                         return;
                       }
                       const shotsWithTaps = round.currentHoleShots.map(s => ({
