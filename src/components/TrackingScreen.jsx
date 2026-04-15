@@ -20,7 +20,8 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const [puttWarningConfirmed, setPuttWarningConfirmed] = useState(false);
   const [pendingTapShot, setPendingTapShot] = useState(null);
   const tapPointsRef = useRef({});
-  const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole // shotNumber -> {x, y} tap positions op foto
+  const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole
+  const [teeTapSaved, setTeeTapSaved] = useState(null); // backup state voor tee tap
   const finishHoleRef = useRef(null);
   const afstandRef = useRef(null);
   const nextHoleReminderRef = useRef(null);
