@@ -120,7 +120,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
           )}
         </div>
       </div>
-      <div className="flex-1 min-h-0 flex items-center justify-center px-4 overflow-hidden"
+      <div className="flex-1 overflow-y-auto px-4"
         onClick={(e) => e.stopPropagation()}>
         {currentHoleInfo.photoUrl ? (
           <div className="relative w-full flex items-center justify-center" style={{ minHeight: 0 }}>
@@ -137,11 +137,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', border: '3px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)', fontSize: 11, fontWeight: 'bold', color: 'white' }}>T</div>
                 </div>
               )}
-              {teeTapMode && !teeTapPoint && (
-                <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
-                  <span style={{ color: '#10b981', fontSize: 13, fontWeight: 'bold' }}>🏌️ Tik op de tee-positie</span>
-                </div>
-              )}
+
 
             {/* Tap punt indicator */}
             {tapMode && tapPoint && (
@@ -153,14 +149,7 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
                 </div>
               </div>
             )}
-            {/* Tap mode instructie */}
-            {tapMode && !tapPoint && (
-              <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', borderRadius: 10, padding: '6px 14px' }}>
-                <span style={{ color: tapShotInfo?.isTee ? '#10b981' : '#fbbf24', fontSize: 13, fontWeight: 'bold' }}>
-                  {tapShotInfo?.isTee ? '🏌️ Tik op de tee-positie' : '👆 Tik waar de bal ligt'}
-                </span>
-              </div>
-            )}
+
             </div>{/* einde img wrapper */}
             {/* GPS blinking dot */}
             {gpsDotTop != null && (
