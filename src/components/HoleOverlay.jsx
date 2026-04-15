@@ -317,16 +317,23 @@ export default function HoleOverlay({ currentHoleInfo, remainingDistance, showSt
 
           {/* Close / tap confirm button */}
           {tapMode ? (
-            <div className="flex gap-3 mt-3">
-              <button onClick={skipTap}
-                className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/60 border border-white/20">
-                Overslaan
-              </button>
-              <button onClick={confirmTap} disabled={!tapPoint}
-                className="flex-1 btn-primary rounded-xl py-3 font-display text-lg tracking-wider disabled:opacity-40">
-                ✓ Bevestigen
-              </button>
-            </div>
+            <>
+              <div className="mt-3 mb-2 text-center">
+                <span className="font-body text-xs text-white/50">
+                  👆 Tik op het kaartje om aan te geven waar de bal is terechtgekomen
+                </span>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={skipTap}
+                  className="flex-1 glass-card rounded-xl py-3 font-body text-sm text-white/60 border border-white/20">
+                  Overslaan
+                </button>
+                <button onClick={confirmTap} disabled={!tapPoint}
+                  className="flex-1 btn-primary rounded-xl py-3 font-display text-lg tracking-wider disabled:opacity-40">
+                  ✓ Bevestigen
+                </button>
+              </div>
+            </>
           ) : (
             <>
               {showTeeTapWarning && requireTeeTap && !teeTapPoint && !hasShots && (
