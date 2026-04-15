@@ -25,7 +25,7 @@ import ClubAnalysis from './components/ClubAnalysis';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const commitHash = import.meta.env.VITE_VERCEL_GIT_COMMIT_SHA?.substring(0, 7) || 'local';
-const appVersion = `${commitHash} v3.56`;
+const appVersion = `${commitHash} v3.57`;
 
 const getTeeColorClass = (color) =>
   TEE_COLOR_CLASSES[color?.toLowerCase()] || 'bg-white/20 text-white';
@@ -35,6 +35,7 @@ const getTeeColorClass = (color) =>
 export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
   const [roundHistoryKey, setRoundHistoryKey] = React.useState(0);
   const [currentScreen, setCurrentScreen] = useState('splash');
+  const [completedRound, setCompletedRound] = React.useState(null);
   const [showWakeLockTip, setShowWakeLockTip] = useState(false);
   const [showWakeLockReminder, setShowWakeLockReminder] = useState(false);
 
@@ -326,12 +327,14 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
     } else {
       gps.stopTracking();
       await round.finishRound(updatedRound, user?.id);
+      setCompletedRound(updatedRound);
       if (isIOS) setShowWakeLockReminder(true);
       setCurrentScreen('stats');
     }
   };
 
   const resetToHome = () => {
+    setCompletedRound(null);
     round.resetRound();
     setUserLocation(null); setShowSearch(false); setSearchQuery('');
     courseData.setGoogleCourses([]);
@@ -504,7 +507,7 @@ export default function GolfStatsApp({ user, profile, onLogout, onAdmin }) {
       {/* ==================== STATS SCREEN ==================== */}
       {currentScreen === 'stats' && (
         <StatsScreen
-          roundData={round.roundData}
+          roundData={completedRound || round.roundData}
           allHolesData={courseData.allHolesData}
           courseRating={courseData.courseRating}
           settings={settings}
