@@ -962,9 +962,8 @@ INSTRUCTIES VOOR JE ADVIES:
           return (
             <div className="mt-6" ref={finishHoleRef}>
               <button onClick={() => { 
-                const newState = !showFinishHole; 
-                setShowFinishHole(newState); 
-                if (newState) setTimeout(() => finishHoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                setShowFinishHole(true); 
+                setTimeout(() => finishHoleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
               }}
                 className="w-full glass-card rounded-2xl p-4 flex items-center justify-between bg-emerald-500/10 border-emerald-400/30 hover:bg-emerald-500/15 transition">
                 <div className="flex items-center gap-3">
