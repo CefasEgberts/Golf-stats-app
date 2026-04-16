@@ -574,7 +574,6 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           </button>
         </div>
       </div>
-    </div>
     );
   }
 
@@ -714,7 +713,7 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
             </div>
             {roundData.teeColor && (
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${roundData.teeColor === 'geel' ? 'bg-yellow-400' : roundData.teeColor === 'wit' ? 'bg-white' : roundData.teeColor === 'rood' ? 'bg-red-400' : roundData.teeColor === 'blauw' ? 'bg-blue-400' : 'bg-gray-400'}`} />
+                <div className={`w-3 h-3 rounded-full ${roundData.teeColor === 'geel' ? 'bg-yellow-400' : roundData.teeColor === 'wit' ? 'bg-white' : roundData.teeColor === 'rood' ? 'bg-red-400' : roundData.teeColor === 'blauw' ? 'bg-blue-400' : 'bg-gray-400'}`}></div>
                 <span className="font-body text-xs text-emerald-200/70 capitalize">{roundData.teeColor}</span>
               </div>
             )}
@@ -832,7 +831,6 @@ export default function RoundHistory({ roundData, convertDistance, getUnitLabel,
           })}
         </div>
       </div>
-    </div>
     </div>
   );
 }
