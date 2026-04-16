@@ -143,11 +143,12 @@ function PhotoMap({ hole, onSaveTaps }) {
         </div>
       )}
 
-      <div style={{ position: 'relative' }}>
+      <div className="flex justify-center">
+      <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%' }}>
         <img src={photoUrl} alt="Hole" ref={imgRef}
           onClick={handleImgTap}
-          className={"w-full rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
-          style={{ display: 'block', height: 'auto' }} />
+          className={"rounded-2xl border " + (editMode && editStep !== null ? "border-yellow-400/60 cursor-crosshair" : "border-emerald-400/20")}
+          style={{ display: 'block', maxWidth: '100%', maxHeight: '58vh', width: 'auto', height: 'auto' }} />
 
         {/* SVG lijnen */}
         <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
@@ -191,6 +192,7 @@ function PhotoMap({ hole, onSaveTaps }) {
           </div>
         )}
       </div>
+      </div>{/* einde flex justify-center */}
 
       {/* Knoppen */}
       {!editMode ? (
