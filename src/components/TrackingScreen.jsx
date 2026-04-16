@@ -22,6 +22,7 @@ export default function TrackingScreen({ round, courseData, settings, clubs, con
   const tapPointsRef = useRef({});
   const teeTapRef = useRef(null); // tee positie op foto, eenmalig per hole
   const [teeTapSaved, setTeeTapSaved] = useState(null); // backup state voor tee tap
+  const [holeStarted, setHoleStarted] = useState(false); // true nadat overlay eerste keer gesloten is
   const finishHoleRef = useRef(null);
   const afstandRef = useRef(null);
   const nextHoleReminderRef = useRef(null);
@@ -470,13 +471,13 @@ INSTRUCTIES VOOR JE ADVIES:
           remainingDistance={round.remainingDistance}
           showStrategy={round.showStrategy}
           setShowStrategy={round.setShowStrategy}
-          onClose={() => { round.setShowHoleOverview(false); round.setShowStrategy(false); }}
+          onClose={() => { round.setShowHoleOverview(false); round.setShowStrategy(false); setHoleStarted(true); }}
           t={t}
           gps={gps}
           wind={wind}
-          hasShots={round.currentHoleShots.length > 0}
-          showTeeTap={!!(settings.trackPosition && round.currentHoleInfo?.photoUrl && !teeTapRef.current && round.currentHoleShots.length === 0)}
-          requireTeeTap={!!(settings.trackPosition && round.currentHoleInfo?.photoUrl && round.currentHoleShots.length === 0)}
+          hasShots={round.currentHoleShots.length > 0 || holeStarted}
+          showTeeTap={!!(settings.trackPosition && round.currentHoleInfo?.photoUrl && !teeTapRef.current && !holeStarted && round.currentHoleShots.length === 0)}
+          requireTeeTap={!!(settings.trackPosition && round.currentHoleInfo?.photoUrl && !holeStarted && round.currentHoleShots.length === 0)}
           onTeeTap={(tapPoint) => {
             teeTapRef.current = tapPoint;
             setTeeTapSaved(tapPoint); // backup in state
@@ -1033,6 +1034,7 @@ INSTRUCTIES VOOR JE ADVIES:
                           tapPointsRef.current = {};
                           teeTapRef.current = null;
                           setTeeTapSaved(null);
+                          setHoleStarted(false);
                           if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
                           nextHoleReminderRef.current = setTimeout(() => {
                             if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200]);
@@ -1065,6 +1067,7 @@ INSTRUCTIES VOOR JE ADVIES:
                       tapPointsRef.current = {};
                       teeTapRef.current = null;
                       setTeeTapSaved(null);
+                      setHoleStarted(false);
                       finishHole(totalPutts, autoScore, stablefordPts, settings.handicap, si, holePar, calculatePlayingHandicap(settings.handicap, courseData.courseRating), shotsWithTaps);
                       setShowFinishHole(false);
                       if (nextHoleReminderRef.current) clearTimeout(nextHoleReminderRef.current);
